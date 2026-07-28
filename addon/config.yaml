@@ -1,0 +1,49 @@
+name: HA Audio Events
+version: 0.1.0
+description: Home Assistant add-on for audio event detection using TensorFlow Lite.
+arch:
+  - amd64
+  - armv7
+  - armhf
+  - aarch64
+options:
+  model: yamnet
+  buffer_seconds: 3.0
+  audio:
+    sample_rate: 16000
+    channels: 1
+    format: pcm_s16le
+  activity:
+    rms_threshold: 0.04
+    peak_threshold: 0.1
+    hold_time: 2.0
+  classifier:
+    threshold: 0.8
+    max_results: 5
+    include:
+      - train
+      - dog
+      - thunder
+      - siren
+      - speech
+    exclude:
+      - music
+      - silence
+  aggregation:
+    start_confidence: 0.85
+    end_timeout: 5.0
+  mqtt:
+    enabled: false
+    host: localhost
+    port: 1883
+    topic: audio/events
+logger: info
+startup: application
+boot: auto
+map:
+  - config: /config
+  - addons: /addons
+  - ssl: /ssl
+ports:
+  1883: 1883
+host_network: false
