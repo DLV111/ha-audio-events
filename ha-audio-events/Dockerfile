@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir numpy PyYAML paho-mqtt ai-edge-litert
 # LiteRT is the new runtime for TensorFlow Lite and is API-compatible with
 # the TensorFlow Lite Interpreter API used by YAMNetClassifier.
 
-ENTRYPOINT ["/app/addon/run.sh"]
+ENTRYPOINT ["/app/run.sh"]
