@@ -11,7 +11,7 @@ import numpy as np
 from app.classifiers.base import AudioClassifier, Detection
 
 try:
-    from tflite_runtime.interpreter import Interpreter
+    from ai_edge_litert.interpreter import Interpreter
 except ImportError:  # pragma: no cover
     Interpreter = None  # type: ignore[assignment]
 
