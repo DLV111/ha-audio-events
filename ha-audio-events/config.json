@@ -49,6 +49,71 @@
       "discovery_prefix": "homeassistant"
     }
   },
+  "schema": {
+    "type": "object",
+    "properties": {
+      "model": {"type": "string"},
+      "buffer_seconds": {"type": "number"},
+      "audio": {
+        "type": "object",
+        "properties": {
+          "sample_rate": {"type": "integer"},
+          "channels": {"type": "integer"},
+          "format": {"type": "string"}
+        },
+        "additionalProperties": false
+      },
+      "activity": {
+        "type": "object",
+        "properties": {
+          "rms_threshold": {"type": "number"},
+          "peak_threshold": {"type": "number"},
+          "hold_time": {"type": "number"}
+        },
+        "additionalProperties": false
+      },
+      "classifier": {
+        "type": "object",
+        "properties": {
+          "threshold": {"type": "number"},
+          "max_results": {"type": "integer"},
+          "include": {"type": "array", "items": {"type": "string"}},
+          "exclude": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": false
+      },
+      "aggregation": {
+        "type": "object",
+        "properties": {
+          "start_confidence": {"type": "number"},
+          "end_timeout": {"type": "number"}
+        },
+        "additionalProperties": false
+      },
+      "homeassistant": {
+        "type": "object",
+        "properties": {
+          "enabled": {"type": "boolean"},
+          "url": {"type": "string"},
+          "token": {"type": ["string", "null"]},
+          "entity_prefix": {"type": "string"}
+        },
+        "additionalProperties": false
+      },
+      "mqtt": {
+        "type": "object",
+        "properties": {
+          "enabled": {"type": "boolean"},
+          "host": {"type": "string"},
+          "port": {"type": "integer"},
+          "topic": {"type": "string"},
+          "discovery_prefix": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "additionalProperties": false
+  },
   "ports": {"1883": 1883},
   "logger": "info"
 }

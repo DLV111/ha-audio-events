@@ -1,5 +1,0 @@
-version: "1"
-
-build:
-  image: python:3.12-slim
-  shell: /bin/bash
