@@ -1,0 +1,14 @@
+{
+  "name": "HA Audio Events Add-on Repository",
+  "homepage": "https://github.com/DLV111/ha-audio-events",
+  "maintainer": "DLV111",
+  "categories": ["automation"],
+  "addons": [
+    {
+      "name": "HA Audio Events",
+      "slug": "ha_audio_events",
+      "description": "Home Assistant add-on for audio event detection using TensorFlow Lite.",
+      "url": "./ha-audio-events"
+    }
+  ]
+}
