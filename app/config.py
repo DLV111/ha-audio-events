@@ -44,6 +44,7 @@ class MQTTConfig:
     host: str = "localhost"
     port: int = 1883
     topic: str = "audio/events"
+    discovery_prefix: str = "homeassistant"
 
 
 @dataclass(frozen=True)
@@ -84,7 +85,9 @@ def _load_config(path: Path) -> dict[str, Any]:
 
 
 def load_config(path: Path | str | None = None) -> AppConfig:
-    config_path = Path(path or "addon/config.yaml")
+    config_path = Path(path or "/data/options.json")
+    if not config_path.exists():
+        config_path = Path(path or "config.yaml")
     raw = _load_config(config_path)
 
     audio = raw.get("audio", {})
@@ -128,6 +131,7 @@ def load_config(path: Path | str | None = None) -> AppConfig:
             host=str(mqtt.get("host", "localhost")),
             port=int(mqtt.get("port", 1883)),
             topic=str(mqtt.get("topic", "audio/events")),
+            discovery_prefix=str(mqtt.get("discovery_prefix", "homeassistant")),
         ),
         log_level=str(raw.get("log_level", "INFO")),
     )
