@@ -11,6 +11,7 @@ class AggregatedEvent:
     started_at: datetime
     last_seen_at: datetime
     duration: float = 0.0
+    model: str = ""
 
 
 @dataclass
@@ -20,3 +21,4 @@ class EventMessage:
     confidence: float
     duration: float
     state: str
+    model: str

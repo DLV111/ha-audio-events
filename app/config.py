@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -46,6 +47,14 @@ class MQTTConfig:
 
 
 @dataclass(frozen=True)
+class HomeAssistantConfig:
+    enabled: bool = True
+    url: str = "http://supervisor/homeassistant"
+    token: str | None = None
+    entity_prefix: str = "audio"
+
+
+@dataclass(frozen=True)
 class AppConfig:
     model: str = "yamnet"
     buffer_seconds: float = 3.0
@@ -53,6 +62,7 @@ class AppConfig:
     activity: ActivityConfig = field(default_factory=ActivityConfig)
     classifier: ClassifierConfig = field(default_factory=ClassifierConfig)
     aggregation: AggregationConfig = field(default_factory=AggregationConfig)
+    homeassistant: HomeAssistantConfig = field(default_factory=HomeAssistantConfig)
     mqtt: MQTTConfig = field(default_factory=MQTTConfig)
     log_level: str = "INFO"
 
@@ -106,6 +116,12 @@ def load_config(path: Path | str | None = None) -> AppConfig:
         aggregation=AggregationConfig(
             start_confidence=float(aggregation.get("start_confidence", 0.85)),
             end_timeout=float(aggregation.get("end_timeout", 5.0)),
+        ),
+        homeassistant=HomeAssistantConfig(
+            enabled=bool(raw.get("homeassistant", {}).get("enabled", True)),
+            url=str(raw.get("homeassistant", {}).get("url", "http://supervisor/homeassistant")),
+            token=raw.get("homeassistant", {}).get("token") or os.getenv("HASS_TOKEN"),
+            entity_prefix=str(raw.get("homeassistant", {}).get("entity_prefix", "audio")),
         ),
         mqtt=MQTTConfig(
             enabled=bool(mqtt.get("enabled", False)),

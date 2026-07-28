@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, List
 
 from app.config import AggregationConfig
@@ -16,7 +16,7 @@ class EventAggregator:
 
     def update(self, detections: Iterable[Detection]) -> list[EventMessage]:
         events: list[EventMessage] = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         detections_by_label: Dict[str, Detection] = {}
         for detection in detections:
             detections_by_label[detection.label] = detection
@@ -34,6 +34,7 @@ class EventAggregator:
                             confidence=state.confidence,
                             duration=state.duration,
                             state="ended",
+                            model=state.model,
                         )
                     )
                     del self._active_events[label]
@@ -47,6 +48,7 @@ class EventAggregator:
                         confidence=detection.confidence,
                         started_at=now,
                         last_seen_at=now,
+                        model=detection.model,
                     )
                     events.append(
                         EventMessage(
@@ -55,6 +57,7 @@ class EventAggregator:
                             confidence=detection.confidence,
                             duration=0.0,
                             state="started",
+                            model=detection.model,
                         )
                     )
             else:
@@ -68,6 +71,7 @@ class EventAggregator:
                         confidence=state.confidence,
                         duration=state.duration,
                         state="active",
+                        model=state.model,
                     )
                 )
 

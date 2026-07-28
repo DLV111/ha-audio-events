@@ -5,6 +5,7 @@ description = "Home Assistant add-on for audio event detection using TensorFlow 
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+  "aiohttp>=3.9",
   "numpy>=1.26",
   "PyYAML>=6.0",
   "paho-mqtt>=1.6",

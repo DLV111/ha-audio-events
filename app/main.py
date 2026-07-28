@@ -11,7 +11,8 @@ from app.audio.buffer import CircularAudioBuffer
 from app.audio.stream import AudioStreamSource
 from app.detection.aggregate import EventAggregator
 from app.detection.filter import filter_detections
-from app.homeassistant.events import publish_event
+from app.homeassistant.client import HomeAssistantClient
+from app.homeassistant.entities import build_entity_ids, build_attributes
 from app.homeassistant.mqtt import MQTTClient
 from app.utils.logging import configure_logging
 
@@ -28,6 +29,8 @@ async def _run_pipeline(config: AppConfig) -> None:
     classifier = build_classifier(config)
     aggregator = EventAggregator(config.aggregation)
     mqtt_client = MQTTClient(config.mqtt) if config.mqtt.enabled else None
+    ha_client = HomeAssistantClient(config.homeassistant) if config.homeassistant.enabled else None
+    entity_ids = build_entity_ids(config.homeassistant)
     source = AudioStreamSource(config.audio)
 
     async for chunk in source.stream():
@@ -41,10 +44,38 @@ async def _run_pipeline(config: AppConfig) -> None:
         events = aggregator.update(filtered)
 
         for event in events:
-            publish_event(event)
+            if ha_client is not None:
+                await ha_client.fire_event(event)
+                await ha_client.update_state(
+                    entity_ids["last_audio_event"],
+                    event.label,
+                    build_attributes(event),
+                )
+                await ha_client.update_state(
+                    entity_ids["last_audio_confidence"],
+                    f"{event.confidence:.2f}",
+                    {"label": event.label},
+                )
+                await ha_client.update_state(
+                    entity_ids["audio_model"],
+                    event.model,
+                    {"label": event.label},
+                )
+                await ha_client.update_state(
+                    entity_ids["audio_event_duration"],
+                    f"{event.duration:.2f}",
+                    {"label": event.label},
+                )
+                await ha_client.update_state(
+                    entity_ids["audio_active"],
+                    "on" if event.state != "ended" else "off",
+                    {"label": event.label},
+                )
             if mqtt_client is not None:
                 mqtt_client.publish(event)
 
+    if ha_client is not None:
+        await ha_client.close()
     if mqtt_client is not None:
         mqtt_client.stop()
 
