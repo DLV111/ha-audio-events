@@ -16,6 +16,8 @@ from app.homeassistant.entities import (
     build_entity_ids,
     build_label_sensor_entity_ids,
     build_attributes,
+    build_friendly_names,
+    build_label_friendly_names,
 )
 from app.homeassistant.mqtt import MQTTClient
 from app.utils.logging import configure_logging
@@ -42,6 +44,8 @@ async def _run_pipeline(config: AppConfig) -> None:
     ha_client = HomeAssistantClient(config.homeassistant) if config.homeassistant.enabled else None
     entity_ids = build_entity_ids(config.homeassistant)
     label_sensor_ids = build_label_sensor_entity_ids(config.homeassistant, config.classifier.include)
+    friendly_names = build_friendly_names(config.homeassistant)
+    label_friendly_names = build_label_friendly_names(config.homeassistant, config.classifier.include)
     source = AudioStreamSource(config.audio)
 
     if mqtt_client is not None and config.classifier.include:
@@ -64,33 +68,42 @@ async def _run_pipeline(config: AppConfig) -> None:
                 await ha_client.update_state(
                     entity_ids["last_audio_event"],
                     event.label,
-                    build_attributes(event),
+                    build_attributes(event, friendly_name=friendly_names["last_audio_event"]),
                 )
                 await ha_client.update_state(
                     entity_ids["last_audio_confidence"],
                     f"{event.confidence:.2f}",
-                    {"label": event.label},
+                    {"label": event.label, "friendly_name": friendly_names["last_audio_confidence"]},
                 )
                 await ha_client.update_state(
                     entity_ids["audio_model"],
                     event.model,
-                    {"label": event.label},
+                    {"label": event.label, "friendly_name": friendly_names["audio_model"]},
                 )
                 await ha_client.update_state(
                     entity_ids["audio_event_duration"],
                     f"{event.duration:.2f}",
-                    {"label": event.label},
+                    {"label": event.label, "friendly_name": friendly_names["audio_event_duration"]},
                 )
                 await ha_client.update_state(
                     entity_ids["audio_active"],
                     "on" if event.state != "ended" else "off",
-                    {"label": event.label},
+                    {
+                        "label": event.label,
+                        "friendly_name": friendly_names["audio_active"],
+                        "device_class": "sound",
+                    },
                 )
                 if event.label in label_sensor_ids:
                     await ha_client.update_state(
                         label_sensor_ids[event.label],
                         "on" if event.state != "ended" else "off",
-                        {"label": event.label, "confidence": str(event.confidence)},
+                        {
+                            "label": event.label,
+                            "confidence": str(event.confidence),
+                            "friendly_name": label_friendly_names.get(event.label, event.label),
+                            "device_class": "sound",
+                        },
                     )
             if mqtt_client is not None:
                 mqtt_client.publish(event)

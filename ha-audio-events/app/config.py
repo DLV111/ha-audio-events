@@ -123,7 +123,11 @@ def load_config(path: Path | str | None = None) -> AppConfig:
         homeassistant=HomeAssistantConfig(
             enabled=bool(raw.get("homeassistant", {}).get("enabled", True)),
             url=str(raw.get("homeassistant", {}).get("url", "http://supervisor/homeassistant")),
-            token=raw.get("homeassistant", {}).get("token") or os.getenv("HASS_TOKEN"),
+            token=(
+                raw.get("homeassistant", {}).get("token")
+                or os.getenv("HASS_TOKEN")
+                or os.getenv("SUPERVISOR_TOKEN")
+            ),
             entity_prefix=str(raw.get("homeassistant", {}).get("entity_prefix", "audio")),
         ),
         mqtt=MQTTConfig(

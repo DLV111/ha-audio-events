@@ -25,11 +25,36 @@ def build_label_sensor_entity_ids(config: HomeAssistantConfig, labels: List[str]
     }
 
 
-def build_attributes(event: EventMessage) -> dict[str, str]:
+def build_friendly_names(config: HomeAssistantConfig) -> Dict[str, str]:
+    prefix = config.entity_prefix.replace("_", " ").title()
     return {
+        "last_audio_event": f"{prefix} Last Audio Event",
+        "last_audio_confidence": f"{prefix} Last Audio Confidence",
+        "audio_model": f"{prefix} Audio Model",
+        "audio_event_duration": f"{prefix} Audio Event Duration",
+        "audio_active": f"{prefix} Audio Active",
+    }
+
+
+def build_label_friendly_names(config: HomeAssistantConfig, labels: List[str]) -> Dict[str, str]:
+    prefix = config.entity_prefix.replace("_", " ").title()
+    return {label: f"{prefix} {label.title()}" for label in labels}
+
+
+def build_attributes(
+    event: EventMessage,
+    friendly_name: str | None = None,
+    device_class: str | None = None,
+) -> dict[str, str]:
+    attributes: dict[str, str] = {
         "label": event.label,
         "confidence": str(event.confidence),
         "duration": str(event.duration),
         "state": event.state,
         "model": event.model,
     }
+    if friendly_name:
+        attributes["friendly_name"] = friendly_name
+    if device_class:
+        attributes["device_class"] = device_class
+    return attributes

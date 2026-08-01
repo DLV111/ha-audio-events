@@ -9,6 +9,12 @@ from app.homeassistant.entities import build_entity_ids
 _LOGGER = logging.getLogger(__name__)
 
 
+def build_label_state_topic(config: MQTTConfig, label: str) -> str:
+    """Per-label state topic, so each discovered sensor only reacts to its own label."""
+    slug = label.replace(" ", "_").lower()
+    return f"{config.topic}/{slug}"
+
+
 def build_mqtt_discovery_payload(
     config: MQTTConfig, entity_prefix: str, supported_labels: list[str]
 ) -> list[tuple[str, str, str]]:
@@ -17,11 +23,13 @@ def build_mqtt_discovery_payload(
 
     for label, entity_id in entity_ids.items():
         discovery_topic = f"{config.discovery_prefix}/binary_sensor/{entity_id}/config"
+        label_topic = build_label_state_topic(config, label)
         payload = {
             "name": f"{entity_prefix} {label}",
-            "state_topic": config.topic,
+            "device_class": "sound",
+            "state_topic": label_topic,
             "value_template": "{{ value_json.state }}",
-            "json_attributes_topic": config.topic,
+            "json_attributes_topic": label_topic,
             "unique_id": f"{entity_id}_discovery",
             "device": {
                 "identifiers": [entity_prefix],
