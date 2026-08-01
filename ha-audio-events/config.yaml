@@ -47,6 +47,38 @@ options:
     port: 1883
     topic: audio/events
     discovery_prefix: homeassistant
+schema:
+  model: str
+  buffer_seconds: float
+  audio:
+    sample_rate: int
+    channels: int
+    format: str
+  activity:
+    rms_threshold: float
+    peak_threshold: float
+    hold_time: float
+  classifier:
+    threshold: float
+    max_results: int
+    include:
+      - str
+    exclude:
+      - str
+  aggregation:
+    start_confidence: float
+    end_timeout: float
+  homeassistant:
+    enabled: bool
+    url: str
+    token: str?
+    entity_prefix: str
+  mqtt:
+    enabled: bool
+    host: str
+    port: int
+    topic: str
+    discovery_prefix: str
 logger: info
 map:
   - homeassistant_config: /config
