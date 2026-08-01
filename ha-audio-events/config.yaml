@@ -52,5 +52,3 @@ map:
   - homeassistant_config: /config
   - addons: /addons
   - ssl: /ssl
-ports:
-  1883/tcp: 1883
