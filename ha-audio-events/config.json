@@ -1,16 +1,27 @@
 {
   "name": "HA Audio Events",
   "slug": "ha_audio_events",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Home Assistant add-on for audio event detection using TensorFlow Lite.",
-  "arch": ["amd64", "armv7", "armhf", "aarch64"],
+  "arch": [
+    "amd64",
+    "armv7",
+    "armhf",
+    "aarch64"
+  ],
   "startup": "application",
   "boot": "auto",
   "host_network": false,
   "map": [
-    {"config": "/config"},
-    {"addons": "/addons"},
-    {"ssl": "/ssl"}
+    {
+      "config": "/config"
+    },
+    {
+      "addons": "/addons"
+    },
+    {
+      "ssl": "/ssl"
+    }
   ],
   "options": {
     "model": "yamnet",
@@ -28,8 +39,17 @@
     "classifier": {
       "threshold": 0.8,
       "max_results": 5,
-      "include": ["train", "dog", "thunder", "siren", "speech"],
-      "exclude": ["music", "silence"]
+      "include": [
+        "train",
+        "dog",
+        "thunder",
+        "siren",
+        "speech"
+      ],
+      "exclude": [
+        "music",
+        "silence"
+      ]
     },
     "aggregation": {
       "start_confidence": 0.85,
@@ -52,68 +72,125 @@
   "schema": {
     "type": "object",
     "properties": {
-      "model": {"type": "string"},
-      "buffer_seconds": {"type": "number"},
+      "model": {
+        "type": "string"
+      },
+      "buffer_seconds": {
+        "type": "number"
+      },
       "audio": {
         "type": "object",
         "properties": {
-          "sample_rate": {"type": "integer"},
-          "channels": {"type": "integer"},
-          "format": {"type": "string"}
+          "sample_rate": {
+            "type": "integer"
+          },
+          "channels": {
+            "type": "integer"
+          },
+          "format": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       },
       "activity": {
         "type": "object",
         "properties": {
-          "rms_threshold": {"type": "number"},
-          "peak_threshold": {"type": "number"},
-          "hold_time": {"type": "number"}
+          "rms_threshold": {
+            "type": "number"
+          },
+          "peak_threshold": {
+            "type": "number"
+          },
+          "hold_time": {
+            "type": "number"
+          }
         },
         "additionalProperties": false
       },
       "classifier": {
         "type": "object",
         "properties": {
-          "threshold": {"type": "number"},
-          "max_results": {"type": "integer"},
-          "include": {"type": "array", "items": {"type": "string"}},
-          "exclude": {"type": "array", "items": {"type": "string"}}
+          "threshold": {
+            "type": "number"
+          },
+          "max_results": {
+            "type": "integer"
+          },
+          "include": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "exclude": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         },
         "additionalProperties": false
       },
       "aggregation": {
         "type": "object",
         "properties": {
-          "start_confidence": {"type": "number"},
-          "end_timeout": {"type": "number"}
+          "start_confidence": {
+            "type": "number"
+          },
+          "end_timeout": {
+            "type": "number"
+          }
         },
         "additionalProperties": false
       },
       "homeassistant": {
         "type": "object",
         "properties": {
-          "enabled": {"type": "boolean"},
-          "url": {"type": "string"},
-          "token": {"type": ["string", "null"]},
-          "entity_prefix": {"type": "string"}
+          "enabled": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          },
+          "token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entity_prefix": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       },
       "mqtt": {
         "type": "object",
         "properties": {
-          "enabled": {"type": "boolean"},
-          "host": {"type": "string"},
-          "port": {"type": "integer"},
-          "topic": {"type": "string"},
-          "discovery_prefix": {"type": "string"}
+          "enabled": {
+            "type": "boolean"
+          },
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "discovery_prefix": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       }
     },
     "additionalProperties": false
   },
-  "ports": {"1883": 1883},
+  "ports": {
+    "1883": 1883
+  },
   "logger": "info"
 }
