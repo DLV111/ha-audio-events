@@ -4,8 +4,6 @@ version: 0.1.4
 description: Home Assistant add-on for audio event detection using TensorFlow Lite.
 arch:
   - amd64
-  - armv7
-  - armhf
   - aarch64
 startup: application
 boot: auto
@@ -51,8 +49,8 @@ options:
     discovery_prefix: homeassistant
 logger: info
 map:
-  - config: /config
+  - homeassistant_config: /config
   - addons: /addons
   - ssl: /ssl
 ports:
-  1883: 1883
+  1883/tcp: 1883
