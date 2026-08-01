@@ -14,7 +14,10 @@ from app.classifiers.base import AudioClassifier, Detection
 try:
     from ai_edge_litert.interpreter import Interpreter
 except ImportError:  # pragma: no cover
-    Interpreter = None  # type: ignore[assignment]
+    try:
+        from tflite_runtime.interpreter import Interpreter  # type: ignore
+    except ImportError:  # pragma: no cover
+        Interpreter = None  # type: ignore[assignment]
 
 
 @dataclass

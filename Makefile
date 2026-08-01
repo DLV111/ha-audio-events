@@ -1,4 +1,4 @@
-.PHONY: version version-noninteractive test-container test-container-verbose test-fixtures test-fixtures-container download-yamnet-model help
+.PHONY: version version-noninteractive test-container test-container-verbose test-fixtures test-fixtures-container download-yamnet-model update-yamnet-model help
 
 help:
 	@echo "Available targets:"
@@ -9,7 +9,8 @@ help:
 	@echo "  make test-container       Build and smoke-test the container image"
 	@echo "  make test-container-verbose  Build and smoke-test with more runtime logs"
 	@echo "  make test-fixtures-container  Run the dog/train fixtures through the container with local logging"
-	@echo "  make download-yamnet-model  Prepare the local models directory for YAMNet assets"
+	@echo "  make download-yamnet-model  Download the official YAMNet class map"
+	@echo "  make update-yamnet-model  Download the Kaggle YAMNet TFLite package and stage the assets"
 
 version:
 	@current_version=$$(grep -E '^version\s*=\s*"' pyproject.toml | head -n1 | sed -E 's/.*"([^"]+)"/\1/'); \
@@ -46,8 +47,25 @@ download-yamnet-model:
 	@mkdir -p models
 	@curl -L --fail -o models/yamnet_class_map.csv https://raw.githubusercontent.com/tensorflow/models/master/research/audioset/yamnet/yamnet_class_map.csv
 	@echo "Downloaded the official YAMNet class map to models/yamnet_class_map.csv"
-	@echo "Next, place the TFLite model at models/yamnet.tflite."
-	@echo "The model is commonly downloaded from the TensorFlow Hub or Kaggle YAMNet TFLite model pages."
+	@echo "The TFLite model is still fetched by the update target."
+
+update-yamnet-model:
+	@mkdir -p models/tmp-yamnet
+	@rm -f models/tmp-yamnet/model.tar.gz
+	@curl -L --fail -o models/tmp-yamnet/model.tar.gz https://www.kaggle.com/api/v1/models/google/yamnet/tfLite/classification-tflite/1/download
+	@tar -xzf models/tmp-yamnet/model.tar.gz -C models/tmp-yamnet
+	@find models/tmp-yamnet -type f \( -name '*.tflite' -o -name '*.tft' -o -name 'yamnet_label_list.txt' -o -name '*.txt' \) | sort | while read file; do \
+		case "$$file" in \
+			*"1.tflite"*) cp "$$file" models/yamnet.tflite ;; \
+			*"yamnet_label_list.txt"*) cp "$$file" models/yamnet_class_map.csv ;; \
+			*"class_map"*|*"class"*"map"*) cp "$$file" models/yamnet_class_map.csv ;; \
+			*.txt) cp "$$file" models/yamnet_labels.txt ;; \
+		esac; \
+	done
+	@rm -rf models/tmp-yamnet
+	@echo "Staged updated YAMNet model assets in models/"
+	@echo "Files present:"
+	@ls -1 models | grep -E 'yamnet' || true
 
 test-fixtures:
 	@. .venv/bin/activate && pytest -q tests/test_audio_fixtures.py tests/test_audio_classifier_integration.py
