@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 COPY . /app
-RUN pip install --no-cache-dir numpy PyYAML paho-mqtt ai-edge-litert
+RUN pip install --no-cache-dir aiohttp numpy PyYAML paho-mqtt ai-edge-litert
 # LiteRT is the new runtime for TensorFlow Lite and is API-compatible with
 # the TensorFlow Lite Interpreter API used by YAMNetClassifier.
 

@@ -1,0 +1,44 @@
+{
+  "freight_train_01.wav": {
+    "category": "train",
+    "expected_label": "train",
+    "duration_seconds": 5.0,
+    "path": "train/freight_train_01.wav",
+    "notes": "Synthetic freight-train-like tone for initial integration testing"
+  },
+  "freesound_community-8-freight-train_126s.mp3": {
+    "category": "train",
+    "expected_label": "train",
+    "duration_seconds": 126.0,
+    "path": "train/freesound_community-8-freight-train_126s.mp3",
+    "notes": "Freight-train clip from Freesound community sample"
+  },
+  "sspsurvival-train-sleepers-train-wheels-freight-train_95s.mp3": {
+    "category": "train",
+    "expected_label": "train",
+    "duration_seconds": 95.0,
+    "path": "train/sspsurvival-train-sleepers-train-wheels-freight-train_95s.mp3",
+    "notes": "Freight-train clip from SSP Survival sample collection"
+  },
+  "audiopapkin-barking-large-and-small-dog-290711.mp3": {
+    "category": "dog",
+    "expected_label": "dog",
+    "duration_seconds": 8.699,
+    "path": "dog-barking/audiopapkin-barking-large-and-small-dog-290711.mp3",
+    "notes": "Dog bark clip from Audiopapkin"
+  },
+  "dragon-studio-dog-barking-406629.mp3": {
+    "category": "dog",
+    "expected_label": "dog",
+    "duration_seconds": 12.624,
+    "path": "dog-barking/dragon-studio-dog-barking-406629.mp3",
+    "notes": "Dog bark clip from Dragon Studio"
+  },
+  "dragon-studio-free-dog-bark-419014.mp3": {
+    "category": "dog",
+    "expected_label": "dog",
+    "duration_seconds": 1.032,
+    "path": "dog-barking/dragon-studio-free-dog-bark-419014.mp3",
+    "notes": "Shorter dog bark clip from Dragon Studio"
+  }
+}

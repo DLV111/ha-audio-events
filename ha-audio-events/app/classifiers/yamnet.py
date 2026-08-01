@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import csv
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -32,8 +33,29 @@ class YAMNetClassifier(AudioClassifier):
         self.labels = self._load_labels()
 
     def _load_labels(self) -> list[str]:
-        path = self.labels_path or self.model_path.with_name("yamnet_labels.txt")
-        if path.exists():
+        candidates = []
+        if self.labels_path is not None:
+            candidates.append(self.labels_path)
+        candidates.extend(
+            [
+                self.model_path.with_name("yamnet_class_map.csv"),
+                self.model_path.with_name("yamnet_labels.txt"),
+            ]
+        )
+
+        for path in candidates:
+            if not path.exists():
+                continue
+            if path.suffix.lower() == ".csv":
+                with path.open("r", encoding="utf-8", newline="") as handle:
+                    reader = csv.DictReader(handle)
+                    labels = []
+                    for row in reader:
+                        display_name = (row.get("display_name") or "").strip()
+                        if display_name:
+                            labels.append(display_name)
+                    if labels:
+                        return labels
             with path.open("r", encoding="utf-8") as handle:
                 return [line.strip() for line in handle if line.strip()]
         return ["unknown"]
