@@ -23,6 +23,12 @@ from app.utils.logging import configure_logging
 _LOGGER = logging.getLogger(__name__)
 
 
+def format_event_summary(event: object) -> str:
+    label = getattr(event, "label", "unknown")
+    duration = getattr(event, "duration", 0.0)
+    return f"{label} - {duration:.1f}s"
+
+
 async def _run_pipeline(config: AppConfig) -> None:
     buffer = CircularAudioBuffer(
         sample_rate=config.audio.sample_rate,
@@ -52,6 +58,7 @@ async def _run_pipeline(config: AppConfig) -> None:
         events = aggregator.update(filtered)
 
         for event in events:
+            _LOGGER.info("Detected event: %s", format_event_summary(event))
             if ha_client is not None:
                 await ha_client.fire_event(event)
                 await ha_client.update_state(

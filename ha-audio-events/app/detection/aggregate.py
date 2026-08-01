@@ -14,9 +14,9 @@ class EventAggregator:
         self.config = config
         self._active_events: Dict[str, AggregatedEvent] = {}
 
-    def update(self, detections: Iterable[Detection]) -> list[EventMessage]:
+    def update(self, detections: Iterable[Detection], timestamp: datetime | None = None) -> list[EventMessage]:
         events: list[EventMessage] = []
-        now = datetime.now(timezone.utc)
+        now = timestamp if timestamp is not None else datetime.now(timezone.utc)
         detections_by_label: Dict[str, Detection] = {}
         for detection in detections:
             detections_by_label[detection.label] = detection

@@ -1,4 +1,4 @@
-.PHONY: version version-noninteractive test-container test-container-verbose test-fixtures test-fixtures-container download-yamnet-model update-yamnet-model help
+.PHONY: version version-noninteractive test-container test-container-verbose test-fixtures test-fixtures-container test-fixture-local demo-file download-yamnet-model update-yamnet-model help
 
 help:
 	@echo "Available targets:"
@@ -9,6 +9,7 @@ help:
 	@echo "  make test-container       Build and smoke-test the container image"
 	@echo "  make test-container-verbose  Build and smoke-test with more runtime logs"
 	@echo "  make test-fixtures-container  Run the dog/train fixtures through the container with local logging"
+	@echo "  make demo-file FILE=path/to/file.wav  Run the demo formatter against one audio file"
 	@echo "  make download-yamnet-model  Download the official YAMNet class map"
 	@echo "  make update-yamnet-model  Download the Kaggle YAMNet TFLite package and stage the assets"
 
@@ -69,6 +70,15 @@ update-yamnet-model:
 
 test-fixtures:
 	@. .venv/bin/activate && pytest -q tests/test_audio_fixtures.py tests/test_audio_classifier_integration.py
+
+demo-file:
+	@. .venv/bin/activate && export PYTHONPATH="$$(pwd)/ha-audio-events" && python -m app.demo "$(FILE)"
+
+test-fixture-local:
+	@mkdir -p /tmp/ha-audio-events-fixture
+	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/fixture.wav\nactivity:\n  rms_threshold: 0.001\n  peak_threshold: 0.001\n  hold_time: 0.5\nclassifier:\n  threshold: 0.01\n  max_results: 5\n  include: []\n  exclude: []\naggregation:\n  start_confidence: 0.01\n  end_timeout: 1.0\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\n' > /tmp/ha-audio-events-fixture-config.yaml
+	@python -c "from pathlib import Path; import subprocess; fixture=Path('tests/fixtures/audio/train/freesound_community-8-freight-train_126s.mp3'); output=Path('/tmp/ha-audio-events-fixture/fixture.wav'); subprocess.run(['ffmpeg','-y','-i',str(fixture),'-ar','16000','-ac','1','-f','wav',str(output)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); print(f'Converted {fixture.name} -> {output.name}')"
+	@. .venv/bin/activate && export PYTHONPATH="$$(pwd)/ha-audio-events" && cp /tmp/ha-audio-events-fixture-config.yaml config.yaml && python -m app.demo /tmp/ha-audio-events-fixture/fixture.wav
 
 test-container:
 	@echo "Building container image..."

@@ -1,0 +1,30 @@
+model: yamnet
+buffer_seconds: 3.0
+audio:
+  sample_rate: 16000
+  channels: 1
+  format: pcm_s16le
+  source_path: /tmp/fixture.wav
+activity:
+  rms_threshold: 0.001
+  peak_threshold: 0.001
+  hold_time: 0.5
+classifier:
+  threshold: 0.01
+  max_results: 5
+  include:
+    - speech
+    - dog
+    - train
+    - thunder
+    - siren
+  exclude:
+    - music
+    - silence
+aggregation:
+  start_confidence: 0.01
+  end_timeout: 1.0
+homeassistant:
+  enabled: false
+mqtt:
+  enabled: false
