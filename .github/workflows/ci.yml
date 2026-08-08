@@ -12,7 +12,32 @@ env:
   INSTALL_PYTHON_DEPENDENCIES: "pip install -e ".[dev]"
 
 jobs:
+  # PR Title Validation - ensures meaningful commit messages
+  pr-title-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate PR title format
+        run: |
+          # Check if title contains required keywords for better categorization
+          if [[ -z "${{ github.event.pull_request.title }}" ]]; then
+            echo "ERROR: PR title cannot be empty"
+            exit 1
+          fi
+          
+          # Require at least one of these prefixes for clear intent
+          if ! echo "${{ github.event.pull_request.title }}" | grep -qiE "^(fix|feat|docs|style|refactor|test|chore|perf|ci|build)"; then
+            echo "ERROR: PR title must start with one of: fix, feat, docs, style, refactor, test, chore, perf, ci, build"
+            echo "Example: fix: resolve audio source detection issue"
+            exit 1
+          fi
+          
+          echo "✅✓ PR title validation passed: '${{ github.event.pull_request.title }}'"
+
   test:
+    needs: [pr-title-validation]
     name: Test Suite
     runs-on: ubuntu-latest
     strategy:
@@ -87,3 +112,168 @@ jobs:
           source .venv/bin/activate
           pip install dist/ha_audio_events-0.1.9-py3-none-any.whl
           python -c "import ha_audio_events; print(f'Successfully imported: {ha_audio_events.__version__}')"
+
+  # Code Coverage Check - ensures tests maintain quality threshold
+  coverage-check:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Create virtual environment
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+
+      - name: Install dependencies
+        run: |
+          source .venv/bin/activate
+          ${{ env.INSTALL_PYTHON_DEPENDENCIES }}
+          pip install pytest-cov
+
+      - name: Run tests with coverage
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app/ --cov-fail-min=80 --cov-report=term-missing -v
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: htmlcov/
+
+  # Auto-fix Common Issues - automatically fixes simple test failures
+  auto-fix:
+    name: Auto-fix Simple Issues
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: failure()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Create virtual environment
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+
+      - name: Install dependencies
+        run: |
+          source .venv/bin/activate
+          ${{ env.INSTALL_PYTHON_DEPENDENCIES }}
+
+      - name: Attempt auto-fix for common issues
+        run: |
+          source .venv/bin/activate
+          
+          # Fix missing imports in test_webui.py (most common issue)
+          if [[ -f "tests/test_webui.py" ]]; then
+            if grep -q "Mock and AsyncMock imports" tests/test_webui.py; then
+              echo "🔧 Applying common fix: adding Mock and AsyncMock imports to test_webui.py"
+              
+              # Replace the problematic import line with proper imports
+              sed -i 's/"""\nTests for the Web UI server implementation in HA Audio Events add-on.\nTests the camera discovery and source configuration endpoints.\n"""\n\nfrom __future__ import annotations\n\nimport pytest\nfrom aiohttp import web\nfrom aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop\n\nfrom app.webui.server import WebUI\nfrom app.addon_mgr import AddonManager\nfrom app.homeassistant.client import HomeAssistantClient\n\n\nclass TestWebUI\(AioHTTPTestCase\):/"""\nTests for the Web UI server implementation in HA Audio Events add-on.\nTests the camera discovery and source configuration endpoints.\n"""\n\nfrom __future__ import annotations\n\nimport pytest\nfrom aiohttp import web\nfrom aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop\nfrom unittest.mock import Mock, AsyncMock\n\nfrom app.webui.server import WebUI\nfrom app.addon_mgr import AddonManager\nfrom app.homeassistant.client import HomeAssistantClient\n\n\nclass TestWebUI\(AioHTTPTestCase\):/' tests/test_webui.py
+              
+              # If the sed didn't work, try a simpler approach
+              if grep -q "from aiohttp import" tests/test_webui.py; then
+                # Insert Mock and AsyncMock after aiohttp import
+                sed -i '/from aiohttp import/a from unittest.mock import Mock, AsyncMock' tests/test_webui.py
+              fi
+              
+              echo "📝 Applied import fixes"
+            fi
+          fi
+          
+          # Run tests again after fixes
+          PYTHONPATH=ha-audio-events .venv/bin/pytest -v
+
+      - name: Commit fixes if any were applied
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git add tests/
+            git commit -m "fix: auto-fix common issues (test imports, etc.)"
+            git push origin HEAD:${{ github.ref }}
+            echo "✅ Applied and committed auto-fixes"
+          else
+            echo "ℹ️ No fixes needed"
+          fi
+
+      - name: Notify if manual intervention needed
+        if: failure()
+        run: |
+          echo "❌ Auto-fix failed. Manual intervention may be required."
+          echo "Please review the test failures and apply fixes manually."
+
+  # WebUI Code Validation - specifically validates WebUI integration
+  webui-validation:
+    name: WebUI Integration
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Create virtual environment
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+
+      - name: Install dependencies
+        run: |
+          source .venv/bin/activate
+          ${{ env.INSTALL_PYTHON_DEPENDENCIES }}
+
+      - name: Validate WebUI imports
+        run: |
+          source .venv/bin/activate
+          # Check that WebUI imports work correctly
+          PYTHONPATH=ha-audio-events .venv/bin/python -c "
+          try:
+            from app.webui.server import WebUI
+            from app.addon_mgr import AddonManager
+            print('✅ WebUI imports validated successfully')
+          except ImportError as e:
+            print(f'❌ WebUI import error: {e}')
+            raise
+          " || exit 1
+
+      - name: Validate WebUI structure
+        run: |
+          source .venv/bin/activate
+          # Check for required WebUI files and structure
+          if [[ ! -f "ha-audio-events/app/webui/server.py" ]]; then
+            echo "❌ WebUI server.py missing"
+            exit 1
+          fi
+          if [[ ! -f "ha-audio-events/app/webui/__init__.py" ]]; then
+            echo "❌ WebUI __init__.py missing"
+            exit 1
+          fi
+          
+          echo "✅ WebUI structure validated"
+
+      - name: Run WebUI-specific tests
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=ha-audio-events .venv/bin/pytest tests/test_webui.py -v
+
