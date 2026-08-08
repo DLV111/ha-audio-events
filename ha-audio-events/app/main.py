@@ -21,6 +21,8 @@ from app.homeassistant.entities import (
 )
 from app.homeassistant.mqtt import MQTTClient
 from app.utils.logging import configure_logging
+from app.webui.server import WebUI
+from app.addon_mgr import AddonManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -112,6 +114,11 @@ async def _run_pipeline(config: AppConfig) -> None:
         await ha_client.close()
     if mqtt_client is not None:
         mqtt_client.stop()
+
+    # Start WebUI for ingress source picker
+    webui = WebUI(config.webui)
+    addon_mgr = AddonManager()
+    webui_task = asyncio.create_task(webui.start(addon_mgr, host=config.webui.host, port=config.webui.port))
 
 
 def main_sync() -> None:

@@ -1,6 +1,6 @@
 name: HA Audio Events
 slug: ha_audio_events
-version: 0.1.8
+version: 0.1.9
 description: Home Assistant add-on for audio event detection using TensorFlow Lite.
 arch:
   - amd64
@@ -49,6 +49,11 @@ options:
     port: 1883
     topic: audio/events
     discovery_prefix: homeassistant
+  ingress:
+    enabled: true
+    ingress_port: 8099
+    panel_icon: mdi:microphone
+    panel_title: "HA Audio Events"
 schema:
   model: str
   buffer_seconds: float
@@ -82,6 +87,11 @@ schema:
     port: int
     topic: str
     discovery_prefix: str
+ingress:
+  enabled: true
+  ingress_port: 8099
+  panel_icon: mdi:microphone
+  panel_title: "HA Audio Events"
 logger: info
 map:
   - homeassistant_config: /config

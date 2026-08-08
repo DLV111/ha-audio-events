@@ -35,6 +35,41 @@ A Home Assistant add-on and standalone application for real-time audio event det
 
 ## Audio Source Configuration
 
+The add-on provides a flexible interface for selecting audio sources through:
+- A live web UI panel (ingress panel) that dynamically lists available Home Assistant camera entities
+- Configuration settings in YAML
+- Direct RTSP URL entry
+
+### Ingress Web UI Source Picker
+
+The new ingress-based web UI provides a dynamic source picker interface:
+- Automatically discovers camera entities in your Home Assistant instance
+- Allows selecting from available cameras or entering custom RTSP URLs
+- Provides intuitive configuration with immediate validation
+- Integrates seamlessly with add-on settings and restarts for changes to take effect
+
+#### Web UI Features
+
+- **Dynamic Camera Discovery**: Automatically lists all camera entities visible to Home Assistant
+- **Source Selection**: Choose from existing cameras or enter custom RTSP network streams
+- **Real-time Validation**: Validation happens as you configure sources
+- **Integrated Testing**: Verify your selected source works before applying
+- **Contextual Help**: Descriptions and examples for each source type
+
+#### Usage Steps
+
+1. **Access the Web UI**: Navigate to `http://<HA_IP>:8099` in your browser
+2. **Browser Entity Discovery**: The Web UI searches for camera entities in your HA instance
+3. **Select Source Type**: Choose from available camera entities or enter a custom RTSP URL
+4. **Configure Options**: Set additional parameters like authentication if needed
+5. **Apply Changes**: Save your configuration and the add-on restarts automatically
+6. **Verify Activation**: The add-on will update Home Assistant entities to reflect the new source
+
+> **Note**: The ingress Web UI is accessible directly through the configured ingress port (default 8099) and integrates with the add-on's configuration system.
+The add-on provides a flexible interface for selecting audio sources through:
+- A live web UI panel (ingress panel) that dynamically lists available Home Assistant camera entities
+- Configuration settings in YAML
+- Direct RTSP URL entry
 `ha-audio-events` supports three primary audio ingestion modes:
 
 ### Mode 1: Host Microphone / PulseAudio (Default)
