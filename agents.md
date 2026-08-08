@@ -19,7 +19,7 @@ This document provides AI assistants with a comprehensive technical guide to the
        ▼
 [ Activity Detector ] (activity.py - RMS & Peak threshold check)
        │
-       ├──── (Below threshold) ──► Skip frame
+       ├─── (Below threshold) ──► Skip frame
        │
        ▼ (Above threshold)
 [ YAMNet Classifier ] (yamnet.py via LiteRT Interpreter)
@@ -40,10 +40,9 @@ This document provides AI assistants with a comprehensive technical guide to the
 
 ```
 ha-audio-events/
-├── .agents/
-│   └── AGENTS.md                  # (This file) AI context, architecture, & development guide
+├── agents.md                       # (This file) AI context, architecture, & development guide
 ├── app/
-│   └── versioning.py              # Symlink/entrypoint to package version manager script
+│   └── versioning.py              # Version bumping utility (duplicate of ha-audio-events/app/versioning.py)
 ├── ha-audio-events/               # HA Add-on root & Python package source
 │   ├── app/                       # Core Python codebase
 │   │   ├── __init__.py
@@ -82,11 +81,16 @@ ha-audio-events/
 ├── tests/                         # Pytest test suite & audio test fixtures
 │   ├── fixtures/
 │   │   └── audio/                 # Sample audio files (dog barking, train horn, etc.)
+│   │       ├── manifest.json
+│   │       ├── dog-barking/
+│   │       └── train/
 │   ├── test_audio_classifier_integration.py
 │   ├── test_audio_fixtures.py
 │   ├── test_detection.py
 │   ├── test_homeassistant.py
 │   ├── test_main.py
+│   ├── test_mqtt_discovery.py
+│   ├── test_stream.py
 │   ├── test_versioning.py
 │   └── test_yamnet_label_loading.py
 ├── config.yaml                    # Local testing config file
@@ -96,12 +100,22 @@ ha-audio-events/
 └── repository.json                # Home Assistant add-on repository manifest
 ```
 
+### Key Layout Note
+
+The application code lives in `ha-audio-events/app/`, **not** the root `app/`.
+The root `app/` directory only contains `versioning.py` (a duplicate of
+`ha-audio-events/app/versioning.py`).
+
+The `pyproject.toml` configures pytest with `pythonpath = ["ha-audio-events"]`,
+so all imports use `from app.xxx import ...` and resolve to
+`ha-audio-events/app/`.
+
 ---
 
 ## 3. Subsystem Breakdown
 
 ### 3.1 Ingestion & Audio Preprocessing (`app/audio/`)
-- **`AudioStreamSource` (`stream.py`)**: Streams 16-bit PCM mono audio from `sys.stdin.buffer` or a specified file path. Supports reading via `ffmpeg` pipeline when needed.
+- **`AudioStreamSource` (`stream.py`)**: Streams 16-bit PCM mono audio from `sys.stdin.buffer` or a specified file path. Supports reading via `ffmpeg` pipeline when needed. Also supports Home Assistant camera entity IDs (resolved via HA API to an M3U8/RTSP stream URL).
 - **`CircularAudioBuffer` (`buffer.py`)**: Stores raw audio samples in a fixed-size `numpy.ndarray` buffer representing a rolling window (default `buffer_seconds: 3.0`).
 - **`ActivityDetector` (`activity.py`)**: Evaluates Root-Mean-Square (RMS) and peak signal amplitude. If signal level is below configured `rms_threshold` / `peak_threshold`, classifier inference is skipped, saving CPU resources.
 
@@ -129,12 +143,29 @@ ha-audio-events/
 - Python Version: **>= 3.12**
 - Environment Path: `.venv`
 
+### Installing Dependencies
+
+**Do NOT use `pip install -e ".[dev]"`** — setuptools auto-discovery will fail
+because it finds multiple top-level packages (`app` at root and `models`),
+causing a "Multiple top-level packages discovered in a flat-layout" error.
+The project is designed to run with `PYTHONPATH=ha-audio-events` instead.
+
+```bash
+# Activate the virtual environment
+source .venv/bin/activate
+
+# Install runtime + dev dependencies directly
+pip install aiohttp numpy PyYAML "paho-mqtt>=2.1,<3.0" "ai-edge-litert>=2.1.0,<3.0.0" \
+    pytest pytest-asyncio ruff black mypy
+```
+
 ### Executing Tests
+
 Run unit and integration tests using the virtual environment's pytest:
 
 ```bash
-# Run full test suite
-.venv/bin/pytest
+# Run full test suite (pythonpath is configured in pyproject.toml)
+.venv/bin/pytest -v
 
 # Run specific test file
 .venv/bin/pytest tests/test_audio_classifier_integration.py
@@ -143,12 +174,49 @@ Run unit and integration tests using the virtual environment's pytest:
 .venv/bin/pytest -v
 ```
 
+### Test Results (as of last run)
+- **32 tests, all passing** in ~4 seconds
+- Integration tests require `models/yamnet.tflite` and `models/yamnet_class_map.csv`
+  (present in the repo). If missing, those tests are skipped.
+- `test_stream.py::test_stream_source_wav_file` requires
+  `tests/fixtures/audio/train/freight_train_01.wav` (present).
+
+### Running the Demo
+
+The demo classifies an audio file and prints detected events. Requires
+`PYTHONPATH=ha-audio-events` since the `app` package is in `ha-audio-events/app/`:
+
+```bash
+# WAV files don't need conversion
+PYTHONPATH=ha-audio-events .venv/bin/python -m app.demo tests/fixtures/audio/train/freight_train_01.wav
+
+# MP3 files are auto-converted via ffmpeg
+PYTHONPATH=ha-audio-events .venv/bin/python -m app.demo tests/fixtures/audio/train/freesound_community-8-freight-train_126s.mp3
+```
+
+> **Note**: The demo loads `config.yaml` from the project root. The current
+> `config.yaml` has `source_path: /tmp/fixture.wav` but the demo overrides this
+> with the provided file path.
+
 ### Useful Makefile Commands
 - **`make test-fixtures`**: Run pytest against fixture test files.
 - **`make demo-file FILE=path/to/audio.wav`**: Test classifier pipeline on a single audio file.
 - **`make test-container`**: Build Podman/Docker image and run container smoke test.
 - **`make version VERSION=x.y.z`**: Bump version across `pyproject.toml` and `ha-audio-events/config.json`.
 - **`make update-yamnet-model`**: Download latest YAMNet model assets from Kaggle.
+
+### Linting
+
+```bash
+# Check for issues
+PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
+
+# Auto-fix what's possible
+PYTHONPATH=ha-audio-events .venv/bin/ruff check --fix ha-audio-events/app/ tests/
+```
+
+> **Note**: There are pre-existing linting issues (import sorting, unused imports,
+> modernization suggestions). These don't affect test functionality.
 
 ---
 
@@ -159,3 +227,4 @@ Run unit and integration tests using the virtual environment's pytest:
 3. **Async Architecture**: Core pipeline in `main.py` and HA HTTP calls are asynchronous (`asyncio`). CPU-heavy inference is offloaded via `asyncio.to_thread`.
 4. **Configuration Consistency**: When modifying options or schemas, ensure both `app/config.py` dataclasses, `config.yaml`, and `ha-audio-events/config.json` schema definitions remain synchronized.
 5. **Verification**: Always execute `.venv/bin/pytest` after making code modifications to ensure no regressions occur.
+6. **Package Layout**: The `app` package is in `ha-audio-events/app/`. Use `PYTHONPATH=ha-audio-events` when running Python directly (not via pytest). Do not attempt `pip install -e` due to setuptools auto-discovery conflicts with root-level `app/` and `models/` directories.
