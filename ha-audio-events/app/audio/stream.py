@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import shutil
 import sys
 import wave
@@ -12,7 +13,7 @@ from typing import AsyncIterator
 import numpy as np
 
 from app.audio.resample import pcm_s16le_to_float32, ensure_mono
-from app.config import AudioSourceConfig
+from app.config import AudioSourceConfig, HomeAssistantConfig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,17 +21,41 @@ _LOGGER = logging.getLogger(__name__)
 @dataclass
 class AudioStreamSource:
     config: AudioSourceConfig
+    ha_config: HomeAssistantConfig | None = None
     chunk_seconds: float = 0.5
 
     async def stream(self) -> AsyncIterator[np.ndarray]:
         if self.config.source_path:
             source = str(self.config.source_path).strip()
             path = Path(source)
+
+            if source.startswith("camera."):
+                ha_url = (self.ha_config.url if self.ha_config else "http://supervisor/homeassistant").rstrip("/")
+                if ha_url.endswith("/homeassistant"):
+                    stream_url = f"{ha_url}/api/camera_proxy_stream/{source}"
+                elif ha_url.endswith("/api"):
+                    stream_url = f"{ha_url}/camera_proxy_stream/{source}"
+                else:
+                    stream_url = f"{ha_url}/api/camera_proxy_stream/{source}"
+
+                token = (
+                    (self.ha_config.token if self.ha_config else None)
+                    or os.getenv("SUPERVISOR_TOKEN")
+                    or os.getenv("HASS_TOKEN")
+                )
+                headers = f"Authorization: Bearer {token}\r\n" if token else None
+
+                _LOGGER.info("Streaming audio from Home Assistant camera entity via ffmpeg: %s (%s)", source, stream_url)
+                async for chunk in self._stream_ffmpeg(stream_url, headers=headers):
+                    yield chunk
+                return
+
             if source.startswith(("rtsp://", "http://", "https://", "rtmp://")):
                 _LOGGER.info("Streaming audio from network URL via ffmpeg: %s", source)
                 async for chunk in self._stream_ffmpeg(source):
                     yield chunk
                 return
+
             if path.exists():
                 if path.suffix.lower() == ".wav":
                     _LOGGER.info("Streaming audio from local WAV file: %s", path)
@@ -46,6 +71,7 @@ class AudioStreamSource:
                 async for chunk in self._stream_pcm_file(path):
                     yield chunk
                 return
+
             if shutil.which("ffmpeg"):
                 _LOGGER.info("Attempting ffmpeg stream for path/device: %s", source)
                 async for chunk in self._stream_ffmpeg(source):
@@ -71,9 +97,12 @@ class AudioStreamSource:
         target: str,
         is_pulse: bool = False,
         is_alsa: bool = False,
+        headers: str | None = None,
     ) -> AsyncIterator[np.ndarray]:
         chunk_size = int(self.config.sample_rate * self.config.channels * 2 * self.chunk_seconds)
         cmd = ["ffmpeg", "-loglevel", "error"]
+        if headers:
+            cmd.extend(["-headers", headers])
         if is_pulse:
             cmd.extend(["-f", "pulse", "-i", target or "default"])
         elif is_alsa:

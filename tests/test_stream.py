@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from app.audio.stream import AudioStreamSource
-from app.config import AudioSourceConfig
+from app.config import AudioSourceConfig, HomeAssistantConfig
 
 FIXTURE_WAV = Path(__file__).parent / "fixtures" / "audio" / "train" / "freight_train_01.wav"
 
@@ -36,3 +36,13 @@ def test_stream_source_ffmpeg_cmd_builder() -> None:
     config = AudioSourceConfig(sample_rate=16000, channels=1, source_path="rtsp://192.168.1.100/live")
     source = AudioStreamSource(config=config)
     assert source.config.source_path == "rtsp://192.168.1.100/live"
+
+
+def test_stream_source_ha_camera_entity() -> None:
+    audio_config = AudioSourceConfig(sample_rate=16000, channels=1, source_path="camera.shed_fluent")
+    ha_config = HomeAssistantConfig(url="http://supervisor/homeassistant", token="fake-token")
+    source = AudioStreamSource(config=audio_config, ha_config=ha_config)
+
+    assert source.config.source_path == "camera.shed_fluent"
+    assert source.ha_config is not None
+    assert source.ha_config.url == "http://supervisor/homeassistant"

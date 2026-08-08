@@ -46,7 +46,7 @@ async def _run_pipeline(config: AppConfig) -> None:
     label_sensor_ids = build_label_sensor_entity_ids(config.homeassistant, config.classifier.include)
     friendly_names = build_friendly_names(config.homeassistant)
     label_friendly_names = build_label_friendly_names(config.homeassistant, config.classifier.include)
-    source = AudioStreamSource(config.audio)
+    source = AudioStreamSource(config.audio, ha_config=config.homeassistant)
 
     if mqtt_client is not None and config.classifier.include:
         mqtt_client.publish_discovery(config.homeassistant.entity_prefix, config.classifier.include)
