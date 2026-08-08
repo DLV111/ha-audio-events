@@ -42,7 +42,6 @@ options:
   homeassistant:
     enabled: true
     url: http://supervisor/homeassistant
-    token: null
     entity_prefix: audio
   mqtt:
     enabled: false
