@@ -10,6 +10,8 @@ boot: auto
 host_network: false
 hassio_api: true
 homeassistant_api: true
+audio: true
+audio_input: true
 options:
   model: yamnet
   buffer_seconds: 3.0
@@ -17,6 +19,7 @@ options:
     sample_rate: 16000
     channels: 1
     format: pcm_s16le
+    source_path: null
   activity:
     rms_threshold: 0.04
     peak_threshold: 0.1
@@ -54,6 +57,7 @@ schema:
     sample_rate: int
     channels: int
     format: str
+    source_path: str?
   activity:
     rms_threshold: float
     peak_threshold: float
