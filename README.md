@@ -42,8 +42,17 @@ To capture continuous audio from the Home Assistant server's USB microphone or s
 - Leave `audio.source_path: null` (or leave it blank in the UI).
 - Ensure **Audio input** permission is toggled on in the Add-on Configuration tab.
 
-### Mode 2: Network RTSP IP Camera Stream
-To analyze live audio from an RTSP camera stream:
+### Mode 2: Home Assistant Camera Entity (Recommended for Cameras)
+To stream audio directly from any Home Assistant camera entity without entering camera IP addresses or RTSP passwords:
+- Set `audio.source_path` to the camera entity ID:
+  ```yaml
+  audio:
+    source_path: "camera.shed_fluent"
+  ```
+  *(or `camera.shed_clear`)*
+
+### Mode 3: Network RTSP IP Camera Stream
+To analyze live audio from a raw RTSP camera stream:
 - Set `audio.source_path` to your camera's RTSP stream URL:
   ```yaml
   audio:
