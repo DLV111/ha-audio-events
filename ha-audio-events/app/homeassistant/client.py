@@ -59,6 +59,9 @@ class HomeAssistantClient:
     async def update_state(
         self, entity_id: str, state: str, attributes: dict[str, Any] | None = None
     ) -> None:
+        if not self.config.enabled:
+            return
+
         url = f"{self.config.url}/api/states/{entity_id}"
         headers = {
             "Content-Type": "application/json",

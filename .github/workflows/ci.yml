@@ -76,7 +76,7 @@ jobs:
       - name: Run black formatting check
         run: |
           source .venv/bin/activate
-          PYTHONPATH=ha-audio-events .venv/bin/black --check ha-audio-events/app/ tests/
+          PYTHONPATH=ha-audio-events .venv/bin/black --target-version=py312 --check ha-audio-events/app/ tests/
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4

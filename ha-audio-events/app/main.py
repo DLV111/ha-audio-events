@@ -139,11 +139,12 @@ async def _run_pipeline(config: AppConfig) -> None:
         mqtt_client.stop()
 
     # Start WebUI for ingress source picker
-    webui = WebUI(config.webui)
-    addon_mgr = AddonManager()
-    asyncio.create_task(
-        webui.start(addon_mgr, host=config.webui.host, port=config.webui.port)
-    )
+    if config.webui.enabled:
+        addon_mgr = AddonManager()
+        webui = WebUI(ha_client, addon_mgr)
+        asyncio.create_task(
+            webui.start(addon_mgr, host=config.webui.host, port=config.webui.port)
+        )
 
 
 def main_sync() -> None:

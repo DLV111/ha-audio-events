@@ -56,6 +56,13 @@ class HomeAssistantConfig:
 
 
 @dataclass(frozen=True)
+class WebUIConfig:
+    enabled: bool = True
+    host: str = "0.0.0.0"
+    port: int = 8099
+
+
+@dataclass(frozen=True)
 class AppConfig:
     model: str = "yamnet"
     buffer_seconds: float = 3.0
@@ -65,6 +72,7 @@ class AppConfig:
     aggregation: AggregationConfig = field(default_factory=AggregationConfig)
     homeassistant: HomeAssistantConfig = field(default_factory=HomeAssistantConfig)
     mqtt: MQTTConfig = field(default_factory=MQTTConfig)
+    webui: WebUIConfig = field(default_factory=WebUIConfig)
     log_level: str = "INFO"
 
 
@@ -95,6 +103,7 @@ def load_config(path: Path | str | None = None) -> AppConfig:
     classifier = raw.get("classifier", {})
     aggregation = raw.get("aggregation", {})
     mqtt = raw.get("mqtt", {})
+    webui = raw.get("webui", {})
 
     return AppConfig(
         model=str(raw.get("model", "yamnet")),
@@ -142,6 +151,11 @@ def load_config(path: Path | str | None = None) -> AppConfig:
             port=int(mqtt.get("port", 1883)),
             topic=str(mqtt.get("topic", "audio/events")),
             discovery_prefix=str(mqtt.get("discovery_prefix", "homeassistant")),
+        ),
+        webui=WebUIConfig(
+            enabled=bool(webui.get("enabled", True)),
+            host=str(webui.get("host", "0.0.0.0")),
+            port=int(webui.get("port", 8099)),
         ),
         log_level=str(raw.get("log_level", "INFO")),
     )

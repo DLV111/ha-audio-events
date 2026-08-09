@@ -62,9 +62,7 @@ class AddonManager:
 
         except asyncio.CancelledError:
             raise
-        except Exception as exc:
-            if exc:
-                raise
+        except Exception:
             _LOGGER.exception("Error making Supervisor API request")
             return None
 

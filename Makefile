@@ -114,7 +114,7 @@ test-lint:
 	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
 
 test-format:
-	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/black --check ha-audio-events/app/ tests/
+	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/black --target-version=py312 ha-audio-events/app/ tests/
 
 test-with-coverage:
-	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v
+	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=80 --cov-report=term-missing -v
