@@ -16,13 +16,16 @@ dev = [
   "pytest>=8.0",
   "pytest-asyncio>=0.22",
   "ruff>=0.0.281",
-  "black>=24.3.0",
   "mypy>=1.9"
 ]
 
 [project.scripts]
 ha-audio-events = "app.main:main_sync"
 ha-audio-events-bump-version = "app.versioning:main"
+
+[tool.setuptools.packages.find]
+where = ["ha-audio-events"]
+include = ["app*"]
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]

@@ -1,23 +1,24 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Iterable, List
+from collections.abc import Iterable
+from datetime import UTC, datetime, timedelta
 
-from app.config import AggregationConfig
 from app.classifiers.base import Detection
+from app.config import AggregationConfig
 from app.detection.models import AggregatedEvent, EventMessage
 
 
 class EventAggregator:
     def __init__(self, config: AggregationConfig) -> None:
         self.config = config
-        self._active_events: Dict[str, AggregatedEvent] = {}
+        self._active_events: dict[str, AggregatedEvent] = {}
 
-    def update(self, detections: Iterable[Detection], timestamp: datetime | None = None) -> list[EventMessage]:
+    def update(
+        self, detections: Iterable[Detection], timestamp: datetime | None = None
+    ) -> list[EventMessage]:
         events: list[EventMessage] = []
-        now = timestamp if timestamp is not None else datetime.now(timezone.utc)
-        detections_by_label: Dict[str, Detection] = {}
+        now = timestamp if timestamp is not None else datetime.now(UTC)
+        detections_by_label: dict[str, Detection] = {}
         for detection in detections:
             detections_by_label[detection.label] = detection
 
@@ -25,8 +26,12 @@ class EventAggregator:
         for label in inactive_labels:
             state = self._active_events[label]
             if label not in detections_by_label:
-                if now - state.last_seen_at >= timedelta(seconds=self.config.end_timeout):
-                    state.duration = (state.last_seen_at - state.started_at).total_seconds()
+                if now - state.last_seen_at >= timedelta(
+                    seconds=self.config.end_timeout
+                ):
+                    state.duration = (
+                        state.last_seen_at - state.started_at
+                    ).total_seconds()
                     events.append(
                         EventMessage(
                             event_type="audio.detected",

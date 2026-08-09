@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from typing import Any
 
@@ -41,16 +40,25 @@ class HomeAssistantClient:
         }
 
         try:
-            async with self._session.post(url, headers=headers, json=payload) as response:
+            async with self._session.post(
+                url, headers=headers, json=payload
+            ) as response:
                 if response.status >= 300:
                     text = await response.text()
-                    _LOGGER.warning("Failed to fire HA event %s (%s): %s", event.event_type, response.status, text)
+                    _LOGGER.warning(
+                        "Failed to fire HA event %s (%s): %s",
+                        event.event_type,
+                        response.status,
+                        text,
+                    )
         except asyncio.CancelledError:
             raise
         except Exception as exc:
             _LOGGER.exception("Error firing Home Assistant event: %s", exc)
 
-    async def update_state(self, entity_id: str, state: str, attributes: dict[str, Any] | None = None) -> None:
+    async def update_state(
+        self, entity_id: str, state: str, attributes: dict[str, Any] | None = None
+    ) -> None:
         url = f"{self.config.url}/api/states/{entity_id}"
         headers = {
             "Content-Type": "application/json",
@@ -60,10 +68,17 @@ class HomeAssistantClient:
 
         payload = {"state": state, "attributes": attributes or {}}
         try:
-            async with self._session.post(url, headers=headers, json=payload) as response:
+            async with self._session.post(
+                url, headers=headers, json=payload
+            ) as response:
                 if response.status >= 300:
                     text = await response.text()
-                    _LOGGER.warning("Failed to update HA state %s (%s): %s", entity_id, response.status, text)
+                    _LOGGER.warning(
+                        "Failed to update HA state %s (%s): %s",
+                        entity_id,
+                        response.status,
+                        text,
+                    )
         except asyncio.CancelledError:
             raise
         except Exception as exc:

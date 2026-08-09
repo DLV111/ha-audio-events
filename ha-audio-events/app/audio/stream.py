@@ -6,13 +6,13 @@ import os
 import shutil
 import sys
 import wave
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator
 
 import numpy as np
 
-from app.audio.resample import pcm_s16le_to_float32, ensure_mono
+from app.audio.resample import ensure_mono, pcm_s16le_to_float32
 from app.config import AudioSourceConfig, HomeAssistantConfig
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,7 +30,11 @@ class AudioStreamSource:
             path = Path(source)
 
             if source.startswith("camera."):
-                ha_url = (self.ha_config.url if self.ha_config else "http://supervisor/homeassistant").rstrip("/")
+                ha_url = (
+                    self.ha_config.url
+                    if self.ha_config
+                    else "http://supervisor/homeassistant"
+                ).rstrip("/")
                 if ha_url.endswith("/homeassistant"):
                     stream_url = f"{ha_url}/api/camera_proxy_stream/{source}"
                 elif ha_url.endswith("/api"):
@@ -45,7 +49,11 @@ class AudioStreamSource:
                 )
                 headers = f"Authorization: Bearer {token}\r\n" if token else None
 
-                _LOGGER.info("Streaming audio from Home Assistant camera entity via ffmpeg: %s (%s)", source, stream_url)
+                _LOGGER.info(
+                    "Streaming audio from Home Assistant camera entity via ffmpeg: %s (%s)",
+                    source,
+                    stream_url,
+                )
                 async for chunk in self._stream_ffmpeg(stream_url, headers=headers):
                     yield chunk
                 return
@@ -62,7 +70,15 @@ class AudioStreamSource:
                     async for chunk in self._stream_wav(path):
                         yield chunk
                     return
-                if path.suffix.lower() in (".mp3", ".aac", ".flac", ".ogg", ".m4a", ".mp4", ".mkv"):
+                if path.suffix.lower() in (
+                    ".mp3",
+                    ".aac",
+                    ".flac",
+                    ".ogg",
+                    ".m4a",
+                    ".mp4",
+                    ".mkv",
+                ):
                     _LOGGER.info("Streaming audio from media file via ffmpeg: %s", path)
                     async for chunk in self._stream_ffmpeg(source):
                         yield chunk
@@ -80,13 +96,18 @@ class AudioStreamSource:
 
         # Default mode (no source_path specified)
         if shutil.which("ffmpeg"):
-            _LOGGER.info("No source_path specified. Capturing live audio from PulseAudio default source via ffmpeg.")
+            _LOGGER.info(
+                "No source_path specified. Capturing live audio from PulseAudio default source via ffmpeg."
+            )
             try:
                 async for chunk in self._stream_ffmpeg("default", is_pulse=True):
                     yield chunk
                 return
             except Exception as err:
-                _LOGGER.warning("PulseAudio ffmpeg capture failed (%s), falling back to stdin stream", err)
+                _LOGGER.warning(
+                    "PulseAudio ffmpeg capture failed (%s), falling back to stdin stream",
+                    err,
+                )
 
         _LOGGER.info("Streaming raw audio from stdin")
         async for chunk in self._stream_stdin():
@@ -99,7 +120,9 @@ class AudioStreamSource:
         is_alsa: bool = False,
         headers: str | None = None,
     ) -> AsyncIterator[np.ndarray]:
-        chunk_size = int(self.config.sample_rate * self.config.channels * 2 * self.chunk_seconds)
+        chunk_size = int(
+            self.config.sample_rate * self.config.channels * 2 * self.chunk_seconds
+        )
         cmd = ["ffmpeg", "-loglevel", "error"]
         if headers:
             cmd.extend(["-headers", headers])
@@ -110,14 +133,20 @@ class AudioStreamSource:
         else:
             cmd.extend(["-i", target])
 
-        cmd.extend([
-            "-vn",
-            "-acodec", "pcm_s16le",
-            "-ar", str(self.config.sample_rate),
-            "-ac", str(self.config.channels),
-            "-f", "s16le",
-            "pipe:1",
-        ])
+        cmd.extend(
+            [
+                "-vn",
+                "-acodec",
+                "pcm_s16le",
+                "-ar",
+                str(self.config.sample_rate),
+                "-ac",
+                str(self.config.channels),
+                "-f",
+                "s16le",
+                "pipe:1",
+            ]
+        )
 
         _LOGGER.debug("Spawning ffmpeg command: %s", " ".join(cmd))
         proc = await asyncio.create_subprocess_exec(
@@ -145,7 +174,9 @@ class AudioStreamSource:
                     pass
 
     async def _stream_stdin(self) -> AsyncIterator[np.ndarray]:
-        chunk_size = int(self.config.sample_rate * self.config.channels * 2 * self.chunk_seconds)
+        chunk_size = int(
+            self.config.sample_rate * self.config.channels * 2 * self.chunk_seconds
+        )
         while True:
             raw = await asyncio.to_thread(sys.stdin.buffer.read, chunk_size)
             if not raw:
@@ -153,7 +184,9 @@ class AudioStreamSource:
             yield pcm_s16le_to_float32(raw, self.config.channels)
 
     async def _stream_pcm_file(self, path: Path) -> AsyncIterator[np.ndarray]:
-        chunk_size = int(self.config.sample_rate * self.config.channels * 2 * self.chunk_seconds)
+        chunk_size = int(
+            self.config.sample_rate * self.config.channels * 2 * self.chunk_seconds
+        )
         with path.open("rb") as handle:
             while True:
                 raw = await asyncio.to_thread(handle.read, chunk_size)
@@ -174,7 +207,9 @@ class AudioStreamSource:
                     raise ValueError("Only 16-bit WAV files are supported")
                 chunks = []
                 while True:
-                    raw = handle.readframes(int(self.config.sample_rate * self.chunk_seconds))
+                    raw = handle.readframes(
+                        int(self.config.sample_rate * self.chunk_seconds)
+                    )
                     if not raw:
                         break
                     chunks.append(raw)

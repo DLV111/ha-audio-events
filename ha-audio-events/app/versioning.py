@@ -30,11 +30,13 @@ def bump_version(new_version: str, root: Path | None = None) -> list[Path]:
             target.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
         else:
             if target.name == "pyproject.toml":
-                pattern = re.compile(r'(^version\s*=\s*)(["\'][^"\']+["\'])', re.MULTILINE)
+                pattern = re.compile(
+                    r'(^version\s*=\s*)(["\'][^"\']+["\'])', re.MULTILINE
+                )
                 updated = pattern.sub(rf'\g<1>"{new_version}"', content)
             else:
-                pattern = re.compile(r'(^version:\s*)(.+)$', re.MULTILINE)
-                updated = pattern.sub(rf'\g<1>{new_version}', content)
+                pattern = re.compile(r"(^version:\s*)(.+)$", re.MULTILINE)
+                updated = pattern.sub(rf"\g<1>{new_version}", content)
             target.write_text(updated, encoding="utf-8")
 
         updated_files.append(target)
@@ -43,7 +45,9 @@ def bump_version(new_version: str, root: Path | None = None) -> list[Path]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Bump the add-on version in all release manifests")
+    parser = argparse.ArgumentParser(
+        description="Bump the add-on version in all release manifests"
+    )
     parser.add_argument("version", help="New version string, e.g. 0.2.0")
     args = parser.parse_args()
 

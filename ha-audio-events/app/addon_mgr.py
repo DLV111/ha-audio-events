@@ -5,10 +5,11 @@ Handles communication with Supervisor API for options and restart.
 
 from __future__ import annotations
 
-import aiohttp
 import asyncio
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
+
+import aiohttp
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ _LOGGER = logging.getLogger(__name__)
 class AddonManager:
     def __init__(self, supervisor_token: str) -> None:
         self.supervisor_token = supervisor_token
-        self._session: Optional[aiohttp.ClientSession] = None
+        self._session: aiohttp.ClientSession | None = None
 
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
@@ -33,8 +34,8 @@ class AddonManager:
         self,
         method: str,
         endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any] | None:
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Make a request to Supervisor API."""
         try:
             session = await self._get_session()
@@ -89,7 +90,7 @@ class AddonManager:
                 return False
 
             current_options = current_result.get("data", {}).get("options", {})
-            
+
             # Update the specific option
             if category not in current_options:
                 current_options[category] = {}
@@ -97,7 +98,7 @@ class AddonManager:
 
             # Prepare the update payload
             update_data = {"options": current_options}
-            
+
             result = await self._make_request(
                 "POST", "/addons/self/options", update_data
             )
@@ -116,7 +117,7 @@ class AddonManager:
             _LOGGER.exception("Error restarting add-on: %s", exc)
             return False
 
-    async def get_addon_info(self) -> Dict[str, Any] | None:
+    async def get_addon_info(self) -> dict[str, Any] | None:
         """Get information about the current add-on."""
         try:
             result = await self._make_request("GET", "/addons/self/info")

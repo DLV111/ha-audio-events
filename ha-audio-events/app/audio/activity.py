@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
 
@@ -24,7 +24,7 @@ class ActivityDetector:
         return float(np.max(np.abs(audio)))
 
     def should_analyze(self, audio: np.ndarray, now: datetime | None = None) -> bool:
-        now = now or datetime.now(timezone.utc)
+        now = now or datetime.now(UTC)
         rms = self.compute_rms(audio)
         peak = self.compute_peak(audio)
         active = rms >= self.config.rms_threshold or peak >= self.config.peak_threshold

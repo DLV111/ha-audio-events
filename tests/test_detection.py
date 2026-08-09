@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import numpy as np
-
 from app.audio.activity import ActivityConfig, ActivityDetector
 from app.audio.buffer import CircularAudioBuffer
 from app.classifiers.base import Detection
-from app.config import ClassifierConfig, AggregationConfig
+from app.config import AggregationConfig, ClassifierConfig
 from app.detection.aggregate import EventAggregator
 from app.detection.filter import filter_detections
 
@@ -32,7 +31,9 @@ def test_filter_detections_respects_include_exclude() -> None:
         Detection(label="Music", confidence=0.95, timestamp=None, model="yamnet"),
         Detection(label="Dog", confidence=0.75, timestamp=None, model="yamnet"),
     ]
-    config = ClassifierConfig(threshold=0.8, max_results=5, include=["train", "dog"], exclude=["music"])
+    config = ClassifierConfig(
+        threshold=0.8, max_results=5, include=["train", "dog"], exclude=["music"]
+    )
     filtered = filter_detections(detections, config)
     assert len(filtered) == 1
     assert filtered[0].label.lower() == "train"

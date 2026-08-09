@@ -5,13 +5,12 @@ Tests the camera discovery and source configuration endpoints.
 
 from __future__ import annotations
 
-import pytest
-from aiohttp import web
-from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
+from unittest.mock import AsyncMock, Mock
 
-from app.webui.server import WebUI
+from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
 from app.addon_mgr import AddonManager
 from app.homeassistant.client import HomeAssistantClient
+from app.webui.server import WebUI
 
 
 class TestWebUI(AioHTTPTestCase):
@@ -79,16 +78,14 @@ class TestWebUI(AioHTTPTestCase):
         self.mock_hass_client.get_state = AsyncMock(return_value=None)
 
         resp = await self.client.request("GET", "/api/cameras")
-        assert resp.status == 200
+        assert resp.status == 500
         data = await resp.json()
-        assert data == []
+        assert "error" in data
 
     @unittest_run_loop
     async def test_get_source_success(self):
         """Test successful retrieval of audio source."""
-        mock_addon_manager = Mock(spec=AddonManager)
-        mock_addon_manager.get_option = AsyncMock(return_value="camera.front_door")
-        self.mock_addon_manager = mock_addon_manager
+        self.mock_addon_manager.get_option = AsyncMock(return_value="camera.front_door")
 
         resp = await self.client.request("GET", "/api/source")
         assert resp.status == 200
@@ -98,63 +95,69 @@ class TestWebUI(AioHTTPTestCase):
     @unittest_run_loop
     async def test_get_source_not_set(self):
         """Test retrieval when audio source is not set."""
-        mock_addon_manager = Mock(spec=AddonManager)
-        mock_addon_manager.get_option = AsyncMock(return_value=None)
-        self.mock_addon_manager = mock_addon_manager
+        self.mock_addon_manager.get_option = AsyncMock(return_value=None)
 
         resp = await self.client.request("GET", "/api/source")
         assert resp.status == 200
         data = await resp.json()
-        assert data == {"source": None}
+        assert data == {"source": ""}
 
     @unittest_run_loop
     async def test_set_source_success(self):
         """Test successful setting of audio source."""
-        mock_addon_manager = Mock(spec=AddonManager)
-        mock_addon_manager.set_option = AsyncMock(return_value=True)
-        mock_addon_manager.restart = AsyncMock(return_value=True)
-        self.mock_addon_manager = mock_addon_manager
+        self.mock_addon_manager.set_option = AsyncMock(return_value=True)
+        self.mock_addon_manager.restart = AsyncMock(return_value=True)
 
         resp = await self.client.request(
-            "POST", "/api/source", json={"source": "camera.backyard"}
+            "POST", "/api/source", json={"source": "camera.front_door"}
         )
         assert resp.status == 200
         data = await resp.json()
-        assert data["success"] is True
-        assert data["message"] == "Source updated. Add-on will restart."
+        assert data["status"] == "success"
+        assert "configured" in data["message"]
 
-        # Verify the option was set and restart was called
-        mock_addon_manager.set_option.assert_called_once_with("audio", "source_path", "camera.backyard")
-        mock_addon_manager.restart.assert_called_once()
+        # Verify the calls were made
+        self.mock_addon_manager.set_option.assert_called_once_with(
+            "audio", "source_path", "camera.front_door"
+        )
+        self.mock_addon_manager.restart.assert_called_once()
 
     @unittest_run_loop
-    async def test_set_source_failed_set(self):
-        """Test handling of failed option setting."""
-        mock_addon_manager = Mock(spec=AddonManager)
-        mock_addon_manager.set_option = AsyncMock(return_value=False)
-        self.mock_addon_manager = mock_addon_manager
+    async def test_set_source_missing_parameter(self):
+        """Test setting source with missing parameter."""
+        resp = await self.client.request("POST", "/api/source", json={})
+        assert resp.status == 400
+        data = await resp.json()
+        assert "Missing source parameter" in data["error"]
+
+    @unittest_run_loop
+    async def test_set_source_failure(self):
+        """Test setting source when addon manager fails."""
+        self.mock_addon_manager.set_option = AsyncMock(return_value=False)
 
         resp = await self.client.request(
-            "POST", "/api/source", json={"source": "camera.backyard"}
+            "POST",
+            "/api/source",
+            json={"source": "camera.front_door"},
         )
         assert resp.status == 500
         data = await resp.json()
-        assert "error" in data
+        assert "Failed to set source" in data["error"]
 
     @unittest_run_loop
-    async def test_set_source_failed_restart(self):
-        """Test handling of failed restart after successful option set."""
-        mock_addon_manager = Mock(spec=AddonManager)
-        mock_addon_manager.set_option = AsyncMock(return_value=True)
-        mock_addon_manager.restart = AsyncMock(return_value=False)
-        self.mock_addon_manager = mock_addon_manager
+    async def test_set_source_restart_failure(self):
+        """Test setting source succeeds but restart fails."""
+        self.mock_addon_manager.set_option = AsyncMock(return_value=True)
+        self.mock_addon_manager.restart = AsyncMock(return_value=False)
 
         resp = await self.client.request(
-            "POST", "/api/source", json={"source": "camera.backyard"}
+            "POST",
+            "/api/source",
+            json={"source": "camera.front_door"},
         )
         assert resp.status == 500
         data = await resp.json()
-        assert "error" in data
+        assert "failed to restart" in data["error"]
 
     @unittest_run_loop
     async def test_webui_availability(self):
@@ -165,6 +168,8 @@ class TestWebUI(AioHTTPTestCase):
     @unittest_run_loop
     async def test_cameras_endpoint(self):
         """Test cameras endpoint works correctly."""
+        # Need to mock get_state for this test
+        self.mock_hass_client.get_state = AsyncMock(return_value=[])
         resp = await self.client.request("GET", "/api/cameras")
         assert resp.status == 200
         data = await resp.json()

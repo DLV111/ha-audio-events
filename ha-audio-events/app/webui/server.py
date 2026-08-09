@@ -5,20 +5,21 @@ Provides ingress panel for selecting audio source from Home Assistant entities.
 
 from __future__ import annotations
 
-import aiohttp
-from aiohttp import web
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
 
-from app.homeassistant.client import HomeAssistantClient
+from aiohttp import web
+
 from app.addon_mgr import AddonManager
+from app.homeassistant.client import HomeAssistantClient
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class WebUI:
-    def __init__(self, hass_client: HomeAssistantClient, addon_manager: AddonManager) -> None:
+    def __init__(
+        self, hass_client: HomeAssistantClient, addon_manager: AddonManager
+    ) -> None:
         self.hass_client = hass_client
         self.addon_manager = addon_manager
         self.app = web.Application()
@@ -367,15 +368,23 @@ class WebUI:
         try:
             state = await self.hass_client.get_state("camera")
             if state is None:
-                return web.json_response({"error": "Failed to fetch camera states"}, status=500)
+                return web.json_response(
+                    {"error": "Failed to fetch camera states"}, status=500
+                )
 
             cameras = []
             for entity in state:
-                if isinstance(entity, dict) and entity.get("entity_id", "").startswith("camera."):
-                    cameras.append({
-                        "entity_id": entity["entity_id"],
-                        "friendly_name": entity.get("friendly_name", entity["entity_id"]),
-                    })
+                if isinstance(entity, dict) and entity.get("entity_id", "").startswith(
+                    "camera."
+                ):
+                    cameras.append(
+                        {
+                            "entity_id": entity["entity_id"],
+                            "friendly_name": entity.get(
+                                "friendly_name", entity["entity_id"]
+                            ),
+                        }
+                    )
 
             return web.json_response(cameras)
         except Exception as e:
@@ -397,20 +406,32 @@ class WebUI:
             data = await request.json()
             source = data.get("source")
             if not source:
-                return web.json_response({"error": "Missing source parameter"}, status=400)
+                return web.json_response(
+                    {"error": "Missing source parameter"}, status=400
+                )
 
-            success = await self.addon_manager.set_option("audio", "source_path", source)
+            success = await self.addon_manager.set_option(
+                "audio", "source_path", source
+            )
             if not success:
-                return web.json_response({"error": "Failed to set source in add-on options"}, status=500)
+                return web.json_response(
+                    {"error": "Failed to set source in add-on options"}, status=500
+                )
 
             restart_success = await self.addon_manager.restart()
             if not restart_success:
-                return web.json_response({
-                    "error": "Source configured but failed to restart add-on"
-                }, status=500)
+                return web.json_response(
+                    {"error": "Source configured but failed to restart add-on"},
+                    status=500,
+                )
 
             _LOGGER.info("Audio source configured to: %s, add-on restarted", source)
-            return web.json_response({"status": "success", "message": "Source configured and add-on restarted"})
+            return web.json_response(
+                {
+                    "status": "success",
+                    "message": "Source configured and add-on restarted",
+                }
+            )
 
         except Exception as e:
             _LOGGER.exception("Error setting source")

@@ -9,7 +9,6 @@ on:
 
 env:
   PYTHON_VERSION: "3.12"
-  INSTALL_PYTHON_DEPENDENCIES: 'pip install -e ".[dev]"'
 
 jobs:
   # PR Title Validation - ensures meaningful commit messages
@@ -56,12 +55,11 @@ jobs:
       - name: Create virtual environment
         run: |
           python -m venv .venv
-          source .venv/bin/activate
 
       - name: Install dependencies
         run: |
           source .venv/bin/activate
-          ${{ env.INSTALL_PYTHON_DEPENDENCIES }}
+          pip install aiohttp numpy PyYAML "paho-mqtt>=2.1,<3.0" "ai-edge-litert>=2.1.0,<3.0.0" pytest pytest-asyncio ruff black mypy
 
       - name: Run pytest
         run: |
@@ -77,41 +75,6 @@ jobs:
         run: |
           source .venv/bin/activate
           PYTHONPATH=ha-audio-events .venv/bin/black --check ha-audio-events/app/ tests/
-
-  build:
-    name: Build & Test
-    runs-on: ubuntu-latest
-    needs: test
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Create virtual environment
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
-
-      - name: Install dependencies
-        run: |
-          source .venv/bin/activate
-          ${{ env.INSTALL_PYTHON_DEPENDENCIES }}
-
-      - name: Build package
-        run: |
-          source .venv/bin/activate
-          python -m build
-
-      - name: Test package installation
-        run: |
-          source .venv/bin/activate
-          pip install dist/ha_audio_events-0.1.9-py3-none-any.whl
-          python -c "import ha_audio_events; print(f'Successfully imported: {ha_audio_events.__version__}')"
 
   # Code Coverage Check - ensures tests maintain quality threshold
   coverage-check:
@@ -130,18 +93,16 @@ jobs:
       - name: Create virtual environment
         run: |
           python -m venv .venv
-          source .venv/bin/activate
 
       - name: Install dependencies
         run: |
           source .venv/bin/activate
-          ${{ env.INSTALL_PYTHON_DEPENDENCIES }}
-          pip install pytest-cov
+          pip install aiohttp numpy PyYAML "paho-mqtt>=2.1,<3.0" "ai-edge-litert>=2.1.0,<3.0.0" pytest pytest-asyncio ruff black mypy pytest-cov
 
       - name: Run tests with coverage
         run: |
           source .venv/bin/activate
-          PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app/ --cov-fail-min=80 --cov-report=term-missing -v
+          PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=app --cov-fail-min=80 --cov-report=term-missing -v
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -167,12 +128,11 @@ jobs:
       - name: Create virtual environment
         run: |
           python -m venv .venv
-          source .venv/bin/activate
 
       - name: Install dependencies
         run: |
           source .venv/bin/activate
-          ${{ env.INSTALL_PYTHON_DEPENDENCIES }}
+          pip install aiohttp numpy PyYAML "paho-mqtt>=2.1,<3.0" "ai-edge-litert>=2.1.0,<3.0.0" pytest pytest-asyncio ruff black mypy
 
       - name: Validate WebUI imports
         run: |

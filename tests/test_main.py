@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import numpy as np
-
 from app.classifiers.registry import build_classifier
 from app.config import AppConfig
 from app.demo import format_file_result
@@ -32,4 +31,6 @@ def test_prepare_waveform_matches_model_input_shape() -> None:
 
 
 def test_format_file_result() -> None:
-    assert format_file_result("clip.wav", "train", 30.0) == "file clip.wav - train - 30.0s"
+    assert (
+        format_file_result("clip.wav", "train", 30.0) == "file clip.wav - train - 30.0s"
+    )
