@@ -174,12 +174,46 @@ Run unit and integration tests using the virtual environment's pytest:
 .venv/bin/pytest -v
 ```
 
+### Complete Test Workflow (Use Before Pushing)
+
+The recommended way to run all checks locally is via the Makefile, which mirrors the CI pipeline:
+
+```bash
+# Run ALL checks: unit tests + linting (ruff) + formatting (black)
+make test
+```
+
+This runs three sub-targets:
+- **`make test-unit`** - Runs pytest with verbose output (44 tests)
+- **`make test-lint`** - Runs ruff check on source and tests
+- **`make test-format`** - Runs black format check with `--target-version py312`
+
+**All three must pass (exit code 0) before pushing to GitHub.**
+
+You can also run them individually:
+```bash
+make test-unit    # Just unit tests
+make test-lint    # Just linting
+make test-format  # Just format check
+```
+
 ### Test Results (as of last run)
-- **32 tests, all passing** in ~4 seconds
+- **44 tests, all passing** in ~4 seconds
 - Integration tests require `models/yamnet.tflite` and `models/yamnet_class_map.csv`
   (present in the repo). If missing, those tests are skipped.
 - `test_stream.py::test_stream_source_wav_file` requires
   `tests/fixtures/audio/train/freight_train_01.wav` (present).
+
+### CI Pipeline Alignment
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs the exact same commands:
+1. Install dependencies (no editable install, uses `PYTHONPATH=ha-audio-events`)
+2. Install `ffmpeg` system package (required for MP3 fixture conversion)
+3. Run `pytest -v`
+4. Run `ruff check ha-audio-events/app/ tests/`
+5. Run `black --check --target-version py312 ha-audio-events/app/ tests/`
+
+**If `make test` passes locally, CI will pass.**
 
 ### Running the Demo
 
