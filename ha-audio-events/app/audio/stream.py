@@ -103,10 +103,9 @@ class AudioStreamSource:
                 async for chunk in self._stream_ffmpeg("default", is_pulse=True):
                     yield chunk
                 return
-            except Exception as err:
-                _LOGGER.warning(
-                    "PulseAudio ffmpeg capture failed (%s), falling back to stdin stream",
-                    err,
+            except Exception:
+                _LOGGER.exception(
+                    "PulseAudio ffmpeg capture failed, falling back to stdin stream"
                 )
 
         _LOGGER.info("Streaming raw audio from stdin")
@@ -171,7 +170,7 @@ class AudioStreamSource:
                     proc.terminate()
                     await proc.wait()
                 except Exception:
-                    pass
+                    _LOGGER.exception("Error terminating ffmpeg process")
 
     async def _stream_stdin(self) -> AsyncIterator[np.ndarray]:
         chunk_size = int(
@@ -198,7 +197,6 @@ class AudioStreamSource:
         def read_wav_frames() -> list[bytes]:
             with wave.open(str(path), "rb") as handle:
                 sample_rate = handle.getframerate()
-                channels = handle.getnchannels()
                 if sample_rate != self.config.sample_rate:
                     raise ValueError(
                         f"WAV sample rate {sample_rate} does not match configured sample rate {self.config.sample_rate}"

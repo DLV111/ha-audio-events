@@ -1,4 +1,4 @@
-.PHONY: version version-noninteractive test-container test-container-verbose test-fixtures test-fixtures-container test-fixture-local demo-file download-yamnet-model update-yamnet-model help
+.PHONY: version version-noninteractive test test-unit test-lint test-format test-container test-container-verbose test-fixtures test-fixtures-container test-fixture-local demo-file download-yamnet-model update-yamnet-model help
 
 help:
 	@echo "Available targets:"
@@ -104,3 +104,14 @@ test-container-verbose:
 	@.venv/bin/python -c "import math,wave; from pathlib import Path; p=Path('test_audio.wav'); w=wave.open(str(p),'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); [w.writeframesraw((int(12000*math.sin(2*math.pi*440*i/16000)) if i % 800 < 400 else 0).to_bytes(2,'little',signed=True)) for i in range(16000)]; w.close()"
 	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/test_audio.wav\nactivity:\n  rms_threshold: 0.01\n  peak_threshold: 0.01\n  hold_time: 0.1\nclassifier:\n  threshold: 0.1\n  max_results: 5\n  include:\n    - speech\n    - dog\n    - train\n    - thunder\n    - siren\n  exclude:\n    - music\n    - silence\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\n' > /tmp/ha-audio-events-test-config.yaml
 	@podman run --rm -i -e PYTHONUNBUFFERED=1 -v "$$(pwd):/data:Z" -v /tmp/ha-audio-events-test-config.yaml:/tmp/config.yaml:Z localhost/ha-audio-events-test /bin/bash -lc 'cd /app && cp /data/test_audio.wav /tmp/test_audio.wav && cp /tmp/config.yaml /app/config.yaml && /app/run.sh'
+
+test: test-unit test-lint test-format
+
+test-unit:
+	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest -v
+
+test-lint:
+	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
+
+test-format:
+	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/black --check ha-audio-events/app/ tests/

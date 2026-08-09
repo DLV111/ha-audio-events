@@ -66,6 +66,6 @@ def test_audio_fixture_classifies_as_expected(
         or "rail" in r.lower()
         or "bark" in r.lower()
     ]
-    assert len(matching) > 0, (
-        f"Expected classification for {expected_label} in {fixture_name}, got results: {results}"
-    )
+    assert (
+        len(matching) > 0
+    ), f"Expected classification for {expected_label} in {fixture_name}, got results: {results}"

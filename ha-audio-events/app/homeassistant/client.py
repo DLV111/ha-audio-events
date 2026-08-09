@@ -53,8 +53,8 @@ class HomeAssistantClient:
                     )
         except asyncio.CancelledError:
             raise
-        except Exception as exc:
-            _LOGGER.exception("Error firing Home Assistant event: %s", exc)
+        except Exception:
+            _LOGGER.exception("Error firing Home Assistant event")
 
     async def update_state(
         self, entity_id: str, state: str, attributes: dict[str, Any] | None = None
@@ -81,5 +81,5 @@ class HomeAssistantClient:
                     )
         except asyncio.CancelledError:
             raise
-        except Exception as exc:
-            _LOGGER.exception("Error updating HA state: %s", exc)
+        except Exception:
+            _LOGGER.exception("Error updating HA state")

@@ -63,22 +63,9 @@ class AddonManager:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
-            _LOGGER.exception("Error making Supervisor API request: %s", exc)
-            return None
-
-    async def get_option(self, category: str, key: str) -> Any:
-        """Get an option from add-on configuration."""
-        try:
-            result = await self._make_request("GET", "/addons/self/options")
-            if result is None:
-                return None
-
-            options = result.get("data", {}).get("options", {})
-            category_options = options.get(category, {})
-            return category_options.get(key)
-
-        except Exception as exc:
-            _LOGGER.exception("Error getting add-on option: %s", exc)
+            if exc:
+                raise
+            _LOGGER.exception("Error making Supervisor API request")
             return None
 
     async def set_option(self, category: str, key: str, value: Any) -> bool:
@@ -104,8 +91,8 @@ class AddonManager:
             )
             return result is not None
 
-        except Exception as exc:
-            _LOGGER.exception("Error setting add-on option: %s", exc)
+        except Exception:
+            _LOGGER.exception("Error setting add-on option")
             return False
 
     async def restart(self) -> bool:
@@ -113,8 +100,8 @@ class AddonManager:
         try:
             result = await self._make_request("POST", "/addons/self/restart")
             return result is not None
-        except Exception as exc:
-            _LOGGER.exception("Error restarting add-on: %s", exc)
+        except Exception:
+            _LOGGER.exception("Error restarting add-on")
             return False
 
     async def get_addon_info(self) -> dict[str, Any] | None:
@@ -124,6 +111,6 @@ class AddonManager:
             if result is None:
                 return None
             return result.get("data")
-        except Exception as exc:
-            _LOGGER.exception("Error getting add-on info: %s", exc)
+        except Exception:
+            _LOGGER.exception("Error getting add-on info")
             return None

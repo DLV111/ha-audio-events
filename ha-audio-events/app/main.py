@@ -141,7 +141,7 @@ async def _run_pipeline(config: AppConfig) -> None:
     # Start WebUI for ingress source picker
     webui = WebUI(config.webui)
     addon_mgr = AddonManager()
-    webui_task = asyncio.create_task(
+    asyncio.create_task(
         webui.start(addon_mgr, host=config.webui.host, port=config.webui.port)
     )
 

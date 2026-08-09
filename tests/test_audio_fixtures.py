@@ -58,9 +58,9 @@ def test_fixture_manifest_contains_expected_entry(
     relative_path: str,
 ) -> None:
     manifest = _load_manifest()
-    assert fixture_name in manifest, (
-        f"Missing fixture manifest entry for {fixture_name}"
-    )
+    assert (
+        fixture_name in manifest
+    ), f"Missing fixture manifest entry for {fixture_name}"
 
     fixture_meta = manifest[fixture_name]
     assert fixture_meta.get("expected_label") == expected_label

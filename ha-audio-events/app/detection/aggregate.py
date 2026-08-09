@@ -25,24 +25,23 @@ class EventAggregator:
         inactive_labels = list(self._active_events.keys())
         for label in inactive_labels:
             state = self._active_events[label]
-            if label not in detections_by_label:
-                if now - state.last_seen_at >= timedelta(
-                    seconds=self.config.end_timeout
-                ):
-                    state.duration = (
-                        state.last_seen_at - state.started_at
-                    ).total_seconds()
-                    events.append(
-                        EventMessage(
-                            event_type="audio.detected",
-                            label=label,
-                            confidence=state.confidence,
-                            duration=state.duration,
-                            state="ended",
-                            model=state.model,
-                        )
+            if (
+                label not in detections_by_label
+                and now - state.last_seen_at
+                >= timedelta(seconds=self.config.end_timeout)
+            ):
+                state.duration = (state.last_seen_at - state.started_at).total_seconds()
+                events.append(
+                    EventMessage(
+                        event_type="audio.detected",
+                        label=label,
+                        confidence=state.confidence,
+                        duration=state.duration,
+                        state="ended",
+                        model=state.model,
                     )
-                    del self._active_events[label]
+                )
+                del self._active_events[label]
 
         for detection in detections:
             state = self._active_events.get(detection.label)
