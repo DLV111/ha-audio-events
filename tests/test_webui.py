@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, Mock
 
-from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
+from aiohttp.test_utils import AioHTTPTestCase
 from app.addon_mgr import AddonManager
 from app.homeassistant.client import HomeAssistantClient
 from app.webui.server import WebUI
@@ -26,7 +26,6 @@ class TestWebUI(AioHTTPTestCase):
         self.webui = WebUI(self.mock_hass_client, self.mock_addon_manager)
         return self.webui.app
 
-    @unittest_run_loop
     async def test_serve_index(self):
         """Test that the index page is served correctly."""
         resp = await self.client.request("GET", "/")
@@ -35,7 +34,6 @@ class TestWebUI(AioHTTPTestCase):
         assert "<!DOCTYPE html>" in text
         assert "HA Audio Events" in text
 
-    @unittest_run_loop
     async def test_get_cameras_success(self):
         """Test successful camera discovery from Home Assistant."""
         # Mock HA client response
@@ -62,7 +60,6 @@ class TestWebUI(AioHTTPTestCase):
         assert data[1]["entity_id"] == "camera.backyard"
         assert data[1]["friendly_name"] == "Backyard Camera"
 
-    @unittest_run_loop
     async def test_get_cameras_no_cameras(self):
         """Test camera discovery when no cameras are available."""
         self.mock_hass_client.get_state = AsyncMock(return_value=[])
@@ -72,7 +69,6 @@ class TestWebUI(AioHTTPTestCase):
         data = await resp.json()
         assert data == []
 
-    @unittest_run_loop
     async def test_get_cameras_error(self):
         """Test camera discovery when HA API returns an error."""
         self.mock_hass_client.get_state = AsyncMock(return_value=None)
@@ -82,7 +78,6 @@ class TestWebUI(AioHTTPTestCase):
         data = await resp.json()
         assert "error" in data
 
-    @unittest_run_loop
     async def test_get_source_success(self):
         """Test successful retrieval of audio source."""
         self.mock_addon_manager.get_option = AsyncMock(return_value="camera.front_door")
@@ -92,7 +87,6 @@ class TestWebUI(AioHTTPTestCase):
         data = await resp.json()
         assert data == {"source": "camera.front_door"}
 
-    @unittest_run_loop
     async def test_get_source_not_set(self):
         """Test retrieval when audio source is not set."""
         self.mock_addon_manager.get_option = AsyncMock(return_value=None)
@@ -102,7 +96,6 @@ class TestWebUI(AioHTTPTestCase):
         data = await resp.json()
         assert data == {"source": ""}
 
-    @unittest_run_loop
     async def test_set_source_success(self):
         """Test successful setting of audio source."""
         self.mock_addon_manager.set_option = AsyncMock(return_value=True)
@@ -122,7 +115,6 @@ class TestWebUI(AioHTTPTestCase):
         )
         self.mock_addon_manager.restart.assert_called_once()
 
-    @unittest_run_loop
     async def test_set_source_missing_parameter(self):
         """Test setting source with missing parameter."""
         resp = await self.client.request("POST", "/api/source", json={})
@@ -130,7 +122,6 @@ class TestWebUI(AioHTTPTestCase):
         data = await resp.json()
         assert "Missing source parameter" in data["error"]
 
-    @unittest_run_loop
     async def test_set_source_failure(self):
         """Test setting source when addon manager fails."""
         self.mock_addon_manager.set_option = AsyncMock(return_value=False)
@@ -144,7 +135,6 @@ class TestWebUI(AioHTTPTestCase):
         data = await resp.json()
         assert "Failed to set source" in data["error"]
 
-    @unittest_run_loop
     async def test_set_source_restart_failure(self):
         """Test setting source succeeds but restart fails."""
         self.mock_addon_manager.set_option = AsyncMock(return_value=True)
@@ -159,13 +149,11 @@ class TestWebUI(AioHTTPTestCase):
         data = await resp.json()
         assert "failed to restart" in data["error"]
 
-    @unittest_run_loop
     async def test_webui_availability(self):
         """Test that Web UI is accessible."""
         resp = await self.client.request("GET", "/")
         assert resp.status == 200
 
-    @unittest_run_loop
     async def test_cameras_endpoint(self):
         """Test cameras endpoint works correctly."""
         # Need to mock get_state for this test

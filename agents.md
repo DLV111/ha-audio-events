@@ -179,26 +179,29 @@ Run unit and integration tests using the virtual environment's pytest:
 The recommended way to run all checks locally is via the Makefile, which mirrors the CI pipeline:
 
 ```bash
-# Run ALL checks: unit tests + linting (ruff) + formatting (black)
+# Run ALL checks: unit tests + linting (ruff) + formatting (black) + coverage
 make test
 ```
 
-This runs three sub-targets:
+This runs four sub-targets:
 - **`make test-unit`** - Runs pytest with verbose output (44 tests)
 - **`make test-lint`** - Runs ruff check on source and tests
 - **`make test-format`** - Runs black format check with `--target-version py312`
+- **`make test-coverage`** - Runs pytest with coverage (60% threshold)
 
-**All three must pass (exit code 0) before pushing to GitHub.**
+**All four must pass (exit code 0) before pushing to GitHub.**
 
 You can also run them individually:
 ```bash
-make test-unit    # Just unit tests
-make test-lint    # Just linting
-make test-format  # Just format check
+make test-unit      # Just unit tests
+make test-lint      # Just linting
+make test-format    # Just format check
+make test-coverage  # Just coverage check
 ```
 
 ### Test Results (as of last run)
 - **44 tests, all passing** in ~4 seconds
+- Coverage: **64%** (threshold: 60%)
 - Integration tests require `models/yamnet.tflite` and `models/yamnet_class_map.csv`
   (present in the repo). If missing, those tests are skipped.
 - `test_stream.py::test_stream_source_wav_file` requires
@@ -212,6 +215,7 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) runs the exact same com
 3. Run `pytest -v`
 4. Run `ruff check ha-audio-events/app/ tests/`
 5. Run `black --check --target-version py312 ha-audio-events/app/ tests/`
+6. **Coverage job**: Run `pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v`
 
 **If `make test` passes locally, CI will pass.**
 
@@ -233,6 +237,7 @@ PYTHONPATH=ha-audio-events .venv/bin/python -m app.demo tests/fixtures/audio/tra
 > with the provided file path.
 
 ### Useful Makefile Commands
+- **`make test`**: Run ALL checks (unit tests + linting + formatting + coverage)
 - **`make test-fixtures`**: Run pytest against fixture test files.
 - **`make demo-file FILE=path/to/audio.wav`**: Test classifier pipeline on a single audio file.
 - **`make test-container`**: Build Podman/Docker image and run container smoke test.
@@ -247,6 +252,12 @@ PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
 
 # Auto-fix what's possible
 PYTHONPATH=ha-audio-events .venv/bin/ruff check --fix ha-audio-events/app/ tests/
+
+# Check formatting
+PYTHONPATH=ha-audio-events .venv/bin/black --check --target-version py312 ha-audio-events/app/ tests/
+
+# Check coverage
+PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing
 ```
 
 > **Note**: There are pre-existing linting issues (import sorting, unused imports,
