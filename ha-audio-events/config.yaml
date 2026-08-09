@@ -49,11 +49,6 @@ options:
     port: 1883
     topic: audio/events
     discovery_prefix: homeassistant
-  ingress:
-    enabled: true
-    ingress_port: 8099
-    panel_icon: mdi:microphone
-    panel_title: "HA Audio Events"
 schema:
   model: str
   buffer_seconds: float
@@ -87,11 +82,10 @@ schema:
     port: int
     topic: str
     discovery_prefix: str
-ingress:
-  enabled: true
-  ingress_port: 8099
-  panel_icon: mdi:microphone
-  panel_title: "HA Audio Events"
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:microphone
+panel_title: "HA Audio Events"
 logger: info
 map:
   - homeassistant_config: /config

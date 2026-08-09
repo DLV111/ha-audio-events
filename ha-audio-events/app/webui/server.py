@@ -28,24 +28,22 @@ class WebUI:
         self.app.router.add_post("/api/source", self.set_source)
         self.app.router.add_get("/api/source", self.get_source)
 
-    async def start(self) -> asyncio.Task:
-        """Start the aiohttp web server and return the task."""
+    async def start(self, host: str = "0.0.0.0", port: int = 8099) -> None:
+        """Start the aiohttp web server and run until cancelled."""
         runner = web.AppRunner(self.app)
         await runner.setup()
-        site = web.TCPSite(runner, "", 8099)
-        _LOGGER.info("Web UI server starting on port 8099")
+        site = web.TCPSite(runner, host, port)
+        _LOGGER.info("Web UI server starting on %s:%s", host, port)
         await site.start()
         _LOGGER.info("Web UI server started successfully")
-        return asyncio.create_task(self._keep_server_alive(runner))
-
-    async def _keep_server_alive(self, runner: web.AppRunner) -> None:
-        """Keep the server running until cancelled."""
         try:
-            # Wait forever until cancelled
+            # Wait forever until cancelled (e.g. when the detection loop
+            # ends and asyncio.gather tears everything down).
             await asyncio.Future()
         except asyncio.CancelledError:
             _LOGGER.info("Web UI server shutting down")
             await runner.cleanup()
+            raise
 
     async def serve_index(self, request: web.Request) -> web.Response:
         """Serve the main HTML page for the Web UI."""
@@ -188,7 +186,7 @@ class WebUI:
         async function loadData() {
             try {
                 // Load cameras
-                const camerasResponse = await fetch('/api/cameras');
+                const camerasResponse = await fetch('api/cameras');
                 if (camerasResponse.ok) {
                     cameras = await camerasResponse.json();
                 } else {
@@ -196,7 +194,7 @@ class WebUI:
                 }
 
                 // Load current source
-                const sourceResponse = await fetch('/api/source');
+                const sourceResponse = await fetch('api/source');
                 if (sourceResponse.ok) {
                     const data = await sourceResponse.json();
                     currentSource = data.source || '';
@@ -325,7 +323,7 @@ class WebUI:
             try {
                 showStatus('Applying audio source configuration...', 'success');
                 
-                const response = await fetch('/api/source', {
+                const response = await fetch('api/source', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

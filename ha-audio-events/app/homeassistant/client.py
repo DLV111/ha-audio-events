@@ -56,6 +56,44 @@ class HomeAssistantClient:
         except Exception:
             _LOGGER.exception("Error firing Home Assistant event")
 
+    async def get_state(self, domain: str | None = None) -> list[dict[str, Any]] | None:
+        """Fetch entity states from Home Assistant, optionally filtered to a domain.
+
+        Returns a list of state dicts (matching HA's GET /api/states shape),
+        or None on failure. If `domain` is given (e.g. "camera"), only
+        entities whose entity_id starts with "{domain}." are returned.
+
+        Unlike fire_event/update_state, this isn't gated on config.enabled:
+        callers like the webui's camera picker need to query HA even when
+        event/state publishing is turned off.
+        """
+        url = f"{self.config.url}/api/states"
+        headers: dict[str, str] = {}
+        if self.config.token:
+            headers["Authorization"] = f"Bearer {self.config.token}"
+
+        try:
+            async with self._session.get(url, headers=headers) as response:
+                if response.status >= 300:
+                    text = await response.text()
+                    _LOGGER.warning(
+                        "Failed to fetch HA states (%s): %s", response.status, text
+                    )
+                    return None
+                states: list[dict[str, Any]] = await response.json()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _LOGGER.exception("Error fetching Home Assistant states")
+            return None
+
+        if domain:
+            prefix = f"{domain}."
+            states = [
+                s for s in states if str(s.get("entity_id", "")).startswith(prefix)
+            ]
+        return states
+
     async def update_state(
         self, entity_id: str, state: str, attributes: dict[str, Any] | None = None
     ) -> None:

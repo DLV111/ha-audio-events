@@ -88,6 +88,15 @@ def make_mock_session(response: AsyncMock | None = None) -> MagicMock:
     return mock_session
 
 
+def make_mock_get_session(response: AsyncMock | None = None) -> MagicMock:
+    """Create a mock session whose .get() returns the given response."""
+    mock_session = MagicMock()
+    if response is not None:
+        mock_session.get = MagicMock(return_value=response)
+    mock_session.close = AsyncMock()
+    return mock_session
+
+
 class TestHomeAssistantClient:
     """Tests for HomeAssistantClient."""
 
@@ -384,4 +393,77 @@ class TestHomeAssistantClient:
 
         _args, kwargs = mock_session.post.call_args
         assert "Authorization" not in kwargs["headers"]
+        await client.close()
+
+    @pytest.mark.asyncio
+    async def test_get_state_filters_by_domain(
+        self,
+        ha_config: HomeAssistantConfig,
+    ) -> None:
+        """get_state("camera") should call GET /api/states and filter to camera.* entities."""
+        all_states = [
+            {"entity_id": "camera.front_door", "state": "idle"},
+            {"entity_id": "camera.shed_fluent", "state": "idle"},
+            {"entity_id": "sensor.temperature", "state": "21.0"},
+        ]
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json = AsyncMock(return_value=all_states)
+        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_response.__aexit__ = AsyncMock(return_value=None)
+
+        client = HomeAssistantClient(ha_config)
+        mock_session = make_mock_get_session(mock_response)
+        client._session = mock_session
+
+        result = await client.get_state("camera")
+
+        mock_session.get.assert_called_once()
+        call_args, kwargs = mock_session.get.call_args
+        assert call_args[0] == "http://localhost:8123/api/states"
+        assert kwargs["headers"]["Authorization"] == "Bearer test_token"
+        assert result == [
+            {"entity_id": "camera.front_door", "state": "idle"},
+            {"entity_id": "camera.shed_fluent", "state": "idle"},
+        ]
+        await client.close()
+
+    @pytest.mark.asyncio
+    async def test_get_state_returns_none_on_http_error(
+        self,
+        ha_config: HomeAssistantConfig,
+        mock_response_500: AsyncMock,
+    ) -> None:
+        """get_state should return None (not raise) on a non-2xx response."""
+        client = HomeAssistantClient(ha_config)
+        mock_session = make_mock_get_session(mock_response_500)
+        client._session = mock_session
+
+        result = await client.get_state("camera")
+
+        assert result is None
+        await client.close()
+
+    @pytest.mark.asyncio
+    async def test_get_state_works_when_homeassistant_disabled(
+        self,
+        ha_config_disabled: HomeAssistantConfig,
+    ) -> None:
+        """Unlike fire_event/update_state, get_state must not be gated on
+        config.enabled -- the webui's camera picker needs to query HA even
+        when event/state publishing is turned off."""
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json = AsyncMock(return_value=[])
+        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_response.__aexit__ = AsyncMock(return_value=None)
+
+        client = HomeAssistantClient(ha_config_disabled)
+        mock_session = make_mock_get_session(mock_response)
+        client._session = mock_session
+
+        result = await client.get_state("camera")
+
+        mock_session.get.assert_called_once()
+        assert result == []
         await client.close()

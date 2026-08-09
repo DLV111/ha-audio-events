@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from pathlib import Path
 
 from app.addon_mgr import AddonManager
@@ -63,88 +64,107 @@ async def _run_pipeline(config: AppConfig) -> None:
             config.homeassistant.entity_prefix, config.classifier.include
         )
 
-    async for chunk in source.stream():
-        buffer.append(chunk)
-        window = buffer.get_window(config.buffer_seconds)
-        if not detector.should_analyze(window):
-            continue
+    async def _detect() -> None:
+        async for chunk in source.stream():
+            buffer.append(chunk)
+            window = buffer.get_window(config.buffer_seconds)
+            if not detector.should_analyze(window):
+                continue
 
-        detections = await classifier.classify(window)
-        filtered = filter_detections(detections, config.classifier)
-        events = aggregator.update(filtered)
+            detections = await classifier.classify(window)
+            filtered = filter_detections(detections, config.classifier)
+            events = aggregator.update(filtered)
 
-        for event in events:
-            _LOGGER.info("Detected event: %s", format_event_summary(event))
-            if ha_client is not None:
-                await ha_client.fire_event(event)
-                await ha_client.update_state(
-                    entity_ids["last_audio_event"],
-                    event.label,
-                    build_attributes(
-                        event, friendly_name=friendly_names["last_audio_event"]
-                    ),
-                )
-                await ha_client.update_state(
-                    entity_ids["last_audio_confidence"],
-                    f"{event.confidence:.2f}",
-                    {
-                        "label": event.label,
-                        "friendly_name": friendly_names["last_audio_confidence"],
-                    },
-                )
-                await ha_client.update_state(
-                    entity_ids["audio_model"],
-                    event.model,
-                    {
-                        "label": event.label,
-                        "friendly_name": friendly_names["audio_model"],
-                    },
-                )
-                await ha_client.update_state(
-                    entity_ids["audio_event_duration"],
-                    f"{event.duration:.2f}",
-                    {
-                        "label": event.label,
-                        "friendly_name": friendly_names["audio_event_duration"],
-                    },
-                )
-                await ha_client.update_state(
-                    entity_ids["audio_active"],
-                    "on" if event.state != "ended" else "off",
-                    {
-                        "label": event.label,
-                        "friendly_name": friendly_names["audio_active"],
-                        "device_class": "sound",
-                    },
-                )
-                if event.label in label_sensor_ids:
+            for event in events:
+                _LOGGER.info("Detected event: %s", format_event_summary(event))
+                if ha_client is not None:
+                    await ha_client.fire_event(event)
                     await ha_client.update_state(
-                        label_sensor_ids[event.label],
+                        entity_ids["last_audio_event"],
+                        event.label,
+                        build_attributes(
+                            event, friendly_name=friendly_names["last_audio_event"]
+                        ),
+                    )
+                    await ha_client.update_state(
+                        entity_ids["last_audio_confidence"],
+                        f"{event.confidence:.2f}",
+                        {
+                            "label": event.label,
+                            "friendly_name": friendly_names["last_audio_confidence"],
+                        },
+                    )
+                    await ha_client.update_state(
+                        entity_ids["audio_model"],
+                        event.model,
+                        {
+                            "label": event.label,
+                            "friendly_name": friendly_names["audio_model"],
+                        },
+                    )
+                    await ha_client.update_state(
+                        entity_ids["audio_event_duration"],
+                        f"{event.duration:.2f}",
+                        {
+                            "label": event.label,
+                            "friendly_name": friendly_names["audio_event_duration"],
+                        },
+                    )
+                    await ha_client.update_state(
+                        entity_ids["audio_active"],
                         "on" if event.state != "ended" else "off",
                         {
                             "label": event.label,
-                            "confidence": str(event.confidence),
-                            "friendly_name": label_friendly_names.get(
-                                event.label, event.label
-                            ),
+                            "friendly_name": friendly_names["audio_active"],
                             "device_class": "sound",
                         },
                     )
-            if mqtt_client is not None:
-                mqtt_client.publish(event)
+                    if event.label in label_sensor_ids:
+                        await ha_client.update_state(
+                            label_sensor_ids[event.label],
+                            "on" if event.state != "ended" else "off",
+                            {
+                                "label": event.label,
+                                "confidence": str(event.confidence),
+                                "friendly_name": label_friendly_names.get(
+                                    event.label, event.label
+                                ),
+                                "device_class": "sound",
+                            },
+                        )
+                if mqtt_client is not None:
+                    mqtt_client.publish(event)
 
-    if ha_client is not None:
-        await ha_client.close()
-    if mqtt_client is not None:
-        mqtt_client.stop()
+        if ha_client is not None:
+            await ha_client.close()
+        if mqtt_client is not None:
+            mqtt_client.stop()
 
-    # Start WebUI for ingress source picker
     if config.webui.enabled:
-        addon_mgr = AddonManager()
-        webui = WebUI(ha_client, addon_mgr)
-        asyncio.create_task(
-            webui.start(addon_mgr, host=config.webui.host, port=config.webui.port)
-        )
+        # The webui needs to query Home Assistant (to list camera entities)
+        # regardless of whether homeassistant.enabled is set for event
+        # publishing, so give it its own client if one wasn't already created.
+        webui_ha_client = ha_client or HomeAssistantClient(config.homeassistant)
+        supervisor_token = os.getenv("SUPERVISOR_TOKEN", "")
+        addon_mgr = AddonManager(supervisor_token)
+        webui = WebUI(webui_ha_client, addon_mgr)
+        # Run the detection loop and the webui concurrently. The webui must
+        # stay reachable even if the audio pipeline itself fails or exits
+        # (e.g. a bad source_path) so the user can fix the source from the
+        # ingress panel -- it must not be started only after pipeline
+        # cleanup, and its task must actually be awaited, or the process
+        # exits (and the task gets cancelled) as soon as _detect() returns.
+        try:
+            await asyncio.gather(
+                _detect(),
+                webui.start(host=config.webui.host, port=config.webui.port),
+            )
+        finally:
+            await addon_mgr.close()
+            if webui_ha_client is not ha_client:
+                await webui_ha_client.close()
+    else:
+        await _detect()
 
 
 def main_sync() -> None:

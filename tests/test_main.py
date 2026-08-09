@@ -159,6 +159,81 @@ async def test_run_pipeline_with_audio_chunks() -> None:
         mock_aggregator_instance.update.assert_called()
 
 
+@pytest.mark.asyncio
+async def test_run_pipeline_wires_up_webui_correctly() -> None:
+    """Regression test for a real bug: AddonManager() was previously called
+    with no arguments (TypeError: missing required 'supervisor_token'),
+    webui.start() was called with a host/port signature the method didn't
+    accept (TypeError), and the webui was only started after the pipeline's
+    own cleanup as an unawaited asyncio.create_task -- meaning it never
+    stayed running in practice. This exercises the actual wiring inside
+    _run_pipeline the way main_sync() does, instead of testing WebUI and
+    AddonManager only in isolation with mocks that don't touch main.py."""
+    config = AppConfig(
+        model="yamnet",
+        audio=AudioSourceConfig(sample_rate=16000, channels=1),
+        activity=ActivityConfig(rms_threshold=0.01, peak_threshold=0.01),
+        buffer_seconds=3.0,
+        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
+        homeassistant=HomeAssistantConfig(enabled=False),
+        mqtt=MQTTConfig(enabled=False),
+        webui=WebUIConfig(enabled=True, host="0.0.0.0", port=8123),
+        log_level="INFO",
+    )
+
+    class EmptyAsyncIterator:
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            raise StopAsyncIteration
+
+    with (
+        patch("app.main.AudioStreamSource") as mock_source_class,
+        patch("app.main.build_classifier") as mock_classifier,
+        patch("app.main.EventAggregator") as mock_aggregator,
+        patch("app.main.AddonManager") as mock_addon_manager_class,
+        patch("app.main.WebUI") as mock_webui_class,
+        patch("app.main.HomeAssistantClient") as mock_ha_client_class,
+        patch.dict("os.environ", {"SUPERVISOR_TOKEN": "test-supervisor-token"}),
+    ):
+        mock_source = MagicMock()
+        mock_source.stream.return_value = EmptyAsyncIterator()
+        mock_source_class.return_value = mock_source
+
+        mock_classifier_instance = AsyncMock()
+        mock_classifier_instance.classify = AsyncMock(return_value=[])
+        mock_classifier.return_value = mock_classifier_instance
+
+        mock_aggregator_instance = MagicMock()
+        mock_aggregator_instance.update.return_value = []
+        mock_aggregator.return_value = mock_aggregator_instance
+
+        mock_addon_manager_instance = MagicMock()
+        mock_addon_manager_instance.close = AsyncMock()
+        mock_addon_manager_class.return_value = mock_addon_manager_instance
+
+        mock_webui_instance = MagicMock()
+        mock_webui_instance.start = AsyncMock(return_value=None)
+        mock_webui_class.return_value = mock_webui_instance
+
+        mock_ha_client_instance = MagicMock()
+        mock_ha_client_instance.close = AsyncMock()
+        mock_ha_client_class.return_value = mock_ha_client_instance
+
+        await _run_pipeline(config)
+
+    # AddonManager must be constructed with the real supervisor token, not
+    # called with zero arguments.
+    mock_addon_manager_class.assert_called_once_with("test-supervisor-token")
+
+    # WebUI.start must be awaited with the host/port the user configured --
+    # not called with a signature the method doesn't accept, and not left
+    # as a dangling, never-awaited task.
+    mock_webui_instance.start.assert_awaited_once_with(host="0.0.0.0", port=8123)
+
+
 @patch("app.main.load_config")
 @patch("app.main.configure_logging")
 @patch("app.main.asyncio.run")
