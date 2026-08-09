@@ -33,4 +33,5 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 pythonpath = ["ha-audio-events"]
-addopts = "--cov=ha-audio-events/app --cov-report=term-missing"
+# Coverage options are only used in coverage-check job (explicitly passed via CLI)
+# addopts = "--cov=ha-audio-events/app --cov-report=term-missing"
