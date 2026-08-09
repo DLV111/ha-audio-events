@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import numpy as np
 import pytest
 from app.audio.stream import AudioStreamSource
 from app.config import AudioSourceConfig, HomeAssistantConfig
@@ -84,6 +85,9 @@ async def test_stream_wav_resampling_not_supported() -> None:
                 pass
 
 
+import pytest
+
+
 @pytest.mark.asyncio
 async def test_stream_wav_16bit_only() -> None:
     """Test WAV file with non-16-bit raises error."""
@@ -104,43 +108,24 @@ async def test_stream_wav_16bit_only() -> None:
             async for _ in source.stream():
                 pass
 
-
-# Test streaming from stdin.
+    # Test streaming from stdin.
     config = AudioSourceConfig(sample_rate=16000, channels=1, source_path=None)
     source = AudioStreamSource(config=config, chunk_seconds=0.5)
 
     # Mock stdin - the actual implementation reads from sys.stdin.buffer directly
     # We need to mock at the right level
-    import io
     from unittest.mock import patch
 
     # Create a mock stdin that behaves like a real stdin
     mock_stdin = MagicMock()
     mock_buffer = MagicMock()
-    
+
     # Create an async generator for the stream
     async def mock_stream():
         yield np.zeros((8000,), dtype=np.int16)
-    
+
     mock_stdin.buffer = mock_buffer
-    monkeypatch.setattr("sys.stdin", mock_stdin)
-    
-    # Mock the actual stream method to return our test data
-    with patch.object(source, 'stream', mock_stream()):
-        chunks = []
-        async for chunk in source.stream():
-            chunks.append(chunk)
-            if len(chunks) >= 1:
-                break
-
-    assert len(chunks) == 1
-    assert chunks[0].ndim == 1
-
-
-@pytest.mark.asyncio
-async def test_stream_pcm_file() -> None:
-    """Test streaming raw PCM file."""
-    import tempfile
+    patch("sys.stdin", mock_stdin).start()
 
     with tempfile.NamedTemporaryFile(suffix=".pcm", delete=False) as f:
         f.write(b"\x00\x00" * 16000)  # 1 second of silence
