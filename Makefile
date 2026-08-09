@@ -105,7 +105,7 @@ test-container-verbose:
 	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/test_audio.wav\nactivity:\n  rms_threshold: 0.01\n  peak_threshold: 0.01\n  hold_time: 0.1\nclassifier:\n  threshold: 0.1\n  max_results: 5\n  include:\n    - speech\n    - dog\n    - train\n    - thunder\n    - siren\n  exclude:\n    - music\n    - silence\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\n' > /tmp/ha-audio-events-test-config.yaml
 	@podman run --rm -i -e PYTHONUNBUFFERED=1 -v "$$(pwd):/data:Z" -v /tmp/ha-audio-events-test-config.yaml:/tmp/config.yaml:Z localhost/ha-audio-events-test /bin/bash -lc 'cd /app && cp /data/test_audio.wav /tmp/test_audio.wav && cp /tmp/config.yaml /app/config.yaml && /app/run.sh'
 
-test: test-unit test-lint test-format test-coverage
+test: test-lint test-format test-with-coverage
 
 test-unit:
 	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest -v
@@ -116,5 +116,5 @@ test-lint:
 test-format:
 	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/black --check ha-audio-events/app/ tests/
 
-test-coverage:
+test-with-coverage:
 	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v

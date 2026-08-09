@@ -183,20 +183,19 @@ The recommended way to run all checks locally is via the Makefile, which mirrors
 make test
 ```
 
-This runs four sub-targets:
-- **`make test-unit`** - Runs pytest with verbose output (44 tests)
+This runs three sub-targets:
 - **`make test-lint`** - Runs ruff check on source and tests
 - **`make test-format`** - Runs black format check with `--target-version py312`
-- **`make test-coverage`** - Runs pytest with coverage (60% threshold)
+- **`make test-with-coverage`** - Runs pytest with coverage (60% threshold)
 
-**All four must pass (exit code 0) before pushing to GitHub.**
+**All three must pass (exit code 0) before pushing to GitHub.**
 
 You can also run them individually:
 ```bash
-make test-unit      # Just unit tests
-make test-lint      # Just linting
-make test-format    # Just format check
-make test-coverage  # Just coverage check
+make test-lint          # Just linting
+make test-format        # Just format check
+make test-with-coverage # Just coverage check (includes test execution)
+make test-unit          # Just unit tests (no coverage)
 ```
 
 ### Test Results (as of last run)
@@ -209,15 +208,17 @@ make test-coverage  # Just coverage check
 
 ### CI Pipeline Alignment
 
-The GitHub Actions workflow (`.github/workflows/ci.yml`) runs the exact same commands:
-1. Install dependencies (no editable install, uses `PYTHONPATH=ha-audio-events`)
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs the exact same commands in a single job:
+1. Install dependencies (no editable install, uses `PYTHONPATH=ha-audio-events`, installs `pytest-cov`)
 2. Install `ffmpeg` system package (required for MP3 fixture conversion)
-3. Run `pytest -v`
+3. Run `pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v`
 4. Run `ruff check ha-audio-events/app/ tests/`
-5. Run `black --check --target-version py312 ha-audio-events/app/ tests/`
-6. **Coverage job**: Run `pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v`
+5. Run `black --check ha-audio-events/app/ tests/`
+6. Upload coverage report as artifact
 
 **If `make test` passes locally, CI will pass.**
+
+The old CI had separate `test` and `coverage-check` jobs that ran tests twice. Now both CI and local run tests once with coverage.
 
 ### Running the Demo
 
@@ -237,7 +238,11 @@ PYTHONPATH=ha-audio-events .venv/bin/python -m app.demo tests/fixtures/audio/tra
 > with the provided file path.
 
 ### Useful Makefile Commands
-- **`make test`**: Run ALL checks (unit tests + linting + formatting + coverage)
+- **`make test`**: Run ALL checks (linting + formatting + coverage with tests)
+- **`make test-unit`**: Run unit tests only (no coverage)
+- **`make test-lint`**: Run ruff linting
+- **`make test-format`**: Run black format check
+- **`make test-with-coverage`**: Run tests with coverage (60% threshold)
 - **`make test-fixtures`**: Run pytest against fixture test files.
 - **`make demo-file FILE=path/to/audio.wav`**: Test classifier pipeline on a single audio file.
 - **`make test-container`**: Build Podman/Docker image and run container smoke test.
