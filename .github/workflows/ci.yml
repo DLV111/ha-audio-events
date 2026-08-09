@@ -59,6 +59,8 @@ jobs:
       - name: Install dependencies
         run: |
           source .venv/bin/activate
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
           pip install aiohttp numpy PyYAML "paho-mqtt>=2.1,<3.0" "ai-edge-litert>=2.1.0,<3.0.0" pytest pytest-asyncio ruff black mypy
 
       - name: Run pytest
