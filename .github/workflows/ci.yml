@@ -20,19 +20,18 @@ jobs:
 
       - name: Validate PR title format
         run: |
-          # Check if title contains required keywords for better categorization
-          if [[ -z "${{ github.event.pull_request.title }}" ]]; then
-            echo "ERROR: PR title cannot be empty"
-            exit 1
+          # Check if PR context is available
+          if [ -z "${{ github.event.pull_request.title }}" ]; then
+            echo "✅ Skipping PR title validation (non-PR context)"
+            exit 0
           fi
-          
-          # Require at least one of these prefixes for clear intent
+          # Check if title contains required keywords
           if ! echo "${{ github.event.pull_request.title }}" | grep -qiE "^(fix|feat|docs|style|refactor|test|chore|perf|ci|build)"; then
             echo "ERROR: PR title must start with one of: fix, feat, docs, style, refactor, test, chore, perf, ci, build"
-            echo "Example: fix: resolve audio source detection issue"
+            echo "Example: fix: audio source detection issue"
             exit 1
           fi
-          
+          # Log success message
           echo "✅ PR title validation passed: '${{ github.event.pull_request.title }}'"
 
   test:
