@@ -168,7 +168,7 @@ async def _run_pipeline(config: AppConfig) -> None:
 
 
 def main_sync() -> None:
-    config = load_config(Path("config.yaml"))
+    config = load_config()
     configure_logging(config.log_level)
     _LOGGER.info("Starting HA Audio Events add-on")
     try:
