@@ -174,12 +174,51 @@ Run unit and integration tests using the virtual environment's pytest:
 .venv/bin/pytest -v
 ```
 
+### Complete Test Workflow (Use Before Pushing)
+
+The recommended way to run all checks locally is via the Makefile, which mirrors the CI pipeline:
+
+```bash
+# Run ALL checks: unit tests + linting (ruff) + formatting (black) + coverage
+make test
+```
+
+This runs three sub-targets:
+- **`make test-lint`** - Runs ruff check on source and tests
+- **`make test-format`** - Runs black format check with `--target-version py312`
+- **`make test-with-coverage`** - Runs pytest with coverage (60% threshold)
+
+**All three must pass (exit code 0) before pushing to GitHub.**
+
+You can also run them individually:
+```bash
+make test-lint          # Just linting
+make test-format        # Just format check
+make test-with-coverage # Just coverage check (includes test execution)
+make test-unit          # Just unit tests (no coverage)
+```
+
 ### Test Results (as of last run)
-- **32 tests, all passing** in ~4 seconds
+- **44 tests, all passing** in ~4 seconds
+- Coverage: **64%** (threshold: 60%)
 - Integration tests require `models/yamnet.tflite` and `models/yamnet_class_map.csv`
   (present in the repo). If missing, those tests are skipped.
 - `test_stream.py::test_stream_source_wav_file` requires
   `tests/fixtures/audio/train/freight_train_01.wav` (present).
+
+### CI Pipeline Alignment
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs the exact same commands in a single job:
+1. Install dependencies (no editable install, uses `PYTHONPATH=ha-audio-events`, installs `pytest-cov`)
+2. Install `ffmpeg` system package (required for MP3 fixture conversion)
+3. Run `pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v`
+4. Run `ruff check ha-audio-events/app/ tests/`
+5. Run `black --check ha-audio-events/app/ tests/`
+6. Upload coverage report as artifact
+
+**If `make test` passes locally, CI will pass.**
+
+The old CI had separate `test` and `coverage-check` jobs that ran tests twice. Now both CI and local run tests once with coverage.
 
 ### Running the Demo
 
@@ -199,6 +238,11 @@ PYTHONPATH=ha-audio-events .venv/bin/python -m app.demo tests/fixtures/audio/tra
 > with the provided file path.
 
 ### Useful Makefile Commands
+- **`make test`**: Run ALL checks (linting + formatting + coverage with tests)
+- **`make test-unit`**: Run unit tests only (no coverage)
+- **`make test-lint`**: Run ruff linting
+- **`make test-format`**: Run black format check
+- **`make test-with-coverage`**: Run tests with coverage (60% threshold)
 - **`make test-fixtures`**: Run pytest against fixture test files.
 - **`make demo-file FILE=path/to/audio.wav`**: Test classifier pipeline on a single audio file.
 - **`make test-container`**: Build Podman/Docker image and run container smoke test.
@@ -213,6 +257,12 @@ PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
 
 # Auto-fix what's possible
 PYTHONPATH=ha-audio-events .venv/bin/ruff check --fix ha-audio-events/app/ tests/
+
+# Check formatting
+PYTHONPATH=ha-audio-events .venv/bin/black --check --target-version py312 ha-audio-events/app/ tests/
+
+# Check coverage
+PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing
 ```
 
 > **Note**: There are pre-existing linting issues (import sorting, unused imports,

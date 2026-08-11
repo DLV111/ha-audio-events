@@ -4,7 +4,9 @@ from app.classifiers.base import Detection
 from app.config import ClassifierConfig
 
 
-def filter_detections(detections: list[Detection], config: ClassifierConfig) -> list[Detection]:
+def filter_detections(
+    detections: list[Detection], config: ClassifierConfig
+) -> list[Detection]:
     filtered: list[Detection] = []
     include = [item.lower() for item in config.include]
     exclude = [item.lower() for item in config.exclude]

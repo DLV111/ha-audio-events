@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from typing import Any
 
@@ -41,16 +40,66 @@ class HomeAssistantClient:
         }
 
         try:
-            async with self._session.post(url, headers=headers, json=payload) as response:
+            async with self._session.post(
+                url, headers=headers, json=payload
+            ) as response:
                 if response.status >= 300:
                     text = await response.text()
-                    _LOGGER.warning("Failed to fire HA event %s (%s): %s", event.event_type, response.status, text)
+                    _LOGGER.warning(
+                        "Failed to fire HA event %s (%s): %s",
+                        event.event_type,
+                        response.status,
+                        text,
+                    )
         except asyncio.CancelledError:
             raise
-        except Exception as exc:
-            _LOGGER.exception("Error firing Home Assistant event: %s", exc)
+        except Exception:
+            _LOGGER.exception("Error firing Home Assistant event")
 
-    async def update_state(self, entity_id: str, state: str, attributes: dict[str, Any] | None = None) -> None:
+    async def get_state(self, domain: str | None = None) -> list[dict[str, Any]] | None:
+        """Fetch entity states from Home Assistant, optionally filtered to a domain.
+
+        Returns a list of state dicts (matching HA's GET /api/states shape),
+        or None on failure. If `domain` is given (e.g. "camera"), only
+        entities whose entity_id starts with "{domain}." are returned.
+
+        Unlike fire_event/update_state, this isn't gated on config.enabled:
+        callers like the webui's camera picker need to query HA even when
+        event/state publishing is turned off.
+        """
+        url = f"{self.config.url}/api/states"
+        headers: dict[str, str] = {}
+        if self.config.token:
+            headers["Authorization"] = f"Bearer {self.config.token}"
+
+        try:
+            async with self._session.get(url, headers=headers) as response:
+                if response.status >= 300:
+                    text = await response.text()
+                    _LOGGER.warning(
+                        "Failed to fetch HA states (%s): %s", response.status, text
+                    )
+                    return None
+                states: list[dict[str, Any]] = await response.json()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _LOGGER.exception("Error fetching Home Assistant states")
+            return None
+
+        if domain:
+            prefix = f"{domain}."
+            states = [
+                s for s in states if str(s.get("entity_id", "")).startswith(prefix)
+            ]
+        return states
+
+    async def update_state(
+        self, entity_id: str, state: str, attributes: dict[str, Any] | None = None
+    ) -> None:
+        if not self.config.enabled:
+            return
+
         url = f"{self.config.url}/api/states/{entity_id}"
         headers = {
             "Content-Type": "application/json",
@@ -60,11 +109,18 @@ class HomeAssistantClient:
 
         payload = {"state": state, "attributes": attributes or {}}
         try:
-            async with self._session.post(url, headers=headers, json=payload) as response:
+            async with self._session.post(
+                url, headers=headers, json=payload
+            ) as response:
                 if response.status >= 300:
                     text = await response.text()
-                    _LOGGER.warning("Failed to update HA state %s (%s): %s", entity_id, response.status, text)
+                    _LOGGER.warning(
+                        "Failed to update HA state %s (%s): %s",
+                        entity_id,
+                        response.status,
+                        text,
+                    )
         except asyncio.CancelledError:
             raise
-        except Exception as exc:
-            _LOGGER.exception("Error updating HA state: %s", exc)
+        except Exception:
+            _LOGGER.exception("Error updating HA state")

@@ -1,0 +1,144 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # PR Title Validation - ensures meaningful commit messages
+  pr-title-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate PR title format
+        run: |
+          # Check if title contains required keywords for better categorization
+          if [[ -z "${{ github.event.pull_request.title }}" ]]; then
+            echo "ERROR: PR title cannot be empty"
+            exit 1
+          fi
+          
+          # Require at least one of these prefixes for clear intent
+          if ! echo "${{ github.event.pull_request.title }}" | grep -qiE "^(fix|feat|docs|style|refactor|test|chore|perf|ci|build)"; then
+            echo "ERROR: PR title must start with one of: fix, feat, docs, style, refactor, test, chore, perf, ci, build"
+            echo "Example: fix: resolve audio source detection issue"
+            exit 1
+          fi
+          
+          echo "✅ PR title validation passed: '${{ github.event.pull_request.title }}'"
+
+  test:
+    needs: [pr-title-validation]
+    name: Test Suite
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Create virtual environment
+        run: |
+          python -m venv .venv
+
+      - name: Install dependencies
+        run: |
+          source .venv/bin/activate
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install aiohttp numpy PyYAML "paho-mqtt>=2.1,<3.0" "ai-edge-litert>=2.1.0,<3.0.0" pytest pytest-asyncio ruff black mypy pytest-cov
+
+      - name: Run pytest with coverage
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v
+
+      - name: Run ruff linting
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
+
+      - name: Run black formatting check
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=ha-audio-events .venv/bin/black --target-version=py312 --check ha-audio-events/app/ tests/
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: htmlcov/
+
+  # WebUI Code Validation - specifically validates WebUI integration
+  webui-validation:
+    name: WebUI Integration
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Create virtual environment
+        run: |
+          python -m venv .venv
+
+      - name: Install dependencies
+        run: |
+          source .venv/bin/activate
+          pip install aiohttp numpy PyYAML "paho-mqtt>=2.1,<3.0" "ai-edge-litert>=2.1.0,<3.0.0" pytest pytest-asyncio ruff black mypy
+
+      - name: Validate WebUI imports
+        run: |
+          source .venv/bin/activate
+          # Check that WebUI imports work correctly
+          PYTHONPATH=ha-audio-events .venv/bin/python -c "
+          try:
+            from app.webui.server import WebUI
+            from app.addon_mgr import AddonManager
+            print('✅ WebUI imports validated successfully')
+          except ImportError as e:
+            print(f'❌ WebUI import error: {e}')
+            raise
+          " || exit 1
+
+      - name: Validate WebUI structure
+        run: |
+          source .venv/bin/activate
+          # Check for required WebUI files and structure
+          if [[ ! -f "ha-audio-events/app/webui/server.py" ]]; then
+            echo "❌ WebUI server.py missing"
+            exit 1
+          fi
+          if [[ ! -f "ha-audio-events/app/webui/__init__.py" ]]; then
+            echo "❌ WebUI __init__.py missing"
+            exit 1
+          fi
+          
+          echo "✅ WebUI structure validated"
+
+      - name: Run WebUI-specific tests
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=ha-audio-events .venv/bin/pytest tests/test_webui.py -v
+

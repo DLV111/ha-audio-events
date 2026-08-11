@@ -4,7 +4,6 @@ import json
 import logging
 
 from app.config import MQTTConfig
-from app.homeassistant.entities import build_entity_ids
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,7 +43,9 @@ def build_mqtt_discovery_payload(
     return payloads
 
 
-def build_entity_ids_for_labels(entity_prefix: str, supported_labels: list[str]) -> dict[str, str]:
+def build_entity_ids_for_labels(
+    entity_prefix: str, supported_labels: list[str]
+) -> dict[str, str]:
     return {
         label: f"binary_sensor.{entity_prefix}_{label.replace(' ', '_').lower()}"
         for label in supported_labels

@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 import csv
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Iterable
+from datetime import UTC, datetime
+from pathlib import Path
 
 import numpy as np
 
@@ -78,7 +78,9 @@ class YAMNetClassifier(AudioClassifier):
             if waveform.size > expected_len:
                 waveform = waveform[:expected_len]
             else:
-                waveform = np.pad(waveform, (0, expected_len - waveform.size), mode="constant")
+                waveform = np.pad(
+                    waveform, (0, expected_len - waveform.size), mode="constant"
+                )
         return waveform.reshape(-1)
 
     def _run_inference(self, waveform: np.ndarray) -> np.ndarray:
@@ -96,7 +98,7 @@ class YAMNetClassifier(AudioClassifier):
             return []
         top_k = min(10, scores.shape[-1])
         indices = np.argsort(scores)[::-1][:top_k]
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         detections: list[Detection] = []
         for index in indices:
             label = self.labels[index] if index < len(self.labels) else f"label_{index}"

@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from typing import Dict, List
-
 from app.config import HomeAssistantConfig
 from app.detection.models import EventMessage
 
 
-def build_entity_ids(config: HomeAssistantConfig) -> Dict[str, str]:
+def build_entity_ids(config: HomeAssistantConfig) -> dict[str, str]:
     prefix = config.entity_prefix
     return {
         "last_audio_event": f"sensor.{prefix}_last_audio_event",
@@ -17,7 +15,9 @@ def build_entity_ids(config: HomeAssistantConfig) -> Dict[str, str]:
     }
 
 
-def build_label_sensor_entity_ids(config: HomeAssistantConfig, labels: List[str]) -> Dict[str, str]:
+def build_label_sensor_entity_ids(
+    config: HomeAssistantConfig, labels: list[str]
+) -> dict[str, str]:
     prefix = config.entity_prefix
     return {
         label: f"binary_sensor.{prefix}_{label.replace(' ', '_').lower()}"
@@ -25,7 +25,7 @@ def build_label_sensor_entity_ids(config: HomeAssistantConfig, labels: List[str]
     }
 
 
-def build_friendly_names(config: HomeAssistantConfig) -> Dict[str, str]:
+def build_friendly_names(config: HomeAssistantConfig) -> dict[str, str]:
     prefix = config.entity_prefix.replace("_", " ").title()
     return {
         "last_audio_event": f"{prefix} Last Audio Event",
@@ -36,7 +36,9 @@ def build_friendly_names(config: HomeAssistantConfig) -> Dict[str, str]:
     }
 
 
-def build_label_friendly_names(config: HomeAssistantConfig, labels: List[str]) -> Dict[str, str]:
+def build_label_friendly_names(
+    config: HomeAssistantConfig, labels: list[str]
+) -> dict[str, str]:
     prefix = config.entity_prefix.replace("_", " ").title()
     return {label: f"{prefix} {label.title()}" for label in labels}
 

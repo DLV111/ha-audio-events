@@ -1,6 +1,6 @@
 [project]
 name = "ha-audio-events"
-version = "0.1.8"
+version = "0.1.9"
 description = "Home Assistant add-on for audio event detection using TensorFlow Lite."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -16,7 +16,6 @@ dev = [
   "pytest>=8.0",
   "pytest-asyncio>=0.22",
   "ruff>=0.0.281",
-  "black>=24.3.0",
   "mypy>=1.9"
 ]
 
@@ -24,9 +23,15 @@ dev = [
 ha-audio-events = "app.main:main_sync"
 ha-audio-events-bump-version = "app.versioning:main"
 
+[tool.setuptools.packages.find]
+where = ["ha-audio-events"]
+include = ["app*"]
+
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 pythonpath = ["ha-audio-events"]
+# Coverage options are only used in coverage-check job (explicitly passed via CLI)
+# addopts = "--cov=ha-audio-events/app --cov-report=term-missing"
