@@ -88,9 +88,9 @@ panel_icon: mdi:microphone
 panel_title: "HA Audio Events"
 logger: info
 map:
-  - homeassistant_config: /config
-    type: read
-  - addons: /addons
-    type: read
-  - ssl: /ssl
-    type: read
+  - type: homeassistant_config
+    read_only: true
+  - type: addons
+    read_only: true
+  - type: ssl
+    read_only: true
