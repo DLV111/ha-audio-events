@@ -177,3 +177,7 @@ def main_sync() -> None:
         _LOGGER.info("Shutting down HA Audio Events add-on")
     except Exception:
         _LOGGER.exception("Unhandled error in HA Audio Events")
+
+
+if __name__ == "__main__":
+    main_sync()
