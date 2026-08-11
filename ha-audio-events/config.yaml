@@ -89,5 +89,8 @@ panel_title: "HA Audio Events"
 logger: info
 map:
   - homeassistant_config: /config
+    type: read
   - addons: /addons
+    type: read
   - ssl: /ssl
+    type: read
