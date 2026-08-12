@@ -278,3 +278,16 @@ PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail
 4. **Configuration Consistency**: When modifying options or schemas, ensure both `app/config.py` dataclasses, `config.yaml`, and `ha-audio-events/config.json` schema definitions remain synchronized.
 5. **Verification**: Always execute `.venv/bin/pytest` after making code modifications to ensure no regressions occur.
 6. **Package Layout**: The `app` package is in `ha-audio-events/app/`. Use `PYTHONPATH=ha-audio-events` when running Python directly (not via pytest). Do not attempt `pip install -e` due to setuptools auto-discovery conflicts with root-level `app/` and `models/` directories.
+
+# Solution on resolving common API response errors:
+
+When fixing add-on option update failures:
+1. Modify the `set_option` method in `addon_mgr.py` to:
+   - Validate API responses for proper "result": "ok" structure
+   - Add comprehensive logging for debug visibility
+   - Handle empty responses gracefully
+2. Commit changes to `fix/addon-manager-option-error` branch
+3. Push to remote and create PR with issue description and context
+4. Reference this branch when applying similar fixes
+
+This ensures proper API response handling for the "Failed to set source in add-on options" error.
