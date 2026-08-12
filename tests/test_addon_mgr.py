@@ -188,7 +188,7 @@ async def test_set_option_success(addon_manager, mock_session) -> None:
     mock_post_response = AsyncMock()
     mock_post_response.status = 200
     mock_post_response.content_length = 100
-    mock_post_response.json = AsyncMock(return_value={"data": {}})
+    mock_post_response.json = AsyncMock(return_value={"data": {}, "result": "ok"})
 
     mock_get_cm = MagicMock()
     mock_get_cm.__aenter__ = AsyncMock(return_value=mock_get_response)

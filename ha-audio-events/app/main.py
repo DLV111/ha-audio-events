@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from pathlib import Path
 
 from app.addon_mgr import AddonManager
 from app.audio.activity import ActivityDetector

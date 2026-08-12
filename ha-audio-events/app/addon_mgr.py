@@ -72,9 +72,15 @@ class AddonManager:
             # Get current options first
             current_result = await self._make_request("GET", "/addons/self/options")
             if current_result is None:
+                _LOGGER.warning("Failed to retrieve current add-on options")
                 return False
 
             current_options = current_result.get("data", {}).get("options", {})
+            if not current_options:
+                _LOGGER.warning(
+                    "No current options found in add-on response: %s", current_result
+                )
+                return False
 
             # Update the specific option
             if category not in current_options:
@@ -87,7 +93,18 @@ class AddonManager:
             result = await self._make_request(
                 "POST", "/addons/self/options", update_data
             )
-            return result is not None
+            if result is None:
+                _LOGGER.warning("Failed to update add-on options via POST request")
+                return False
+
+            # Supervisor returns {"result": "ok"} on success
+            if result.get("result") != "ok":
+                _LOGGER.warning(
+                    "Supervisor returned non-ok result: %s", result.get("result")
+                )
+                return False
+
+            return True
 
         except Exception:
             _LOGGER.exception("Error setting add-on option")

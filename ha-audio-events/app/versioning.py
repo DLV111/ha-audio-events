@@ -8,7 +8,18 @@ from pathlib import Path
 
 def bump_version(new_version: str, root: Path | None = None) -> list[Path]:
     """Update version references in the add-on manifests and python package metadata."""
-    project_root = Path(root or Path(__file__).resolve().parents[1])
+    # Find the repository root (where pyproject.toml lives)
+    # Script is at ha-audio-events/app/versioning.py, so parents[2] = repo root
+    if root is None:
+        script_path = Path(__file__).resolve()
+        # Go up to find pyproject.toml (repo root)
+        project_root = script_path.parents[2]
+        # Verify we found the right place
+        if not (project_root / "pyproject.toml").exists():
+            # Fallback: try parents[1] in case structure is different
+            project_root = script_path.parents[1]
+    else:
+        project_root = Path(root)
 
     targets = [
         project_root / "pyproject.toml",
