@@ -33,7 +33,7 @@ class AudioStreamSource:
                 ha_url = (
                     self.ha_config.url
                     if self.ha_config
-                    else "http://supervisor/homeassistant"
+                    else "http://supervisor/core"
                 ).rstrip("/")
                 if ha_url.endswith("/homeassistant"):
                     stream_url = f"{ha_url}/api/camera_proxy_stream/{source}"

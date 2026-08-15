@@ -11,6 +11,7 @@ import logging
 from aiohttp import web
 
 from app.addon_mgr import AddonManager
+from app.detection.history import EventHistory
 from app.homeassistant.client import HomeAssistantClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -18,13 +19,19 @@ _LOGGER = logging.getLogger(__name__)
 
 class WebUI:
     def __init__(
-        self, hass_client: HomeAssistantClient, addon_manager: AddonManager
+        self,
+        hass_client: HomeAssistantClient,
+        addon_manager: AddonManager,
+        history: EventHistory | None = None,
     ) -> None:
         self.hass_client = hass_client
         self.addon_manager = addon_manager
+        self.history = history
         self.app = web.Application()
         self.app.router.add_get("/", self.serve_index)
         self.app.router.add_get("/api/cameras", self.get_cameras)
+        self.app.router.add_get("/api/microphones", self.get_microphones)
+        self.app.router.add_get("/api/detections", self.get_detections)
         self.app.router.add_post("/api/source", self.set_source)
         self.app.router.add_get("/api/source", self.get_source)
 
@@ -141,7 +148,7 @@ class WebUI:
 </head>
 <body>
     <div class="container">
-        <h1>���🎵 HA Audio Events</h1>
+        <h1>🎤🎵 HA Audio Events</h1>
         <p class="subtitle">Configure your audio source from Home Assistant entities</p>
 
         <div id="message-container"></div>
@@ -175,10 +182,18 @@ class WebUI:
         </form>
 
         <div id="status" class="status"></div>
+
+        <div class="form-group" style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+            <label>Recent Detections</label>
+            <div id="detections-list" style="max-height: 240px; overflow-y: auto;">
+                <div class="loading">Waiting for detections...</div>
+            </div>
+        </div>
     </div>
 
     <script>
         let cameras = [];
+        let microphones = [];
         let currentSource = '';
         let isLoading = true;
 
@@ -191,6 +206,17 @@ class WebUI:
                     cameras = await camerasResponse.json();
                 } else {
                     throw new Error('Failed to load cameras');
+                }
+
+                // Load microphones (voice satellites) -- best-effort, don't
+                // fail the whole page if this one endpoint has an issue
+                try {
+                    const micResponse = await fetch('api/microphones');
+                    if (micResponse.ok) {
+                        microphones = await micResponse.json();
+                    }
+                } catch (micError) {
+                    console.warn('Failed to load microphones:', micError);
                 }
 
                 // Load current source
@@ -215,18 +241,34 @@ class WebUI:
             const select = document.getElementById('source-select');
             select.innerHTML = '';
 
-            if (cameras.length === 0) {
-                select.innerHTML = '<option value="">No cameras found</option>';
-                return;
+            if (cameras.length === 0 && microphones.length === 0) {
+                select.innerHTML = '<option value="">No entities found</option>';
             }
 
-            // Add cameras from HA
-            cameras.forEach(camera => {
-                const option = document.createElement('option');
-                option.value = camera.entity_id;
-                option.textContent = `${camera.friendly_name} (${camera.entity_id})`;
-                select.appendChild(option);
-            });
+            if (cameras.length > 0) {
+                const cameraGroup = document.createElement('optgroup');
+                cameraGroup.label = 'Cameras';
+                cameras.forEach(camera => {
+                    const option = document.createElement('option');
+                    option.value = camera.entity_id;
+                    option.textContent = `${camera.friendly_name} (${camera.entity_id})`;
+                    cameraGroup.appendChild(option);
+                });
+                select.appendChild(cameraGroup);
+            }
+
+            if (microphones.length > 0) {
+                const micGroup = document.createElement('optgroup');
+                micGroup.label = 'Voice Satellites (not yet supported as a capture source)';
+                microphones.forEach(mic => {
+                    const option = document.createElement('option');
+                    option.value = mic.entity_id;
+                    option.textContent = `${mic.friendly_name} (${mic.entity_id})`;
+                    option.disabled = true;
+                    micGroup.appendChild(option);
+                });
+                select.appendChild(micGroup);
+            }
 
             // Add custom URL option
             const customOption = document.createElement('option');
@@ -243,6 +285,39 @@ class WebUI:
             } else {
                 display.textContent = 'No source configured';
                 display.style.color = '#6c757d';
+            }
+        }
+
+        function renderDetections(detections) {
+            const list = document.getElementById('detections-list');
+            if (!detections || detections.length === 0) {
+                list.innerHTML = '<div class="loading">Waiting for detections...</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            detections.forEach(d => {
+                const row = document.createElement('div');
+                row.style.cssText = 'padding: 8px 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 14px;';
+                const time = new Date(d.timestamp).toLocaleTimeString();
+                const confidencePct = Math.round((d.confidence || 0) * 100);
+                row.innerHTML = `
+                    <span><strong>${d.label}</strong> <span style="color:#888;">(${d.state}, ${confidencePct}%)</span></span>
+                    <span style="color:#888;">${time}</span>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        async function pollDetections() {
+            try {
+                const response = await fetch('api/detections');
+                if (response.ok) {
+                    const detections = await response.json();
+                    renderDetections(detections);
+                }
+            } catch (error) {
+                console.warn('Failed to poll detections:', error);
             }
         }
 
@@ -354,6 +429,8 @@ class WebUI:
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
+            pollDetections();
+            setInterval(pollDetections, 3000);
         });
     </script>
 </body>
@@ -375,10 +452,11 @@ class WebUI:
                 if isinstance(entity, dict) and entity.get("entity_id", "").startswith(
                     "camera."
                 ):
+                    attributes = entity.get("attributes", {}) or {}
                     cameras.append(
                         {
                             "entity_id": entity["entity_id"],
-                            "friendly_name": entity.get(
+                            "friendly_name": attributes.get(
                                 "friendly_name", entity["entity_id"]
                             ),
                         }
@@ -388,6 +466,51 @@ class WebUI:
         except Exception as e:
             _LOGGER.exception("Error fetching cameras")
             return web.json_response({"error": str(e)}, status=500)
+
+    async def get_microphones(self, request: web.Request) -> web.Response:
+        """Fetch assist_satellite (voice-satellite / built-in microphone)
+        entities from Home Assistant.
+
+        NOTE: these are listed for visibility only. Unlike cameras, Home
+        Assistant does not expose a generic pull-able audio stream URL for
+        assist_satellite entities -- their audio is pushed into HA's Assist
+        pipeline over ESPHome's native API protocol, not a URL ffmpeg can
+        connect to. Selecting one here is rejected by set_source with an
+        explanation, rather than silently accepting a source_path the
+        pipeline can't actually read from.
+        """
+        try:
+            state = await self.hass_client.get_state("assist_satellite")
+            if state is None:
+                return web.json_response(
+                    {"error": "Failed to fetch microphone states"}, status=500
+                )
+
+            microphones = []
+            for entity in state:
+                if isinstance(entity, dict) and entity.get(
+                    "entity_id", ""
+                ).startswith("assist_satellite."):
+                    attributes = entity.get("attributes", {}) or {}
+                    microphones.append(
+                        {
+                            "entity_id": entity["entity_id"],
+                            "friendly_name": attributes.get(
+                                "friendly_name", entity["entity_id"]
+                            ),
+                        }
+                    )
+
+            return web.json_response(microphones)
+        except Exception as e:
+            _LOGGER.exception("Error fetching microphones")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def get_detections(self, request: web.Request) -> web.Response:
+        """Return the most recent detection events, most recent first."""
+        if self.history is None:
+            return web.json_response([])
+        return web.json_response(self.history.recent())
 
     async def get_source(self, request: web.Request) -> web.Response:
         """Get the currently configured source path."""
@@ -406,6 +529,22 @@ class WebUI:
             if not source:
                 return web.json_response(
                     {"error": "Missing source parameter"}, status=400
+                )
+
+            if str(source).startswith("assist_satellite."):
+                return web.json_response(
+                    {
+                        "error": (
+                            "Voice satellite entities aren't supported as an "
+                            "audio source yet. Home Assistant doesn't expose "
+                            "a pull-able audio stream for assist_satellite "
+                            "entities the way it does for cameras -- their "
+                            "audio goes to HA's Assist pipeline over "
+                            "ESPHome's native protocol, not a URL this "
+                            "add-on can read from directly."
+                        )
+                    },
+                    status=400,
                 )
 
             success = await self.addon_manager.set_option(

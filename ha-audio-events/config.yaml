@@ -41,7 +41,7 @@ options:
     end_timeout: 5.0
   homeassistant:
     enabled: true
-    url: http://supervisor/homeassistant
+    url: http://supervisor/core
     entity_prefix: audio
   mqtt:
     enabled: false

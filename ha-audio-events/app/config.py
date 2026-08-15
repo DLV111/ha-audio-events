@@ -50,7 +50,7 @@ class MQTTConfig:
 @dataclass(frozen=True)
 class HomeAssistantConfig:
     enabled: bool = True
-    url: str = "http://supervisor/homeassistant"
+    url: str = "http://supervisor/core"
     token: str | None = None
     entity_prefix: str = "audio"
 
@@ -133,7 +133,7 @@ def load_config(path: Path | str | None = None) -> AppConfig:
             enabled=bool(raw.get("homeassistant", {}).get("enabled", True)),
             url=str(
                 raw.get("homeassistant", {}).get(
-                    "url", "http://supervisor/homeassistant"
+                    "url", "http://supervisor/core"
                 )
             ),
             token=(
