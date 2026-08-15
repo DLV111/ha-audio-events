@@ -12,6 +12,7 @@ from app.classifiers.registry import build_classifier
 from app.config import AppConfig, load_config
 from app.detection.aggregate import EventAggregator
 from app.detection.filter import filter_detections
+from app.detection.history import EventHistory
 from app.homeassistant.client import HomeAssistantClient
 from app.homeassistant.entities import (
     build_attributes,
@@ -42,6 +43,7 @@ async def _run_pipeline(config: AppConfig) -> None:
     detector = ActivityDetector(config.activity)
     classifier = build_classifier(config)
     aggregator = EventAggregator(config.aggregation)
+    history = EventHistory()
     mqtt_client = MQTTClient(config.mqtt) if config.mqtt.enabled else None
     ha_client = (
         HomeAssistantClient(config.homeassistant)
@@ -76,6 +78,7 @@ async def _run_pipeline(config: AppConfig) -> None:
 
             for event in events:
                 _LOGGER.info("Detected event: %s", format_event_summary(event))
+                history.add(event.label, event.confidence, event.state)
                 if ha_client is not None:
                     await ha_client.fire_event(event)
                     await ha_client.update_state(
@@ -146,7 +149,7 @@ async def _run_pipeline(config: AppConfig) -> None:
         webui_ha_client = ha_client or HomeAssistantClient(config.homeassistant)
         supervisor_token = os.getenv("SUPERVISOR_TOKEN", "")
         addon_mgr = AddonManager(supervisor_token)
-        webui = WebUI(webui_ha_client, addon_mgr)
+        webui = WebUI(webui_ha_client, addon_mgr, history)
         # Run the detection loop and the webui concurrently. The webui must
         # stay reachable even if the audio pipeline itself fails or exits
         # (e.g. a bad source_path) so the user can fix the source from the
