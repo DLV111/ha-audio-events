@@ -68,6 +68,7 @@ jobs:
           PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v
 
       - name: Run make test-container
+        timeout-minutes: 5
         run: |
           make test-container
 
