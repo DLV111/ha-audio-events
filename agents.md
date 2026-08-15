@@ -276,7 +276,12 @@ PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail
 2. **Type Annotations & Modern Python**: Code uses Python 3.12+ features (`from __future__ import annotations`, type syntax `str | None`, `list[str]`).
 3. **Async Architecture**: Core pipeline in `main.py` and HA HTTP calls are asynchronous (`asyncio`). CPU-heavy inference is offloaded via `asyncio.to_thread`.
 4. **Configuration Consistency**: When modifying options or schemas, ensure both `app/config.py` dataclasses, `config.yaml`, and `ha-audio-events/config.json` schema definitions remain synchronized.
-5. **Verification**: Always execute `.venv/bin/pytest` after making code modifications to ensure no regressions occur.
+5. **Verification & Linting**: After ALL Python code changes are complete, you MUST:
+   1. Run `.venv/bin/ruff check --fix ha-audio-events/app/ tests/` to auto-fix any linting issues
+   2. Run `.venv/bin/pytest -v` to execute the full test suite and verify no regressions
+   3. Run `make test` locally to run the complete workflow (lint + format + coverage) before pushing
+
+   These steps ensure code quality standards and prevent breaking changes.
 6. **Package Layout**: The `app` package is in `ha-audio-events/app/`. Use `PYTHONPATH=ha-audio-events` when running Python directly (not via pytest). Do not attempt `pip install -e` due to setuptools auto-discovery conflicts with root-level `app/` and `models/` directories.
 
 # Solution on resolving common API response errors:
