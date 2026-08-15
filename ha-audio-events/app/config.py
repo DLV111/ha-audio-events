@@ -98,7 +98,31 @@ def load_config(path: Path | str | None = None) -> AppConfig:
         config_path = Path(path or "config.yaml")
     raw = _load_config(config_path)
 
-    audio = raw.get("audio", {})
+    raw_audio = raw.get("audio")
+
+    # Handle case where audio is a boolean (from HA add-on options file)
+    if isinstance(raw_audio, bool):
+        audio_cfg = AudioSourceConfig()
+    else:
+        audio_cfg = AudioSourceConfig(
+            sample_rate=(
+                int(raw_audio.get("sample_rate", 16000))
+                if isinstance(raw_audio, dict)
+                else 16000
+            ),
+            channels=(
+                int(raw_audio.get("channels", 1)) if isinstance(raw_audio, dict) else 1
+            ),
+            format=(
+                str(raw_audio.get("format", "pcm_s16le"))
+                if isinstance(raw_audio, dict)
+                else "pcm_s16le"
+            ),
+            source_path=(
+                raw_audio.get("source_path") if isinstance(raw_audio, dict) else None
+            ),
+        )
+
     activity = raw.get("activity", {})
     classifier = raw.get("classifier", {})
     aggregation = raw.get("aggregation", {})
@@ -108,12 +132,7 @@ def load_config(path: Path | str | None = None) -> AppConfig:
     return AppConfig(
         model=str(raw.get("model", "yamnet")),
         buffer_seconds=float(raw.get("buffer_seconds", 3.0)),
-        audio=AudioSourceConfig(
-            sample_rate=int(audio.get("sample_rate", 16000)),
-            channels=int(audio.get("channels", 1)),
-            format=str(audio.get("format", "pcm_s16le")),
-            source_path=audio.get("source_path"),
-        ),
+        audio=audio_cfg,
         activity=ActivityConfig(
             rms_threshold=float(activity.get("rms_threshold", 0.04)),
             peak_threshold=float(activity.get("peak_threshold", 0.1)),
