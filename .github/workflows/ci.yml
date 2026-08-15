@@ -67,6 +67,10 @@ jobs:
           source .venv/bin/activate
           PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v
 
+      - name: Run make test-container
+        run: |
+          make test-container
+
       - name: Run ruff linting
         run: |
           source .venv/bin/activate
