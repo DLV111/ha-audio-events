@@ -23,7 +23,7 @@ def test_recent_includes_expected_fields() -> None:
     assert record["label"] == "train"
     assert record["confidence"] == 0.77
     assert record["state"] == "started"
-    assert "timestamp" in record and record["timestamp"]
+    assert record.get("timestamp")
 
 
 def test_ring_buffer_respects_max_size() -> None:

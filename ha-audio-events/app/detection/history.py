@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 @dataclass
@@ -30,7 +30,7 @@ class EventHistory:
                 label=label,
                 confidence=confidence,
                 state=state,
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
             )
         )
 
