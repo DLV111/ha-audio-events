@@ -131,11 +131,7 @@ def load_config(path: Path | str | None = None) -> AppConfig:
         ),
         homeassistant=HomeAssistantConfig(
             enabled=bool(raw.get("homeassistant", {}).get("enabled", True)),
-            url=str(
-                raw.get("homeassistant", {}).get(
-                    "url", "http://supervisor/core"
-                )
-            ),
+            url=str(raw.get("homeassistant", {}).get("url", "http://supervisor/core")),
             token=(
                 raw.get("homeassistant", {}).get("token")
                 or os.getenv("HASS_TOKEN")

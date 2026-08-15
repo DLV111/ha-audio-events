@@ -488,9 +488,9 @@ class WebUI:
 
             microphones = []
             for entity in state:
-                if isinstance(entity, dict) and entity.get(
-                    "entity_id", ""
-                ).startswith("assist_satellite."):
+                if isinstance(entity, dict) and entity.get("entity_id", "").startswith(
+                    "assist_satellite."
+                ):
                     attributes = entity.get("attributes", {}) or {}
                     microphones.append(
                         {

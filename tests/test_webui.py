@@ -202,7 +202,9 @@ class TestWebUI(AioHTTPTestCase):
         )
         assert resp.status == 400
         data = await resp.json()
-        assert "assist_satellite" in data["error"] or "satellite" in data["error"].lower()
+        assert (
+            "assist_satellite" in data["error"] or "satellite" in data["error"].lower()
+        )
         # Should never have tried to actually set the option
         self.mock_addon_manager.set_option.assert_not_called()
 
