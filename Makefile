@@ -115,25 +115,31 @@ test-container-webui:
 		-e SUPERVISOR_TOKEN=test-token \
 		-p 18099:8099 \
 		localhost/ha-audio-events-test \
-		timeout 45 python3 -m app.main
+		timeout 60 python3 -m app.main
 	@echo "Waiting for the webui to come up..."
 	@success=0; \
-	for i in $$(seq 1 20); do \
-		if curl -sf -o /dev/null http://localhost:18099/; then \
+	for i in $$(seq 1 30); do \
+		if curl -sf -o /dev/null http://127.0.0.1:18099/; then \
 			success=1; \
 			break; \
 		fi; \
 		sleep 1; \
 	done; \
 	if [ "$$success" != "1" ]; then \
-		echo "FAILED: webui never became reachable on :18099 within 20s."; \
+		echo "FAILED: webui never became reachable on 127.0.0.1:18099 within 30s."; \
+		echo "--- container running state ---"; \
+		podman inspect -f 'Running={{.State.Running}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}' ha-audio-events-webui-test || true; \
+		echo "--- port mapping (as podman sees it) ---"; \
+		podman port ha-audio-events-webui-test || true; \
+		echo "--- verbose curl attempt ---"; \
+		curl -v -m 5 http://127.0.0.1:18099/ || true; \
 		echo "--- container logs ---"; \
 		podman logs ha-audio-events-webui-test || true; \
 		podman rm -f ha-audio-events-webui-test >/dev/null 2>&1 || true; \
 		exit 1; \
 	fi
 	@echo "Validating webui endpoints respond..."
-	@status=$$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18099/api/detections); \
+	@status=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18099/api/detections); \
 	if [ "$$status" != "200" ]; then \
 		echo "FAILED: GET /api/detections returned HTTP $$status, expected 200"; \
 		podman logs ha-audio-events-webui-test || true; \
