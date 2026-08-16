@@ -5,6 +5,16 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.13] - 2026-08-16
+### Fixed
+- Add `get_option()` method to AddonManager to retrieve add-on options via `/addons/self/info` endpoint (fixes `AttributeError: 'AddonManager' object has no attribute 'get_option'` in server.py:518)
+- Modified `set_option()` to use `get_addon_info()` (GET `/addons/self/info`) instead of direct GET `/addons/self/options` which returns 405 Method Not Allowed from Supervisor API
+- Removed premature `ha_client.close()` and `mqtt_client.stop()` from `_detect()` function in main.py — moved cleanup to appropriate `finally` block and non-webui path to prevent `RuntimeError: Session is closed` when webui tries to use HA client after pipeline closes it
+
+### Changed
+- Updated CI/CD pipeline test coverage threshold from 60% to 80% in `.github/workflows/ci.yml:68`
+- Added comprehensive test coverage: 25 tests for addon manager (`test_addon_mgr.py`) and 7 regression tests for main pipeline wiring (`test_main.py`)
+
 ## [0.1.11] - 2026-08-15
 ### Fixed
 - Fix Home Assistant Supervisor proxy URL: default was `http://supervisor/homeassistant`, which is not a valid Supervisor proxy path. The correct path is `http://supervisor/core/api`. This was silently breaking every call to Home Assistant — `fire_event`, `update_state`, and the web UI's camera/microphone lookups — since the failures were only logged as warnings
