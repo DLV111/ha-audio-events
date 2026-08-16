@@ -138,11 +138,6 @@ async def _run_pipeline(config: AppConfig) -> None:
                 if mqtt_client is not None:
                     mqtt_client.publish(event)
 
-        if ha_client is not None:
-            await ha_client.close()
-        if mqtt_client is not None:
-            mqtt_client.stop()
-
     if config.webui.enabled:
         # The webui needs to query Home Assistant (to list camera entities)
         # regardless of whether homeassistant.enabled is set for event
@@ -164,10 +159,18 @@ async def _run_pipeline(config: AppConfig) -> None:
             )
         finally:
             await addon_mgr.close()
+            if ha_client is not None:
+                await ha_client.close()
             if webui_ha_client is not ha_client:
                 await webui_ha_client.close()
+            if mqtt_client is not None:
+                mqtt_client.stop()
     else:
         await _detect()
+        if ha_client is not None:
+            await ha_client.close()
+        if mqtt_client is not None:
+            mqtt_client.stop()
 
 
 def main_sync() -> None:
