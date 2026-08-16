@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import sys
 
 from app.addon_mgr import AddonManager
 from app.audio.activity import ActivityDetector
@@ -179,6 +180,7 @@ def main_sync() -> None:
         _LOGGER.info("Shutting down HA Audio Events add-on")
     except Exception:
         _LOGGER.exception("Unhandled error in HA Audio Events")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

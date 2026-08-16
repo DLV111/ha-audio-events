@@ -273,11 +273,16 @@ def test_main_sync_keyboard_interrupt(
 def test_main_sync_exception(
     mock_logger, mock_run, mock_logging, mock_load_config
 ) -> None:
-    """Test main_sync handles generic exception."""
+    """Test main_sync handles generic exception by logging it and exiting
+    non-zero. Previously this only logged and returned normally (exit 0),
+    which meant neither Supervisor nor a container-based CI smoke test
+    could tell a real crash apart from a clean run."""
     mock_config = MagicMock()
     mock_load_config.return_value = mock_config
     mock_run.side_effect = Exception("Test error")
 
-    main_sync()
+    with pytest.raises(SystemExit) as exc_info:
+        main_sync()
 
+    assert exc_info.value.code == 1
     mock_logger.exception.assert_called_with("Unhandled error in HA Audio Events")

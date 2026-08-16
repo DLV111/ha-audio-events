@@ -72,6 +72,11 @@ jobs:
         run: |
           make test-container
 
+      - name: Run make test-container-webui
+        timeout-minutes: 3
+        run: |
+          make test-container-webui
+
       - name: Run ruff linting
         run: |
           source .venv/bin/activate
