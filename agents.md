@@ -296,3 +296,51 @@ When fixing add-on option update failures:
 4. Reference this branch when applying similar fixes
 
 This ensures proper API response handling for the "Failed to set source in add-on options" error.
+
+---
+
+## 🤖 Automated Skill: Audio Config Boolean Handling
+
+**Purpose**  
+Fixes the situation where the Home Assistant add‑on receives a boolean (`true`/`false`) for the `audio` option instead of the expected mapping object. This prevents a `AttributeError: 'bool' object has no attribute 'get'`.
+
+**Location**  
+`.claude/skills/run-ha-audio-fix/`  
+- `SKILL.md` — skill definition with frontmatter
+- `driver.py` — Python driver implementing all workflow steps
+
+**How to invoke**  
+```bash
+# Create a work‑branch and scaffold everything
+/ha-audio-fix start
+
+# Apply the standard fix‑set (code, tests, version bump)
+/ha-audio-fix apply --bump patch
+
+# Verify locally that all tests pass
+/ha-audio-fix test
+
+# Push the branch and open a PR (requires `gh` auth)
+/ha-audio-fix pr create --title "Fix audio config boolean handling" \
+    --body "Automated fix for bool‑audio config handling (see skill logs)."
+
+# Monitor CI; the skill will retry automatically if any check fails
+/ha-audio-fix monitor --max 6 --interval 30
+
+# (When the PR is merged) clean up the temporary branch
+/ha-audio-fix clean
+```
+
+**What the skill does internally**  
+1. Creates a short‑lived branch (`skill/automated/20260815-xxxx`).  
+2. Applies the patch set (currently contains the boolean‑config fix).  
+3. Bumps the version in `pyproject.toml` (patch‑level increment by default).  
+4. Updates `agents.md` with this documentation block.  
+5. Pushes the branch, opens a PR, and watches CI.  
+6. If any check fails, it attempts a quick remediation before giving up.  
+
+**Who can use it?**  
+Any maintainer or contributor who wants a repeatable, auditable way to introduce small fixes without manually juggling branch creation, version bumping, and CI monitoring.
+
+**Where is the source of truth?**  
+All actions are logged in `skill.log` (JSON Lines). The log can be inspected directly or imported into analytics pipelines.

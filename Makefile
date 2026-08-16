@@ -2,12 +2,9 @@
 
 help:
 	@echo "Available targets:"
-	@echo "  make version              Prompt for a new version and confirm it"
-	@echo "  make version VERSION=0.2.0  Non-interactive version bump"
-	@echo "  make version-noninteractive VERSION=0.2.0"
-	@echo "  make test-fixtures        Run the fixture manifest and file checks"
 	@echo "  make test-container       Build and smoke-test the container image"
 	@echo "  make test-container-verbose  Build and smoke-test with more runtime logs"
+	@echo "  make test-fixtures        Run the fixture manifest and file checks"
 	@echo "  make test-fixtures-container  Run the dog/train fixtures through the container with local logging"
 	@echo "  make demo-file FILE=path/to/file.wav  Run the demo formatter against one audio file"
 	@echo "  make download-yamnet-model  Download the official YAMNet class map"
@@ -84,37 +81,44 @@ test-container:
 	@echo "Building container image..."
 	@podman build -t ha-audio-events-test ./ha-audio-events
 	@.venv/bin/python -c "import math,wave; from pathlib import Path; p=Path('test_audio.wav'); w=wave.open(str(p),'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); [w.writeframesraw((int(12000*math.sin(2*math.pi*440*i/16000)) if i % 800 < 400 else 0).to_bytes(2,'little',signed=True)) for i in range(16000)]; w.close()"
-	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/test_audio.wav\nactivity:\n  rms_threshold: 0.01\n  peak_threshold: 0.01\n  hold_time: 0.1\nclassifier:\n  threshold: 0.1\n  max_results: 5\n  include:\n    - speech\n    - dog\n    - train\n    - thunder\n    - siren\n  exclude:\n    - music\n    - silence\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\n' > /tmp/ha-audio-events-test-config.yaml
-	@podman run --rm -i -e PYTHONUNBUFFERED=1 -v "$$(pwd):/data:Z" -v /tmp/ha-audio-events-test-config.yaml:/tmp/config.yaml:Z localhost/ha-audio-events-test /bin/bash -lc 'cd /app && cp /data/test_audio.wav /tmp/test_audio.wav && cp /tmp/config.yaml /app/config.yaml && /app/run.sh'
+	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/test_audio.wav\nactivity:\n  rms_threshold: 0.01\n  peak_threshold: 0.01\n  hold_time: 0.1\nclassifier:\n  threshold: 0.1\n  max_results: 5\n  include:\n    - speech\n    - dog\n    - train\n    - thunder\n    - siren\n  exclude:\n    - music\n    - silence\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\nwebui:\n  enabled: false\n' > /tmp/ha-audio-events-test-config.yaml
+	@echo "Running container smoke test..."
+	@podman run --rm \
+		-e PYTHONUNBUFFERED=1 \
+		-v "$$(pwd):/data:Z" \
+		-v /tmp/ha-audio-events-test-config.yaml:/tmp/config.yaml:Z \
+		localhost/ha-audio-events-test \
+		timeout 30 \
+		bash -c 'set -e; cd /app && cp /data/test_audio.wav /tmp/test_audio.wav && cp /tmp/config.yaml /app/config.yaml && python3 -m app.main'
 
 test-fixtures-container:
 	@echo "Building container image..."
 	@podman build -t ha-audio-events-test ./ha-audio-events
 	@mkdir -p /tmp/ha-audio-events-fixtures
-	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/fixture.wav\nactivity:\n  rms_threshold: 0.03\n  peak_threshold: 0.05\n  hold_time: 0.5\nclassifier:\n  threshold: 0.1\n  max_results: 5\n  include:\n    - speech\n    - dog\n    - train\n    - thunder\n    - siren\n  exclude:\n    - music\n    - silence\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\n' > /tmp/ha-audio-events-fixture-config.yaml
+	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/fixture.wav\nactivity:\n  rms_threshold: 0.03\n  peak_threshold: 0.05\n  hold_time: 0.5\nclassifier:\n  threshold: 0.1\n  max_results: 5\n  include:\n    - speech\n    - dog\n    - train\n    - thunder\n    - siren\n  exclude:\n    - music\n    - silence\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\nwebui:\n  enabled: false\n' > /tmp/ha-audio-events-fixture-config.yaml
 	@for fixture in tests/fixtures/audio/train/freesound_community-8-freight-train_126s.mp3 tests/fixtures/audio/dog-barking/audiopapkin-barking-large-and-small-dog-290711.mp3; do \
 		cp "$$fixture" /tmp/ha-audio-events-fixtures/fixture.mp3; \
 		.venv/bin/python -c "from pathlib import Path; import subprocess; fixture=Path('/tmp/ha-audio-events-fixtures/fixture.mp3'); output=Path('/tmp/ha-audio-events-fixtures/fixture.wav'); subprocess.run(['ffmpeg','-y','-i',str(fixture),'-ar','16000','-ac','1','-f','wav',str(output)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); print(f'Converted {fixture.name} -> {output.name}')"; \
-		podman run --rm -i -e PYTHONUNBUFFERED=1 -v "$$(pwd):/data:Z" -v /tmp/ha-audio-events-fixture-config.yaml:/tmp/config.yaml:Z -v /tmp/ha-audio-events-fixtures:/tmp/fixtures:Z localhost/ha-audio-events-test /bin/bash -lc 'cd /app && cp /tmp/fixtures/fixture.wav /tmp/fixture.wav && cp /tmp/config.yaml /app/config.yaml && /app/run.sh' ; \
+		podman run --rm -i -e PYTHONUNBUFFERED=1 -v "$$(pwd):/data:Z" -v /tmp/ha-audio-events-fixture-config.yaml:/tmp/config.yaml:Z -v /tmp/ha-audio-events-fixtures:/tmp/fixtures:Z localhost/ha-audio-events-test timeout 60 /bin/bash -lc 'cd /app && cp /tmp/fixtures/fixture.wav /tmp/fixture.wav && cp /tmp/config.yaml /app/config.yaml && /app/run.sh' ; \
 	done
 
 test-container-verbose:
 	@echo "Building container image with verbose logging..."
 	@podman build -t ha-audio-events-test ./ha-audio-events
 	@.venv/bin/python -c "import math,wave; from pathlib import Path; p=Path('test_audio.wav'); w=wave.open(str(p),'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); [w.writeframesraw((int(12000*math.sin(2*math.pi*440*i/16000)) if i % 800 < 400 else 0).to_bytes(2,'little',signed=True)) for i in range(16000)]; w.close()"
-	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/test_audio.wav\nactivity:\n  rms_threshold: 0.01\n  peak_threshold: 0.01\n  hold_time: 0.1\nclassifier:\n  threshold: 0.1\n  max_results: 5\n  include:\n    - speech\n    - dog\n    - train\n    - thunder\n    - siren\n  exclude:\n    - music\n    - silence\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\n' > /tmp/ha-audio-events-test-config.yaml
-	@podman run --rm -i -e PYTHONUNBUFFERED=1 -v "$$(pwd):/data:Z" -v /tmp/ha-audio-events-test-config.yaml:/tmp/config.yaml:Z localhost/ha-audio-events-test /bin/bash -lc 'cd /app && cp /data/test_audio.wav /tmp/test_audio.wav && cp /tmp/config.yaml /app/config.yaml && /app/run.sh'
+	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/test_audio.wav\nactivity:\n  rms_threshold: 0.01\n  peak_threshold: 0.01\n  hold_time: 0.1\nclassifier:\n  threshold: 0.1\n  max_results: 5\n  include:\n    - speech\n    - dog\n    - train\n    - thunder\n    - siren\n  exclude:\n    - music\n    - silence\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\nwebui:\n  enabled: false\n' > /tmp/ha-audio-events-test-config.yaml
+	@podman run --rm -i -e PYTHONUNBUFFERED=1 -v "$$(pwd):/data:Z" -v /tmp/ha-audio-events-test-config.yaml:/tmp/config.yaml:Z localhost/ha-audio-events-test timeout 60 /bin/bash -lc 'cd /app && cp /data/test_audio.wav /tmp/test_audio.wav && cp /tmp/config.yaml /app/config.yaml && /app/run.sh'
 
 test: test-lint test-format test-with-coverage
 
 test-unit:
-	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest -v
+	@.venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest -v
 
 test-lint:
-	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
+	@.venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
 
 test-format:
-	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/black --target-version=py312 ha-audio-events/app/ tests/
+	@.venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/black --target-version=py312 ha-audio-events/app/ tests/
 
 test-with-coverage:
-	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=80 --cov-report=term-missing -v
+	@.venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=80 --cov-report=term-missing -v
