@@ -11,7 +11,7 @@ help:
 	@echo "  make update-yamnet-model  Download the Kaggle YAMNet TFLite package and stage the assets"
 
 version:
-	@current_version=$$(grep -E '^version\\s*=\\s*"' pyproject.toml | head -n1 | sed -E 's/.*"([^"]+)"/\\1/'); \
+	@current_version=$$(grep -E '^version\s*=\s*"' pyproject.toml | head -n1 | sed -E 's/.*"([^"]+)"/\1/'); \
 	echo "Current version: $$current_version"; \
 	if [ -n "$(VERSION)" ]; then \
 		target_version="$(VERSION)"; \
@@ -33,7 +33,7 @@ version:
 	PYTHONPATH=ha-audio-events . .venv/bin/activate && python -m app.versioning "$$target_version"
 
 version-noninteractive:
-	@current_version=$$(grep -E '^version\\s*=\\s*"' pyproject.toml | head -n1 | sed -E 's/.*"([^"]+)"/\\1/'); \
+	@current_version=$$(grep -E '^version\s*=\s*"' pyproject.toml | head -n1 | sed -E 's/.*"([^"]+)"/\1/'); \
 	echo "Current version: $$current_version"; \
 	if [ -z "$(VERSION)" ]; then \
 		echo "Usage: make version-noninteractive VERSION=0.2.0"; \
