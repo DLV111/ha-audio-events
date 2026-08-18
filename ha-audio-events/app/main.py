@@ -31,8 +31,9 @@ _LOGGER = logging.getLogger(__name__)
 
 def format_event_summary(event: object) -> str:
     label = getattr(event, "label", "unknown")
+    state = getattr(event, "state", "unknown")
     duration = getattr(event, "duration", 0.0)
-    return f"{label} - {duration:.1f}s"
+    return f"{label} [{state}] - {duration:.3f}s"
 
 
 async def _run_pipeline(config: AppConfig) -> None:
