@@ -30,13 +30,43 @@ def test_format_event_summary_uses_label_and_duration() -> None:
         model="yamnet",
     )
 
-    assert format_event_summary(event) == "train - 30.0s"
+    assert format_event_summary(event) == "train [ended] - 30.000s"
 
 
 def test_format_event_summary_handles_missing_attributes() -> None:
     """Test format_event_summary with missing attributes."""
-    event = object()  # No label or duration
-    assert format_event_summary(event) == "unknown - 0.0s"
+    event = object()  # No label, state, or duration
+    assert format_event_summary(event) == "unknown [unknown] - 0.000s"
+
+
+def test_format_event_summary_distinguishes_close_sub_second_durations() -> None:
+    """Regression test: with only 1 decimal place, distinct started/active
+    events with sub-100ms durations (as seen when a fixture file is
+    processed far faster than real time, e.g. in the container smoke test)
+    all rendered as the identical, confusing 'label - 0.0s' -- making a
+    correctly-firing sequence of events look like the aggregator was
+    spamming duplicate 'started' events. 3 decimal places is enough to
+    show these are genuinely different, correctly-progressing events."""
+    started = EventMessage(
+        event_type="audio.detected",
+        label="dog",
+        confidence=0.89,
+        duration=0.0,
+        state="started",
+        model="yamnet",
+    )
+    active = EventMessage(
+        event_type="audio.detected",
+        label="dog",
+        confidence=0.97,
+        duration=0.0142,
+        state="active",
+        model="yamnet",
+    )
+
+    assert format_event_summary(started) != format_event_summary(active)
+    assert format_event_summary(started) == "dog [started] - 0.000s"
+    assert format_event_summary(active) == "dog [active] - 0.014s"
 
 
 def test_prepare_waveform_matches_model_input_shape() -> None:
