@@ -76,9 +76,7 @@ class AddonManager:
                 return False
             current_options = info.get("options", {})
             if not current_options:
-                _LOGGER.warning(
-                    "No current options found in add-on response: %s", info
-                )
+                _LOGGER.warning("No current options found in add-on response: %s", info)
                 return False
 
             # Update the specific option

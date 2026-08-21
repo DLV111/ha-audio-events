@@ -200,7 +200,9 @@ async def test_get_option_success(addon_manager, mock_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_option_category_exists_key_missing(addon_manager, mock_session) -> None:
+async def test_get_option_category_exists_key_missing(
+    addon_manager, mock_session
+) -> None:
     """Test get_option returns None when key is missing."""
     mock_response = AsyncMock()
     mock_response.status = 200
@@ -298,7 +300,9 @@ async def test_set_option_uses_info_endpoint(addon_manager, mock_session) -> Non
     assert result is True
     # Verify it used /addons/self/info instead of /addons/self/options for GET
     calls = [str(call) for call in mock_session.request.call_args_list]
-    assert any("/info" in str(call) for call in calls), "Should use /addons/self/info endpoint"
+    assert any(
+        "/info" in str(call) for call in calls
+    ), "Should use /addons/self/info endpoint"
 
 
 @pytest.mark.asyncio
