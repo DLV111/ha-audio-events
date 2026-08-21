@@ -65,12 +65,17 @@ jobs:
       - name: Run pytest with coverage
         run: |
           source .venv/bin/activate
-          PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v
+          PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=80 --cov-report=term-missing -v
 
       - name: Run make test-container
         timeout-minutes: 5
         run: |
           make test-container
+
+      - name: Run make test-container-webui
+        timeout-minutes: 3
+        run: |
+          make test-container-webui
 
       - name: Run ruff linting
         run: |

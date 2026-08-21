@@ -30,13 +30,43 @@ def test_format_event_summary_uses_label_and_duration() -> None:
         model="yamnet",
     )
 
-    assert format_event_summary(event) == "train - 30.0s"
+    assert format_event_summary(event) == "train [ended] - 30.000s"
 
 
 def test_format_event_summary_handles_missing_attributes() -> None:
     """Test format_event_summary with missing attributes."""
-    event = object()  # No label or duration
-    assert format_event_summary(event) == "unknown - 0.0s"
+    event = object()  # No label, state, or duration
+    assert format_event_summary(event) == "unknown [unknown] - 0.000s"
+
+
+def test_format_event_summary_distinguishes_close_sub_second_durations() -> None:
+    """Regression test: with only 1 decimal place, distinct started/active
+    events with sub-100ms durations (as seen when a fixture file is
+    processed far faster than real time, e.g. in the container smoke test)
+    all rendered as the identical, confusing 'label - 0.0s' -- making a
+    correctly-firing sequence of events look like the aggregator was
+    spamming duplicate 'started' events. 3 decimal places is enough to
+    show these are genuinely different, correctly-progressing events."""
+    started = EventMessage(
+        event_type="audio.detected",
+        label="dog",
+        confidence=0.89,
+        duration=0.0,
+        state="started",
+        model="yamnet",
+    )
+    active = EventMessage(
+        event_type="audio.detected",
+        label="dog",
+        confidence=0.97,
+        duration=0.0142,
+        state="active",
+        model="yamnet",
+    )
+
+    assert format_event_summary(started) != format_event_summary(active)
+    assert format_event_summary(started) == "dog [started] - 0.000s"
+    assert format_event_summary(active) == "dog [active] - 0.014s"
 
 
 def test_prepare_waveform_matches_model_input_shape() -> None:
@@ -273,11 +303,16 @@ def test_main_sync_keyboard_interrupt(
 def test_main_sync_exception(
     mock_logger, mock_run, mock_logging, mock_load_config
 ) -> None:
-    """Test main_sync handles generic exception."""
+    """Test main_sync handles generic exception by logging it and exiting
+    non-zero. Previously this only logged and returned normally (exit 0),
+    which meant neither Supervisor nor a container-based CI smoke test
+    could tell a real crash apart from a clean run."""
     mock_config = MagicMock()
     mock_load_config.return_value = mock_config
     mock_run.side_effect = Exception("Test error")
 
-    main_sync()
+    with pytest.raises(SystemExit) as exc_info:
+        main_sync()
 
+    assert exc_info.value.code == 1
     mock_logger.exception.assert_called_with("Unhandled error in HA Audio Events")

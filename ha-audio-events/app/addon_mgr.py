@@ -69,17 +69,14 @@ class AddonManager:
     async def set_option(self, category: str, key: str, value: Any) -> bool:
         """Set an option in add-on configuration."""
         try:
-            # Get current options first
-            current_result = await self._make_request("GET", "/addons/self/options")
-            if current_result is None:
-                _LOGGER.warning("Failed to retrieve current add-on options")
+            # Get current options via the info endpoint (GET /options returns 405)
+            info = await self.get_addon_info()
+            if info is None:
+                _LOGGER.warning("Failed to retrieve add-on info")
                 return False
-
-            current_options = current_result.get("data", {}).get("options", {})
+            current_options = info.get("options", {})
             if not current_options:
-                _LOGGER.warning(
-                    "No current options found in add-on response: %s", current_result
-                )
+                _LOGGER.warning("No current options found in add-on response: %s", info)
                 return False
 
             # Update the specific option
@@ -110,6 +107,21 @@ class AddonManager:
             _LOGGER.exception("Error setting add-on option")
             return False
 
+    async def get_option(self, category: str, key: str) -> Any | None:
+        """Get an option value from add-on configuration.
+
+        Uses the /addons/self/info endpoint because GET
+        /addons/self/options returns 405 from the Supervisor API.
+        """
+        info = await self.get_addon_info()
+        if info is None:
+            return None
+        options = info.get("options", {})
+        category_options = options.get(category, {})
+        if isinstance(category_options, dict):
+            return category_options.get(key)
+        return None
+
     async def restart(self) -> bool:
         """Restart the add-on."""
         try:
@@ -124,7 +136,9 @@ class AddonManager:
         try:
             result = await self._make_request("GET", "/addons/self/info")
             if result is None:
+                _LOGGER.warning("Failed to get add-on info: no result")
                 return None
+            # Extract the data field from the response
             return result.get("data")
         except Exception:
             _LOGGER.exception("Error getting add-on info")

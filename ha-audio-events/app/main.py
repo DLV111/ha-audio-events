@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import sys
 
 from app.addon_mgr import AddonManager
 from app.audio.activity import ActivityDetector
@@ -30,8 +31,9 @@ _LOGGER = logging.getLogger(__name__)
 
 def format_event_summary(event: object) -> str:
     label = getattr(event, "label", "unknown")
+    state = getattr(event, "state", "unknown")
     duration = getattr(event, "duration", 0.0)
-    return f"{label} - {duration:.1f}s"
+    return f"{label} [{state}] - {duration:.3f}s"
 
 
 async def _run_pipeline(config: AppConfig) -> None:
@@ -137,11 +139,6 @@ async def _run_pipeline(config: AppConfig) -> None:
                 if mqtt_client is not None:
                     mqtt_client.publish(event)
 
-        if ha_client is not None:
-            await ha_client.close()
-        if mqtt_client is not None:
-            mqtt_client.stop()
-
     if config.webui.enabled:
         # The webui needs to query Home Assistant (to list camera entities)
         # regardless of whether homeassistant.enabled is set for event
@@ -163,10 +160,18 @@ async def _run_pipeline(config: AppConfig) -> None:
             )
         finally:
             await addon_mgr.close()
+            if ha_client is not None:
+                await ha_client.close()
             if webui_ha_client is not ha_client:
                 await webui_ha_client.close()
+            if mqtt_client is not None:
+                mqtt_client.stop()
     else:
         await _detect()
+        if ha_client is not None:
+            await ha_client.close()
+        if mqtt_client is not None:
+            mqtt_client.stop()
 
 
 def main_sync() -> None:
@@ -179,6 +184,7 @@ def main_sync() -> None:
         _LOGGER.info("Shutting down HA Audio Events add-on")
     except Exception:
         _LOGGER.exception("Unhandled error in HA Audio Events")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
