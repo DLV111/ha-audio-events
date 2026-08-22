@@ -232,3 +232,105 @@ class TestWebUI(AioHTTPTestCase):
         assert data[0]["label"] == "dog"
         assert data[0]["state"] == "active"
         assert data[1]["state"] == "started"
+
+
+class TestWebUIAuth(AioHTTPTestCase):
+    """The optional shared token must lock every /api endpoint while keeping
+    the index page reachable (so the browser can prompt for the token)."""
+
+    TOKEN = "s3cret-token"
+
+    async def get_application(self):
+        self.mock_hass_client = Mock(spec=HomeAssistantClient)
+        self.mock_addon_manager = Mock(spec=AddonManager)
+        self.mock_hass_client.get_state = AsyncMock(return_value=[])
+        self.webui = WebUI(
+            self.mock_hass_client,
+            self.mock_addon_manager,
+            auth_token=self.TOKEN,
+        )
+        return self.webui.app
+
+    async def test_api_rejected_without_token(self):
+        resp = await self.client.request("GET", "/api/detections")
+        assert resp.status == 401
+
+    async def test_api_rejected_with_wrong_token(self):
+        resp = await self.client.request(
+            "GET", "/api/cameras", headers={"X-WebUI-Token": "wrong"}
+        )
+        assert resp.status == 401
+
+    async def test_api_accepted_with_header_token(self):
+        resp = await self.client.request(
+            "GET", "/api/cameras", headers={"X-WebUI-Token": self.TOKEN}
+        )
+        assert resp.status == 200
+
+    async def test_api_accepted_with_bearer_token(self):
+        resp = await self.client.request(
+            "GET",
+            "/api/cameras",
+            headers={"Authorization": f"Bearer {self.TOKEN}"},
+        )
+        assert resp.status == 200
+
+    async def test_post_source_requires_token(self):
+        self.mock_addon_manager.set_option = AsyncMock(return_value=True)
+        self.mock_addon_manager.restart = AsyncMock(return_value=True)
+
+        resp = await self.client.request(
+            "POST", "/api/source", json={"source": "camera.x"}
+        )
+        assert resp.status == 401
+        self.mock_addon_manager.set_option.assert_not_called()
+
+        resp = await self.client.request(
+            "POST",
+            "/api/source",
+            json={"source": "camera.x"},
+            headers={"X-WebUI-Token": self.TOKEN},
+        )
+        assert resp.status == 200
+
+    async def test_index_page_open_without_token(self):
+        """The page itself must load so the user can be prompted for the
+        token; only /api routes are gated."""
+        resp = await self.client.request("GET", "/")
+        assert resp.status == 200
+
+
+class TestWebUINoAuthByDefault(AioHTTPTestCase):
+    """Without an auth token configured (the HA-ingress default), API access
+    stays open -- existing behaviour must not break."""
+
+    async def get_application(self):
+        self.mock_hass_client = Mock(spec=HomeAssistantClient)
+        self.mock_hass_client.get_state = AsyncMock(return_value=[])
+        self.webui = WebUI(self.mock_hass_client, Mock(spec=AddonManager), None)
+        return self.webui.app
+
+    async def test_api_open_without_token_configured(self):
+        resp = await self.client.request("GET", "/api/detections")
+        assert resp.status == 200
+
+
+class TestWebUIHtmlSafety(AioHTTPTestCase):
+    """Regression guards for the XSS fix in the detections panel."""
+
+    async def get_application(self):
+        self.webui = WebUI(Mock(spec=HomeAssistantClient), Mock(spec=AddonManager))
+        return self.webui.app
+
+    async def test_detections_rendering_does_not_interpolate_into_innerhtml(self):
+        resp = await self.client.request("GET", "/")
+        assert resp.status == 200
+        html = await resp.text()
+        # The vulnerable code built detection rows by interpolating label and
+        # state straight into innerHTML. The fixed renderer must build DOM
+        # nodes via textContent instead.
+        assert "${d.label}" not in html
+        assert "innerHTML = ``" not in html
+        # No template-literal may be assigned to any innerHTML sink.
+        assert ".innerHTML = `" not in html
+        assert "textContent" in html

@@ -127,6 +127,7 @@ async def test_run_pipeline_no_audio_source() -> None:
         # Mock aggregator
         mock_aggregator_instance = MagicMock()
         mock_aggregator_instance.update.return_value = []
+        mock_aggregator_instance.flush.return_value = []
         mock_aggregator.return_value = mock_aggregator_instance
 
         # Should not raise
@@ -182,6 +183,7 @@ async def test_run_pipeline_with_audio_chunks() -> None:
 
         mock_aggregator_instance = MagicMock()
         mock_aggregator_instance.update.return_value = []
+        mock_aggregator_instance.flush.return_value = []
         mock_aggregator.return_value = mock_aggregator_instance
 
         await _run_pipeline(config)
@@ -238,6 +240,7 @@ async def test_run_pipeline_wires_up_webui_correctly() -> None:
 
         mock_aggregator_instance = MagicMock()
         mock_aggregator_instance.update.return_value = []
+        mock_aggregator_instance.flush.return_value = []
         mock_aggregator.return_value = mock_aggregator_instance
 
         mock_addon_manager_instance = MagicMock()
@@ -250,6 +253,8 @@ async def test_run_pipeline_wires_up_webui_correctly() -> None:
 
         mock_ha_client_instance = MagicMock()
         mock_ha_client_instance.close = AsyncMock()
+        # _run_pipeline now always calls the idempotent init_entities().
+        mock_ha_client_instance.init_entities = AsyncMock()
         mock_ha_client_class.return_value = mock_ha_client_instance
 
         await _run_pipeline(config)
@@ -262,6 +267,119 @@ async def test_run_pipeline_wires_up_webui_correctly() -> None:
     # not called with a signature the method doesn't accept, and not left
     # as a dangling, never-awaited task.
     mock_webui_instance.start.assert_awaited_once_with(host="0.0.0.0", port=8123)
+
+
+@pytest.mark.asyncio
+async def test_pipeline_flushes_active_events_when_stream_ends() -> None:
+    """Regression: when the audio stream ends, still-active aggregated events
+    must be flushed as 'ended' so HA binary sensors don't stay stuck 'on'."""
+    config = AppConfig(
+        model="yamnet",
+        audio=AudioSourceConfig(sample_rate=16000, channels=1),
+        activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
+        buffer_seconds=3.0,
+        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
+        homeassistant=HomeAssistantConfig(enabled=False),
+        mqtt=MQTTConfig(enabled=False),
+        webui=WebUIConfig(enabled=False),
+    )
+
+    ended_event = EventMessage(
+        event_type="audio.detected",
+        label="dog",
+        confidence=0.9,
+        duration=4.2,
+        state="ended",
+        model="yamnet",
+    )
+
+    class EmptyAsyncIterator:
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            raise StopAsyncIteration
+
+    with (
+        patch("app.main.AudioStreamSource") as mock_source_class,
+        patch("app.main.build_classifier"),
+        patch("app.main.EventAggregator") as mock_aggregator,
+    ):
+        mock_source = MagicMock()
+        mock_source.stream.return_value = EmptyAsyncIterator()
+        mock_source_class.return_value = mock_source
+
+        aggregator = MagicMock()
+        aggregator.update.return_value = []
+        aggregator.flush.return_value = [ended_event]
+        mock_aggregator.return_value = aggregator
+
+        await _run_pipeline(config)
+
+        aggregator.flush.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_webui_survives_pipeline_failure() -> None:
+    """Regression: a failing audio pipeline (e.g. bad source_path) used to
+    tear down the whole process via asyncio.gather, making it impossible to
+    fix the source from the ingress panel. The Web UI must stay up."""
+    config = AppConfig(
+        model="yamnet",
+        audio=AudioSourceConfig(sample_rate=16000, channels=1),
+        activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
+        buffer_seconds=3.0,
+        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
+        homeassistant=HomeAssistantConfig(enabled=False),
+        mqtt=MQTTConfig(enabled=False),
+        webui=WebUIConfig(enabled=True, host="127.0.0.1", port=8123),
+    )
+
+    class FailingAsyncIterator:
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            raise RuntimeError("ffmpeg not found for source_path")
+
+    with (
+        patch("app.main.AudioStreamSource") as mock_source_class,
+        patch("app.main.build_classifier"),
+        patch("app.main.EventAggregator") as mock_aggregator,
+        patch("app.main.AddonManager") as mock_addon_manager_class,
+        patch("app.main.WebUI") as mock_webui_class,
+        patch("app.main.HomeAssistantClient") as mock_ha_client_class,
+        patch.dict("os.environ", {"SUPERVISOR_TOKEN": "test-supervisor-token"}),
+    ):
+        mock_source = MagicMock()
+        mock_source.stream.return_value = FailingAsyncIterator()
+        mock_source_class.return_value = mock_source
+
+        aggregator = MagicMock()
+        aggregator.update.return_value = []
+        aggregator.flush.return_value = []
+        mock_aggregator.return_value = aggregator
+
+        mock_addon_manager_instance = MagicMock()
+        mock_addon_manager_instance.close = AsyncMock()
+        mock_addon_manager_class.return_value = mock_addon_manager_instance
+
+        mock_webui_instance = MagicMock()
+        mock_webui_instance.start = AsyncMock(return_value=None)
+        mock_webui_class.return_value = mock_webui_instance
+
+        mock_ha_client_instance = MagicMock()
+        mock_ha_client_instance.close = AsyncMock()
+        mock_ha_client_instance.init_entities = AsyncMock()
+        mock_ha_client_class.return_value = mock_ha_client_instance
+
+        # Must not raise even though the stream source exploded.
+        await _run_pipeline(config)
+
+        # The web server was started (and thus awaited) despite the failure.
+        mock_webui_instance.start.assert_awaited_once_with(host="127.0.0.1", port=8123)
 
 
 @patch("app.main.load_config")

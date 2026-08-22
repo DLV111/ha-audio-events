@@ -22,8 +22,27 @@ class MQTTClient:
             callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
             client_id="ha-audio-events",
         )
+        if config.username:
+            self.client.username_pw_set(config.username, config.password)
+        if config.tls:
+            self.client.tls_set()
+
+        # connect_async + loop_start makes paho retry in its network thread
+        # with exponential backoff instead of crashing at startup when the
+        # broker is briefly unavailable (e.g. during HA boot ordering races).
+        self.client.reconnect_delay_set(min_delay=1, max_delay=30)
+        scheme = "mqtts" if config.tls else "mqtt"
+        auth = "with credentials" if config.username else "without credentials"
+        _LOGGER.info(
+            "Connecting to MQTT broker %s://%s:%s (%s), retrying in background "
+            "until reachable",
+            scheme,
+            config.host,
+            config.port,
+            auth,
+        )
+        self.client.connect_async(config.host, config.port)
         self.client.loop_start()
-        self.client.connect(self.config.host, self.config.port)
 
     def publish_discovery(
         self, entity_prefix: str, supported_labels: list[str]

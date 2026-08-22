@@ -94,7 +94,7 @@ To analyze live audio from a raw RTSP camera stream:
     source_path: "rtsp://admin:password@192.168.1.50:554/h264Preview_01_main"
   ```
 
-### Mode 3: Local Audio File (Testing / Demonstration)
+### Mode 4: Local Audio File (Testing / Demonstration)
 To classify audio from a test audio file placed inside `/config`:
 - Set `audio.source_path` to the file path:
   ```yaml
@@ -141,7 +141,7 @@ aggregation:
 
 homeassistant:
   enabled: true
-  url: "http://supervisor/homeassistant"
+  url: "http://supervisor/core"
   token: null           # Automatically uses SUPERVISOR_TOKEN inside HA OS add-on
   entity_prefix: "audio"
 
@@ -151,6 +151,15 @@ mqtt:
   port: 1883
   topic: "audio/events"
   discovery_prefix: "homeassistant"
+  username: null         # Optional broker credentials
+  password: null
+  tls: false
+
+webui:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8099
+  auth_token: null       # Set to require a token on /api endpoints (recommended outside HA ingress)
 ```
 
 ---

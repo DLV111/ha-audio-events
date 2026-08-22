@@ -41,8 +41,6 @@ This document provides AI assistants with a comprehensive technical guide to the
 ```
 ha-audio-events/
 ├── agents.md                       # (This file) AI context, architecture, & development guide
-├── app/
-│   └── versioning.py              # Version bumping utility (duplicate of ha-audio-events/app/versioning.py)
 ├── ha-audio-events/               # HA Add-on root & Python package source
 │   ├── app/                       # Core Python codebase
 │   │   ├── __init__.py
@@ -68,31 +66,21 @@ ha-audio-events/
 │   │   │   ├── discovery.py       # MQTT Discovery payload generator
 │   │   │   ├── entities.py        # Entity ID & attribute builders for HA binary sensors
 │   │   │   └── mqtt.py            # MQTT client (paho-mqtt wrapper)
-│   │   └── utils/
-│   │       └── logging.py         # Logging configuration helper
-│   ├── config.json                # Home Assistant add-on options & schema specification
-│   ├── config.yaml                # Default options for container/local execution
+│   │   ├── utils/
+│   │   │   └── logging.py         # Logging configuration helper
+│   │   └── webui/                 # Ingress panel server
+│   │       └── server.py          # aiohttp app: source picker, detections feed, optional token auth
+│   ├── config.yaml                # Add-on manifest: options, schema, ingress settings
 │   ├── Dockerfile                 # Container image based on python:3.12-slim
-│   ├── logo.png                   # HA Add-on icon
+│   ├── models/                    # Model artifacts used by the container build context
+│   │   ├── yamnet.tflite
+│   │   └── yamnet_class_map.csv
+│   ├── logo.png                   # HA Add-on icon (removed when broken; re-add a real PNG)
 │   └── run.sh                     # Container start script executing `python3 -m app.main`
-├── models/
+├── models/                        # Model artifacts for local runs from the repo root
 │   ├── yamnet.tflite              # Pre-trained TFLite model (~4.1 MB)
 │   └── yamnet_class_map.csv       # YAMNet 521 audio class label map
 ├── tests/                         # Pytest test suite & audio test fixtures
-│   ├── fixtures/
-│   │   └── audio/                 # Sample audio files (dog barking, train horn, etc.)
-│   │       ├── manifest.json
-│   │       ├── dog-barking/
-│   │       └── train/
-│   ├── test_audio_classifier_integration.py
-│   ├── test_audio_fixtures.py
-│   ├── test_detection.py
-│   ├── test_homeassistant.py
-│   ├── test_main.py
-│   ├── test_mqtt_discovery.py
-│   ├── test_stream.py
-│   ├── test_versioning.py
-│   └── test_yamnet_label_loading.py
 ├── config.yaml                    # Local testing config file
 ├── Makefile                       # Developer tasks (test, version bump, update model, etc.)
 ├── pyproject.toml                 # Packaging, dependencies, scripts (`ha-audio-events`)
@@ -102,9 +90,16 @@ ha-audio-events/
 
 ### Key Layout Note
 
-The application code lives in `ha-audio-events/app/`, **not** the root `app/`.
-The root `app/` directory only contains `versioning.py` (a duplicate of
-`ha-audio-events/app/versioning.py`).
+The application code lives in `ha-audio-events/app/`. There is **no** root
+`app/` package anymore (a stale diverged duplicate of `versioning.py` was
+removed); always run Python with `PYTHONPATH=ha-audio-events`.
+
+Two copies of `models/` exist on purpose:
+- root `models/` is resolved by `build_classifier()` when running locally
+  from the repo root (pytest, demo);
+- `ha-audio-events/models/` ships the same files inside the container build
+  context where `/app` *is* `ha-audio-events/`. Keep both in sync when
+  updating the model.
 
 The `pyproject.toml` configures pytest with `pythonpath = ["ha-audio-events"]`,
 so all imports use `from app.xxx import ...` and resolve to

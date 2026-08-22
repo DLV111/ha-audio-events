@@ -30,12 +30,43 @@ def mock_mqtt_client():
 
 
 def test_mqtt_client_init(mock_mqtt_client):
-    """Test MQTTClient initialization."""
+    """Test MQTTClient initialization.
+
+    connect_async (not blocking connect) must be used so a temporarily
+    unavailable broker doesn't crash the add-on at startup; paho's network
+    thread retries in the background.
+    """
     config = _config()
     _ = MQTTClient(config)
 
+    mock_mqtt_client.connect_async.assert_called_once_with("localhost", 1883)
     mock_mqtt_client.loop_start.assert_called_once()
-    mock_mqtt_client.connect.assert_called_once_with("localhost", 1883)
+    mock_mqtt_client.reconnect_delay_set.assert_called_once()
+
+
+def test_mqtt_client_init_with_credentials(mock_mqtt_client):
+    """Username/password and TLS options are applied to the paho client."""
+    config = MQTTConfig(
+        enabled=True,
+        host="broker.local",
+        port=8883,
+        username="audio",
+        password="secret",
+        tls=True,
+    )
+    _ = MQTTClient(config)
+
+    mock_mqtt_client.username_pw_set.assert_called_once_with("audio", "secret")
+    mock_mqtt_client.tls_set.assert_called_once()
+    mock_mqtt_client.connect_async.assert_called_once_with("broker.local", 8883)
+
+
+def test_mqtt_client_init_without_credentials(mock_mqtt_client):
+    """No username -> no credential call, no TLS call."""
+    _ = MQTTClient(_config())
+
+    mock_mqtt_client.username_pw_set.assert_not_called()
+    mock_mqtt_client.tls_set.assert_not_called()
 
 
 def test_mqtt_client_publish_discovery(mock_mqtt_client):

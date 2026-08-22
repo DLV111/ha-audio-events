@@ -12,11 +12,20 @@ from app.homeassistant.entities import build_entity_ids, build_friendly_names
 
 _LOGGER = logging.getLogger(__name__)
 
+# Bound every HA request so an unresponsive Home Assistant can never stall
+# the detection pipeline for aiohttp's 5-minute default timeout.
+DEFAULT_REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=10)
+
 
 class HomeAssistantClient:
-    def __init__(self, config: HomeAssistantConfig) -> None:
+    def __init__(
+        self,
+        config: HomeAssistantConfig,
+        request_timeout: aiohttp.ClientTimeout | None = None,
+    ) -> None:
         self.config = config
-        self._session = aiohttp.ClientSession()
+        self._timeout = request_timeout or DEFAULT_REQUEST_TIMEOUT
+        self._session = aiohttp.ClientSession(timeout=self._timeout)
         self._entity_ids: dict[str, str] | None = None
         self._friendly_names: dict[str, str] | None = None
 
