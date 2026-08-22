@@ -5,6 +5,10 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-08-22
+### Fixed
+- Add-on option defaults no longer use `null` for optional string fields (`mqtt.username`/`password`, `webui.auth_token`, `audio.source_path`). The Supervisor's validator rejects null for nullable schema fields with "Missing required option", which could block add-on start/update on real installs (observed live). Blank strings are now the defaults, and `load_config` coerces blanks back to proper `None` values so app behaviour is unchanged.
+
 ## [0.4.0] - 2026-08-22
 ### Fixed
 - Self-healing for legacy saved options: `homeassistant.url` values like `http://supervisor/homeassistant` (the broken pre-0.1.11 default) are normalised to `http://supervisor/core` at startup — camera streaming and entity updates work again without manually editing options

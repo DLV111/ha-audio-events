@@ -185,6 +185,65 @@ def test_manifest_version_matches_pyproject() -> None:
     assert manifest["version"] == match.group(1)
 
 
+def _iter_option_values(node: object, prefix: str = ""):
+    """Yield (dotted_key, value) for every leaf of the options tree."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            path = f"{prefix}.{key}" if prefix else str(key)
+            yield from _iter_option_values(value, path)
+    else:
+        yield (prefix, node)
+
+
+def test_manifest_defaults_never_use_null() -> None:
+    """Supervisor rejects null values for nullable (str?) schema fields with
+    'Missing required option', blocking update/start on real installs
+    (observed live: username/auth_token). Defaults must use "" instead, and
+    load_config coerces blanks back to None."""
+    manifest = _load_manifest()
+    null_options = [
+        key for key, value in _iter_option_values(manifest["options"]) if value is None
+    ]
+    assert null_options == []
+
+
+def test_blank_string_options_coerce_to_none(tmp_path: Path) -> None:
+    """The app-side contract: "" behaves exactly like an unset option."""
+    cfg_file = tmp_path / "config.yaml"
+    cfg_file.write_text(
+        "audio:\n"
+        '  source_path: ""\n'
+        "mqtt:\n"
+        '  username: ""\n'
+        '  password: "  "\n'
+        "  tls: false\n"
+        "webui:\n"
+        '  auth_token: ""\n',
+        encoding="utf-8",
+    )
+
+    config = load_config(cfg_file)
+
+    assert config.audio.source_path is None
+    assert config.mqtt.username is None
+    assert config.mqtt.password is None  # whitespace-only counts as blank
+    assert config.webui.auth_token is None
+
+
+def test_nonblank_string_options_are_kept(tmp_path: Path) -> None:
+    cfg_file = tmp_path / "config.yaml"
+    cfg_file.write_text(
+        'audio:\n  source_path: "camera.garage_camera"\n'
+        'mqtt:\n  username: "audio"\n',
+        encoding="utf-8",
+    )
+
+    config = load_config(cfg_file)
+
+    assert config.audio.source_path == "camera.garage_camera"
+    assert config.mqtt.username == "audio"
+
+
 # ---------------------------------------------------------------------------
 # Loud failure on dead ffmpeg streams
 # ---------------------------------------------------------------------------

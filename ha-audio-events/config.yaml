@@ -1,6 +1,6 @@
 name: HA Audio Events
 slug: ha_audio_events
-version: 0.4.0
+version: 0.4.1
 description: Home Assistant add-on for audio event detection using TensorFlow Lite.
 arch:
   - amd64
@@ -20,7 +20,7 @@ options:
     sample_rate: 16000
     channels: 1
     format: pcm_s16le
-    source_path: null
+    source_path: ""
   activity:
     rms_threshold: 0.04
     peak_threshold: 0.1
@@ -49,14 +49,14 @@ options:
     port: 1883
     topic: audio/events
     discovery_prefix: homeassistant
-    username: null
-    password: null
+    username: ""
+    password: ""
     tls: false
   webui:
     enabled: true
     host: 0.0.0.0
     port: 8099
-    auth_token: null
+    auth_token: ""
 schema:
   # Single-choice dropdowns: these values are fixed by the YAMNet pipeline,
   # so presenting them as free-text only invites broken configurations.
