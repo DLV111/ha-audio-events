@@ -270,23 +270,44 @@ class WebUI:
             return response;
         }
 
+        // Parse a panel API response defensively. When the add-on is stopped
+        // or mid-restart, the ingress proxy answers with its own HTML/plain
+        // error page -- calling .json() on that produced cryptic errors like
+        // "Unexpected non-whitespace character after JSON".
+        async function parseApiResponse(response, what) {
+            const contentType = response.headers.get('content-type') || '';
+            const bodyText = await response.text();
+            if (!contentType.includes('application/json')) {
+                const snippet = bodyText.trim().slice(0, 100);
+                throw new Error(
+                    'The add-on does not appear to be running' +
+                    (snippet ? ` (proxy said: "${snippet}")` : '') +
+                    ' - start it from Settings > Add-ons and reload.'
+                );
+            }
+            try {
+                return JSON.parse(bodyText);
+            } catch (e) {
+                throw new Error(`Received malformed data for ${what}`);
+            }
+        }
+
         // Load initial data
         async function loadData() {
             try {
                 // Load cameras
                 const camerasResponse = await apiFetch('api/cameras');
-                if (camerasResponse.ok) {
-                    cameras = await camerasResponse.json();
-                } else {
-                    throw new Error('Failed to load cameras');
+                if (!camerasResponse.ok) {
+                    throw new Error(`Failed to load cameras (HTTP ${camerasResponse.status})`);
                 }
+                cameras = await parseApiResponse(camerasResponse, 'cameras');
 
                 // Load microphones (voice satellites) -- best-effort, don't
                 // fail the whole page if this one endpoint has an issue
                 try {
                     const micResponse = await apiFetch('api/microphones');
                     if (micResponse.ok) {
-                        microphones = await micResponse.json();
+                        microphones = await parseApiResponse(micResponse, 'microphones');
                     }
                 } catch (micError) {
                     console.warn('Failed to load microphones:', micError);
@@ -295,7 +316,7 @@ class WebUI:
                 // Load current source
                 const sourceResponse = await apiFetch('api/source');
                 if (sourceResponse.ok) {
-                    const data = await sourceResponse.json();
+                    const data = await parseApiResponse(sourceResponse, 'current source');
                     currentSource = data.source || '';
                 }
 
@@ -399,10 +420,12 @@ class WebUI:
             try {
                 const response = await apiFetch('api/detections');
                 if (response.ok) {
-                    const detections = await response.json();
+                    const detections = await parseApiResponse(response, 'detections');
                     renderDetections(detections);
                 }
             } catch (error) {
+                // Silent-ish: the panel polls every 3s and transient errors
+                // (add-on restarting) must not spam red banners.
                 console.warn('Failed to poll detections:', error);
             }
         }
@@ -493,19 +516,30 @@ class WebUI:
                 });
 
                 if (response.ok) {
-                    const data = await response.json();
+                    await parseApiResponse(response, 'apply result');
                     showMessage('Audio source configured successfully!', 'success');
                     showStatus('Configuration applied. The add-on is restarting to apply changes.', 'success');
                     currentSource = source;
                     updateCurrentSourceDisplay();
                 } else {
-                    const error = await response.json();
+                    const error = await parseApiResponse(response, 'error details');
                     showMessage(`Error: ${error.error || 'Failed to configure source'}`, 'error');
                     showStatus(`Error: ${error.error || 'Failed to configure source'}`, 'error');
                 }
             } catch (error) {
-                showMessage(`Network error: ${error.message}`, 'error');
-                showStatus(`Network error: ${error.message}`, 'error');
+                // Two normal situations land here:
+                // 1. The add-on was restarting while we submitted -- the
+                //    request may still have been applied.
+                // 2. The add-on is stopped entirely (ingress proxy error).
+                if (error instanceof TypeError) {
+                    showMessage(
+                        'Connection lost while applying the source - the add-on is probably restarting. Reload this page in a few seconds to check.',
+                        'error'
+                    );
+                } else {
+                    showMessage(`${error.message}`, 'error');
+                }
+                showStatus(`${error.message}`, 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
@@ -608,7 +642,13 @@ class WebUI:
             return web.json_response({"error": str(e)}, status=500)
 
     async def set_source(self, request: web.Request) -> web.Response:
-        """Set the audio source path and restart the add-on."""
+        """Set the audio source path and restart the add-on.
+
+        The HTTP response is sent BEFORE the restart is triggered: restarting
+        kills this container, and answering afterwards would hand the browser
+        a truncated/non-JSON body (seen as "Unexpected non-whitespace
+        character after JSON" in the panel).
+        """
         try:
             data = await request.json()
             source = data.get("source")
@@ -641,21 +681,32 @@ class WebUI:
                     {"error": "Failed to set source in add-on options"}, status=500
                 )
 
-            restart_success = await self.addon_manager.restart()
-            if not restart_success:
-                return web.json_response(
-                    {"error": "Source configured but failed to restart add-on"},
-                    status=500,
-                )
+            asyncio.create_task(self._delayed_restart())
 
-            _LOGGER.info("Audio source configured to: %s, add-on restarted", source)
+            _LOGGER.info(
+                "Audio source configured to %s; restarting add-on in %ss",
+                source,
+                self.RESTART_DELAY,
+            )
             return web.json_response(
                 {
                     "status": "success",
-                    "message": "Source configured and add-on restarted",
+                    "message": "Source configured; add-on is restarting",
                 }
             )
 
         except Exception as e:
             _LOGGER.exception("Error setting source")
             return web.json_response({"error": str(e)}, status=500)
+
+    RESTART_DELAY: float = 1.0
+
+    async def _delayed_restart(self) -> None:
+        """Restart the add-on after the current response has been delivered."""
+        try:
+            await asyncio.sleep(self.RESTART_DELAY)
+            await self.addon_manager.restart()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _LOGGER.exception("Delayed add-on restart failed")
