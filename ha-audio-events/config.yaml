@@ -1,6 +1,6 @@
 name: HA Audio Events
 slug: ha_audio_events
-version: 0.3.0
+version: 0.4.0
 description: Home Assistant add-on for audio event detection using TensorFlow Lite.
 arch:
   - amd64
@@ -14,6 +14,7 @@ audio: true
 audio_input: true
 options:
   model: yamnet
+  log_level: info
   buffer_seconds: 3.0
   audio:
     sample_rate: 16000
@@ -41,7 +42,6 @@ options:
     end_timeout: 5.0
   homeassistant:
     enabled: true
-    url: http://supervisor/core
     entity_prefix: audio
   mqtt:
     enabled: false
@@ -58,12 +58,15 @@ options:
     port: 8099
     auth_token: null
 schema:
-  model: str
+  # Single-choice dropdowns: these values are fixed by the YAMNet pipeline,
+  # so presenting them as free-text only invites broken configurations.
+  model: list(yamnet)
+  log_level: list(trace|debug|info|warning|error|fatal)
   buffer_seconds: float
   audio:
-    sample_rate: int
-    channels: int
-    format: str
+    sample_rate: list(16000)
+    channels: list(1)
+    format: list(pcm_s16le)
     source_path: str?
   activity:
     rms_threshold: float
@@ -81,9 +84,13 @@ schema:
     end_timeout: float
   homeassistant:
     enabled: bool
-    url: str
-    token: str?
     entity_prefix: str
+    # url/token intentionally not exposed: inside the add-on they are
+    # provided automatically (http://supervisor/core + SUPERVISOR_TOKEN).
+    # Kept in the schema so options saved by older versions still validate;
+    # stale values are normalised by the app on startup.
+    url: str?
+    token: str?
   mqtt:
     enabled: bool
     host: str
