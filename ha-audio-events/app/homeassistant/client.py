@@ -8,6 +8,7 @@ import aiohttp
 
 from app.config import HomeAssistantConfig
 from app.detection.models import EventMessage
+from app.homeassistant.entities import build_entity_ids, build_friendly_names
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,9 +17,23 @@ class HomeAssistantClient:
     def __init__(self, config: HomeAssistantConfig) -> None:
         self.config = config
         self._session = aiohttp.ClientSession()
+        self._entity_ids: dict[str, str] | None = None
+        self._friendly_names: dict[str, str] | None = None
 
     async def close(self) -> None:
         await self._session.close()
+
+    async def init_entities(self) -> None:
+        """Initialize required HA entities if they don't exist yet."""
+        if self._entity_ids is not None and self._friendly_names is not None:
+            return
+
+        self._entity_ids = build_entity_ids(self.config)
+        self._friendly_names = build_friendly_names(self.config)
+
+        # Ensure each entity exists - create with default state if missing
+        for entity_id in self._entity_ids.values():
+            await self.update_state(entity_id, "off", {})
 
     async def fire_event(self, event: EventMessage) -> None:
         if not self.config.enabled:

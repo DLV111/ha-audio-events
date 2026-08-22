@@ -52,6 +52,10 @@ async def _run_pipeline(config: AppConfig) -> None:
         if config.homeassistant.enabled
         else None
     )
+    # Initialize HA entities before using them
+    if ha_client is not None:
+        await ha_client.init_entities()
+
     entity_ids = build_entity_ids(config.homeassistant)
     label_sensor_ids = build_label_sensor_entity_ids(
         config.homeassistant, config.classifier.include
@@ -136,14 +140,17 @@ async def _run_pipeline(config: AppConfig) -> None:
                                 "device_class": "sound",
                             },
                         )
-                if mqtt_client is not None:
-                    mqtt_client.publish(event)
+                    if mqtt_client is not None:
+                        mqtt_client.publish(event)
 
     if config.webui.enabled:
         # The webui needs to query Home Assistant (to list camera entities)
         # regardless of whether homeassistant.enabled is set for event
         # publishing, so give it its own client if one wasn't already created.
         webui_ha_client = ha_client or HomeAssistantClient(config.homeassistant)
+        # Initialize entities for webui client if needed
+        if webui_ha_client._entity_ids is None:
+            await webui_ha_client.init_entities()
         supervisor_token = os.getenv("SUPERVISOR_TOKEN", "")
         addon_mgr = AddonManager(supervisor_token)
         webui = WebUI(webui_ha_client, addon_mgr, history)
