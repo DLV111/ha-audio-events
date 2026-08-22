@@ -82,6 +82,19 @@ class AppConfig:
     log_level: str = "INFO"
 
 
+def _clean_str(value: Any) -> str | None:
+    """Treat blank strings as unset.
+
+    Add-on option defaults use "" rather than null because the Supervisor
+    rejects null for nullable (``str?``) schema fields; this converts them
+    back to real optionals for the app.
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
 def _load_yaml(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         return yaml.safe_load(handle) or {}
@@ -159,7 +172,9 @@ def load_config(path: Path | str | None = None) -> AppConfig:
                 else "pcm_s16le"
             ),
             source_path=(
-                raw_audio.get("source_path") if isinstance(raw_audio, dict) else None
+                _clean_str(raw_audio.get("source_path"))
+                if isinstance(raw_audio, dict)
+                else None
             ),
         )
 
@@ -195,7 +210,7 @@ def load_config(path: Path | str | None = None) -> AppConfig:
                 or "http://supervisor/core"
             ),
             token=(
-                raw.get("homeassistant", {}).get("token")
+                _clean_str(raw.get("homeassistant", {}).get("token"))
                 or os.getenv("HASS_TOKEN")
                 or os.getenv("SUPERVISOR_TOKEN")
             ),
@@ -209,23 +224,15 @@ def load_config(path: Path | str | None = None) -> AppConfig:
             port=int(mqtt.get("port", 1883)),
             topic=str(mqtt.get("topic", "audio/events")),
             discovery_prefix=str(mqtt.get("discovery_prefix", "homeassistant")),
-            username=(
-                str(mqtt["username"]) if mqtt.get("username") is not None else None
-            ),
-            password=(
-                str(mqtt["password"]) if mqtt.get("password") is not None else None
-            ),
+            username=_clean_str(mqtt.get("username")),
+            password=_clean_str(mqtt.get("password")),
             tls=bool(mqtt.get("tls", False)),
         ),
         webui=WebUIConfig(
             enabled=bool(webui.get("enabled", True)),
             host=str(webui.get("host", "0.0.0.0")),
             port=int(webui.get("port", 8099)),
-            auth_token=(
-                str(webui["auth_token"])
-                if webui.get("auth_token") is not None
-                else None
-            ),
+            auth_token=_clean_str(webui.get("auth_token")),
         ),
         log_level=str(raw.get("log_level", "INFO")),
     )
