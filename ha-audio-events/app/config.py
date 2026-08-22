@@ -45,6 +45,9 @@ class MQTTConfig:
     port: int = 1883
     topic: str = "audio/events"
     discovery_prefix: str = "homeassistant"
+    username: str | None = None
+    password: str | None = None
+    tls: bool = False
 
 
 @dataclass(frozen=True)
@@ -60,6 +63,9 @@ class WebUIConfig:
     enabled: bool = True
     host: str = "0.0.0.0"
     port: int = 8099
+    # When set, /api endpoints require this shared token. Unnecessary behind
+    # HA ingress; recommended for standalone deployments.
+    auth_token: str | None = None
 
 
 @dataclass(frozen=True)
@@ -93,9 +99,17 @@ def _load_config(path: Path) -> dict[str, Any]:
 
 
 def load_config(path: Path | str | None = None) -> AppConfig:
-    config_path = Path(path or "/data/options.json")
-    if not config_path.exists():
-        config_path = Path(path or "config.yaml")
+    if path is not None:
+        # An explicitly provided path must exist: silently falling back to a
+        # default file would mask typos and load the wrong configuration.
+        config_path = Path(path)
+        if not config_path.exists():
+            raise FileNotFoundError(f"Config file not found: {config_path}")
+    else:
+        # Default lookup order for the add-on environment.
+        config_path = Path("/data/options.json")
+        if not config_path.exists():
+            config_path = Path("config.yaml")
     raw = _load_config(config_path)
 
     raw_audio = raw.get("audio")
@@ -166,11 +180,23 @@ def load_config(path: Path | str | None = None) -> AppConfig:
             port=int(mqtt.get("port", 1883)),
             topic=str(mqtt.get("topic", "audio/events")),
             discovery_prefix=str(mqtt.get("discovery_prefix", "homeassistant")),
+            username=(
+                str(mqtt["username"]) if mqtt.get("username") is not None else None
+            ),
+            password=(
+                str(mqtt["password"]) if mqtt.get("password") is not None else None
+            ),
+            tls=bool(mqtt.get("tls", False)),
         ),
         webui=WebUIConfig(
             enabled=bool(webui.get("enabled", True)),
             host=str(webui.get("host", "0.0.0.0")),
             port=int(webui.get("port", 8099)),
+            auth_token=(
+                str(webui["auth_token"])
+                if webui.get("auth_token") is not None
+                else None
+            ),
         ),
         log_level=str(raw.get("log_level", "INFO")),
     )

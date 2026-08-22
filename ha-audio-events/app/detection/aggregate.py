@@ -44,8 +44,8 @@ class EventAggregator:
                 del self._active_events[label]
 
         for detection in detections:
-            state = self._active_events.get(detection.label)
-            if state is None:
+            existing = self._active_events.get(detection.label)
+            if existing is None:
                 if detection.confidence >= self.config.start_confidence:
                     self._active_events[detection.label] = AggregatedEvent(
                         label=detection.label,
@@ -65,18 +65,40 @@ class EventAggregator:
                         )
                     )
             else:
-                state.last_seen_at = now
-                state.confidence = max(state.confidence, detection.confidence)
-                state.duration = (now - state.started_at).total_seconds()
+                existing.last_seen_at = now
+                existing.confidence = max(existing.confidence, detection.confidence)
+                existing.duration = (now - existing.started_at).total_seconds()
                 events.append(
                     EventMessage(
                         event_type="audio.detected",
                         label=detection.label,
-                        confidence=state.confidence,
-                        duration=state.duration,
+                        confidence=existing.confidence,
+                        duration=existing.duration,
                         state="active",
-                        model=state.model,
+                        model=existing.model,
                     )
                 )
 
+        return events
+
+    def flush(self) -> list[EventMessage]:
+        """End every active event immediately.
+
+        Called on pipeline shutdown so Home Assistant binary sensors don't
+        stay stuck "on" after the audio stream stops or errors out.
+        """
+        events: list[EventMessage] = []
+        for label, state in self._active_events.items():
+            state.duration = (state.last_seen_at - state.started_at).total_seconds()
+            events.append(
+                EventMessage(
+                    event_type="audio.detected",
+                    label=label,
+                    confidence=state.confidence,
+                    duration=state.duration,
+                    state="ended",
+                    model=state.model,
+                )
+            )
+        self._active_events.clear()
         return events

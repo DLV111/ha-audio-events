@@ -4,14 +4,14 @@ import json
 import logging
 
 from app.config import MQTTConfig
+from app.homeassistant.entities import slugify_label
 
 _LOGGER = logging.getLogger(__name__)
 
 
 def build_label_state_topic(config: MQTTConfig, label: str) -> str:
     """Per-label state topic, so each discovered sensor only reacts to its own label."""
-    slug = label.replace(" ", "_").lower()
-    return f"{config.topic}/{slug}"
+    return f"{config.topic}/{slugify_label(label)}"
 
 
 def build_mqtt_discovery_payload(
@@ -47,6 +47,6 @@ def build_entity_ids_for_labels(
     entity_prefix: str, supported_labels: list[str]
 ) -> dict[str, str]:
     return {
-        label: f"binary_sensor.{entity_prefix}_{label.replace(' ', '_').lower()}"
+        label: f"binary_sensor.{entity_prefix}_{slugify_label(label)}"
         for label in supported_labels
     }

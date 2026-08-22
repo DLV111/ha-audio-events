@@ -22,6 +22,7 @@ from app.config import (
 )
 from app.detection.aggregate import EventAggregator
 from app.detection.filter import filter_detections
+from app.detection.models import EventMessage
 
 
 def format_file_result(path: str, label: str, duration: float) -> str:
@@ -102,7 +103,7 @@ async def run_demo(audio_path: str) -> list[str]:
 
     base_time = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
     stream_time = 0.0
-    last_seen_event: dict[str, object] = {}
+    last_seen_event: dict[str, EventMessage] = {}
 
     async for chunk in source.stream():
         chunk_seconds = len(chunk) / config.audio.sample_rate
@@ -125,13 +126,13 @@ async def run_demo(audio_path: str) -> list[str]:
     results: list[str] = []
     sorted_events = sorted(
         last_seen_event.values(),
-        key=lambda e: getattr(e, "duration", 0.0),
+        key=lambda e: e.duration,
         reverse=True,
     )
     for event in sorted_events:
-        duration = getattr(event, "duration", 0.0)
-        label = getattr(event, "label", "unknown")
-        results.append(format_file_result(Path(audio_path).name, label, duration))
+        results.append(
+            format_file_result(Path(audio_path).name, event.label, event.duration)
+        )
 
     return results
 

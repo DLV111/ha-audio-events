@@ -5,6 +5,36 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-08-22
+### Fixed
+- **Security**: GitHub Actions PR-title validation interpolated the attacker-controlled PR title directly into a shell script (script injection). It now goes through an env var; the version-bump workflow's inputs are likewise isolated
+- **CI**: version-bump workflow staged a non-existent `ha-audio-events/config.json`, so every bump run failed before committing. It now stages `config.yaml` and no longer relies on a fragile editable install
+- **Deadlock**: ffmpeg was spawned with `stderr=PIPE` that nobody drained -- long-running RTSP/Pulse streams could block forever once the pipe buffer filled. stderr is now drained concurrently and logged
+- **Latency**: only the first 0.975 s of each 3 s buffer was ever classified (YAMNet frame truncation). The buffer is now tiled into consecutive model frames reduced by element-wise max (peak confidence preserved), capped at 10 frames
+- Sensors stuck "on": active detections are now flushed as `ended` when the stream stops or fails, so Home Assistant binary sensors never hang in the on state
+- Web UI now genuinely survives audio-pipeline failures so a bad source can be fixed from the ingress panel (previously the process exited despite comments claiming otherwise)
+- MQTT: blocking `connect()` crashed the add-on at startup whenever the broker wasn't up yet (boot-order race); it now connects asynchronously with automatic retry/backoff
+- Invalid Home Assistant entity IDs / MQTT topics for YAMNet labels containing commas or other punctuation ("Child speech, kid speaking") -- labels are properly slugified now
+- Supervisor API responses with chunked encoding (`content_length: None`) were silently discarded as empty; bodies are read before parsing
+- `load_config()` silently fell back to defaults when an explicitly passed path didn't exist; it now raises `FileNotFoundError`
+- WAV files were fully loaded into memory before streaming; reads are now incremental
+- README documented the wrong default HA URL (`http://supervisor/homeassistant` vs actual `http://supervisor/core`) and had duplicate section numbering
+
+### Security
+- Web UI: optional shared auth token (`webui.auth_token`) gates all `/api` endpoints for standalone deployments outside HA ingress, with constant-time comparison; the panel prompts for it automatically. A loud warning is logged when binding to a non-loopback host without one
+- XSS: the Recent Detections panel interpolated detection label/state straight into `innerHTML`; rows are now built via `textContent`
+
+### Added
+- MQTT broker credentials (`username`/`password`) and TLS support in options + schema
+- `webui` section exposed in the add-on manifest schema (enabled/host/port/auth_token) -- previously configurable in code only
+- mypy type checking wired into `make test` and CI (now clean: 30 source files)
+- `black`/`pytest-cov` added to dev dependencies they were silently missing from
+- Container smoke tests unchanged; unit suite grew from 126 to 158 tests covering all of the above
+
+### Removed
+- Stale diverged root-level `app/versioning.py` duplicate (the packaged copy under `ha-audio-events/app/` remains canonical)
+- Broken zero-byte `logo.png`
+
 ## [0.1.13] - 2026-08-16
 ### Fixed
 - Add `get_option()` method to AddonManager to retrieve add-on options via `/addons/self/info` endpoint (fixes `AttributeError: 'AddonManager' object has no attribute 'get_option'` in server.py:518)

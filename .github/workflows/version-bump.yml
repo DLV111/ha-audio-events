@@ -20,6 +20,11 @@ on:
 jobs:
   bump-version:
     runs-on: ubuntu-latest
+    env:
+      # Indirection through env vars keeps workflow inputs out of the shell
+      # script itself (prevents injection from user-supplied input values).
+      NEW_VERSION: ${{ github.event.inputs.version }}
+      COMMIT_MESSAGE: ${{ github.event.inputs.commit_message }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,14 +37,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
-        run: |
-          pip install -e ".[dev]"
-
       - name: Bump version
+        # versioning.py is stdlib-only, so no dependency install is required.
         run: |
-          echo "Bumping version to ${{ github.event.inputs.version }}"
-          python -m app.versioning ${{ github.event.inputs.version }}
+          echo "Bumping version to $NEW_VERSION"
+          PYTHONPATH=ha-audio-events python -m app.versioning "$NEW_VERSION"
 
       - name: Configure git
         run: |
@@ -48,8 +50,8 @@ jobs:
 
       - name: Commit changes
         run: |
-          git add pyproject.toml ha-audio-events/config.json
-          git commit -m "${{ github.event.inputs.commit_message }}" || echo "No changes to commit"
+          git add pyproject.toml ha-audio-events/config.yaml
+          git commit -m "${COMMIT_MESSAGE:-chore: bump version to $NEW_VERSION}" || echo "No changes to commit"
 
       - name: Push changes
         if: ${{ github.event.inputs.push_changes == 'true' }}
@@ -59,9 +61,9 @@ jobs:
       - name: Create tag
         if: ${{ github.event.inputs.push_changes == 'true' }}
         run: |
-          git tag v${{ github.event.inputs.version }}
-          git push origin v${{ github.event.inputs.version }}
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
 
       - name: Output version
         run: |
-          echo "Version bumped to ${{ github.event.inputs.version }}"
+          echo "Version bumped to $NEW_VERSION"

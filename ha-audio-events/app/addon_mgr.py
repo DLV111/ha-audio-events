@@ -6,6 +6,7 @@ Handles communication with Supervisor API for options and restart.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from typing import Any
 
@@ -55,10 +56,20 @@ class AddonManager:
                     )
                     return None
 
-                if response.content_length == 0 or response.content_length is None:
+                # Read the body first and only parse when non-empty: with
+                # chunked responses content_length is None even though a JSON
+                # body follows, so keying off content_length loses data.
+                text = await response.text()
+                if not text.strip():
                     return {}
 
-                return await response.json()
+                try:
+                    return json.loads(text)
+                except ValueError:
+                    _LOGGER.warning(
+                        "Supervisor API returned non-JSON body (%s...)", text[:120]
+                    )
+                    return None
 
         except asyncio.CancelledError:
             raise

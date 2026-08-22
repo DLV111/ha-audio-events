@@ -6,6 +6,7 @@ Provides ingress panel for selecting audio source from Home Assistant entities.
 from __future__ import annotations
 
 import asyncio
+import hmac
 import logging
 
 from aiohttp import web
@@ -16,6 +17,34 @@ from app.homeassistant.client import HomeAssistantClient
 
 _LOGGER = logging.getLogger(__name__)
 
+# Typed application-storage key for the optional shared API token.
+# Empty string means "no token configured" (open access / HA ingress).
+_AUTH_TOKEN_KEY = web.AppKey("webui_auth_token", str)
+
+
+@web.middleware
+async def auth_middleware(request: web.Request, handler) -> web.StreamResponse:
+    """Require a shared token on /api routes when one is configured.
+
+    Behind Home Assistant ingress, requests are already authenticated by the
+    Supervisor, so no token is needed. For standalone deployments that expose
+    the port directly, set ``webui.auth_token`` to lock the control plane;
+    the index page prompts for the token and sends it as ``X-WebUI-Token``.
+    """
+    expected_token: str = request.app[_AUTH_TOKEN_KEY]
+    if expected_token and request.path.startswith("/api/"):
+        provided = request.headers.get("X-WebUI-Token")
+        if not provided:
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                provided = auth_header[len("Bearer ") :]
+        if not provided or not hmac.compare_digest(provided, expected_token):
+            return web.json_response(
+                {"error": "Unauthorized: missing or invalid WebUI token"},
+                status=401,
+            )
+    return await handler(request)
+
 
 class WebUI:
     def __init__(
@@ -23,11 +52,16 @@ class WebUI:
         hass_client: HomeAssistantClient,
         addon_manager: AddonManager,
         history: EventHistory | None = None,
+        auth_token: str | None = None,
+        host: str = "0.0.0.0",
     ) -> None:
         self.hass_client = hass_client
         self.addon_manager = addon_manager
         self.history = history
-        self.app = web.Application()
+        self.auth_token = auth_token
+        self.host = host
+        self.app = web.Application(middlewares=[auth_middleware])
+        self.app[_AUTH_TOKEN_KEY] = auth_token or ""
         self.app.router.add_get("/", self.serve_index)
         self.app.router.add_get("/api/cameras", self.get_cameras)
         self.app.router.add_get("/api/microphones", self.get_microphones)
@@ -37,6 +71,14 @@ class WebUI:
 
     async def start(self, host: str = "0.0.0.0", port: int = 8099) -> None:
         """Start the aiohttp web server and run until cancelled."""
+        if host != "127.0.0.1" and not self.auth_token:
+            _LOGGER.warning(
+                "Web UI is bound to %s without an auth token; anyone who can "
+                "reach this port can change the audio source and restart the "
+                "add-on. Set 'webui.auth_token' when exposing it outside "
+                "Home Assistant ingress.",
+                host,
+            )
         runner = web.AppRunner(self.app)
         await runner.setup()
         site = web.TCPSite(runner, host, port)
@@ -197,11 +239,42 @@ class WebUI:
         let currentSource = '';
         let isLoading = true;
 
+        // When the panel is protected by a webui auth token (standalone
+        // deployments), prompt once, remember it for this browser, and send
+        // it on every API call.
+        function getStoredToken() {
+            try {
+                return sessionStorage.getItem('webui_token') || '';
+            } catch (e) {
+                return '';
+            }
+        }
+
+        async function apiFetch(url, opts = {}) {
+            const headers = Object.assign({}, opts.headers || {});
+            const token = getStoredToken();
+            if (token) {
+                headers['X-WebUI-Token'] = token;
+            }
+            const response = await fetch(url, Object.assign({}, opts, { headers: headers }));
+            if (response.status === 401) {
+                const entered = prompt('This Web UI is protected. Enter the auth token:');
+                if (entered !== null && entered !== '') {
+                    try {
+                        sessionStorage.setItem('webui_token', entered);
+                    } catch (e) { /* storage unavailable */ }
+                    return apiFetch(url, opts);
+                }
+                throw new Error('Unauthorized');
+            }
+            return response;
+        }
+
         // Load initial data
         async function loadData() {
             try {
                 // Load cameras
-                const camerasResponse = await fetch('api/cameras');
+                const camerasResponse = await apiFetch('api/cameras');
                 if (camerasResponse.ok) {
                     cameras = await camerasResponse.json();
                 } else {
@@ -211,7 +284,7 @@ class WebUI:
                 // Load microphones (voice satellites) -- best-effort, don't
                 // fail the whole page if this one endpoint has an issue
                 try {
-                    const micResponse = await fetch('api/microphones');
+                    const micResponse = await apiFetch('api/microphones');
                     if (micResponse.ok) {
                         microphones = await micResponse.json();
                     }
@@ -220,7 +293,7 @@ class WebUI:
                 }
 
                 // Load current source
-                const sourceResponse = await fetch('api/source');
+                const sourceResponse = await apiFetch('api/source');
                 if (sourceResponse.ok) {
                     const data = await sourceResponse.json();
                     currentSource = data.source || '';
@@ -295,23 +368,36 @@ class WebUI:
                 return;
             }
 
+            // Build rows via textContent (never innerHTML) so label/state
+            // values can't inject markup into the panel.
             list.innerHTML = '';
             detections.forEach(d => {
                 const row = document.createElement('div');
                 row.style.cssText = 'padding: 8px 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 14px;';
-                const time = new Date(d.timestamp).toLocaleTimeString();
+
+                const left = document.createElement('span');
+                const strong = document.createElement('strong');
+                strong.textContent = d.label;
+                const detail = document.createElement('span');
+                detail.style.color = '#888;';
                 const confidencePct = Math.round((d.confidence || 0) * 100);
-                row.innerHTML = `
-                    <span><strong>${d.label}</strong> <span style="color:#888;">(${d.state}, ${confidencePct}%)</span></span>
-                    <span style="color:#888;">${time}</span>
-                `;
+                detail.textContent = ` (${d.state}, ${confidencePct}%)`;
+                left.appendChild(strong);
+                left.appendChild(detail);
+
+                const right = document.createElement('span');
+                right.style.color = '#888;';
+                right.textContent = new Date(d.timestamp).toLocaleTimeString();
+
+                row.appendChild(left);
+                row.appendChild(right);
                 list.appendChild(row);
             });
         }
 
         async function pollDetections() {
             try {
-                const response = await fetch('api/detections');
+                const response = await apiFetch('api/detections');
                 if (response.ok) {
                     const detections = await response.json();
                     renderDetections(detections);
@@ -397,8 +483,8 @@ class WebUI:
 
             try {
                 showStatus('Applying audio source configuration...', 'success');
-                
-                const response = await fetch('api/source', {
+
+                const response = await apiFetch('api/source', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

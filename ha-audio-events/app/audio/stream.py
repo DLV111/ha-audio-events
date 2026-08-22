@@ -152,9 +152,17 @@ class AudioStreamSource:
             stderr=asyncio.subprocess.PIPE,
         )
 
+        # Drain stderr in the background. If nobody reads the stderr pipe,
+        # ffmpeg blocks once the OS pipe buffer fills (~64KB), which deadlocks
+        # long-running streams (e.g. chatty RTSP sources).
+        stderr_task: asyncio.Task[None] | None = None
+        if proc.stderr is not None:
+            stderr_task = asyncio.create_task(self._drain_stderr(proc.stderr))
+
         try:
             while True:
-                assert proc.stdout is not None
+                if proc.stdout is None:
+                    raise RuntimeError("ffmpeg subprocess has no stdout pipe")
                 raw = await proc.stdout.read(chunk_size)
                 if not raw:
                     break
@@ -163,12 +171,26 @@ class AudioStreamSource:
             _LOGGER.exception("Error in ffmpeg audio stream reader")
             raise
         finally:
+            if stderr_task is not None:
+                stderr_task.cancel()
+                await asyncio.gather(stderr_task, return_exceptions=True)
             if proc.returncode is None:
                 try:
                     proc.terminate()
                     await proc.wait()
                 except Exception:
                     _LOGGER.exception("Error terminating ffmpeg process")
+
+    @staticmethod
+    async def _drain_stderr(stderr: asyncio.StreamReader) -> None:
+        """Consume ffmpeg stderr, logging each line, until EOF."""
+        while True:
+            line = await stderr.readline()
+            if not line:
+                break
+            text = line.decode("utf-8", errors="replace").strip()
+            if text:
+                _LOGGER.warning("ffmpeg stderr: %s", text)
 
     async def _stream_stdin(self) -> AsyncIterator[np.ndarray]:
         chunk_size = int(
@@ -192,26 +214,22 @@ class AudioStreamSource:
                 yield pcm_s16le_to_float32(raw, self.config.channels)
 
     async def _stream_wav(self, path: Path) -> AsyncIterator[np.ndarray]:
-        def read_wav_frames() -> list[bytes]:
-            with wave.open(str(path), "rb") as handle:
-                sample_rate = handle.getframerate()
-                if sample_rate != self.config.sample_rate:
-                    raise ValueError(
-                        f"WAV sample rate {sample_rate} does not match configured sample rate {self.config.sample_rate}"
-                    )
-                if handle.getsampwidth() != 2:
-                    raise ValueError("Only 16-bit WAV files are supported")
-                chunks = []
-                while True:
-                    raw = handle.readframes(
-                        int(self.config.sample_rate * self.chunk_seconds)
-                    )
-                    if not raw:
-                        break
-                    chunks.append(raw)
-                return chunks
+        chunk_frames = int(self.config.sample_rate * self.chunk_seconds)
 
-        raw_chunks = await asyncio.to_thread(read_wav_frames)
-        for raw in raw_chunks:
-            audio = pcm_s16le_to_float32(raw, channels=self.config.channels)
-            yield ensure_mono(audio, self.config.channels)
+        # Reads happen per-chunk via asyncio.to_thread so the whole file is
+        # never held in memory.
+        with wave.open(str(path), "rb") as handle:
+            sample_rate = handle.getframerate()
+            if sample_rate != self.config.sample_rate:
+                raise ValueError(
+                    f"WAV sample rate {sample_rate} does not match configured sample rate {self.config.sample_rate}"
+                )
+            if handle.getsampwidth() != 2:
+                raise ValueError("Only 16-bit WAV files are supported")
+
+            while True:
+                raw = await asyncio.to_thread(handle.readframes, chunk_frames)
+                if not raw:
+                    break
+                audio = pcm_s16le_to_float32(raw, channels=self.config.channels)
+                yield ensure_mono(audio, self.config.channels)

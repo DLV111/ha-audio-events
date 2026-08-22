@@ -18,6 +18,10 @@ except ImportError:  # pragma: no cover
     except ImportError:  # pragma: no cover
         Interpreter = None  # type: ignore[assignment]
 
+# Safety cap so a very large buffer_seconds can't explode inference cost:
+# at most this many model frames are evaluated per classify() call.
+MAX_INFERENCE_FRAMES = 10
+
 
 @dataclass
 class YAMNetClassifier(AudioClassifier):
@@ -63,17 +67,19 @@ class YAMNetClassifier(AudioClassifier):
         return ["unknown"]
 
     async def classify(self, audio: np.ndarray) -> list[Detection]:
-        waveform = self._prepare_waveform(audio)
-        scores = await asyncio.to_thread(self._run_inference, waveform)
+        frames = self._prepare_frames(audio)
+        scores = await asyncio.to_thread(self._run_inference, frames)
         return self._build_detections(scores)
 
+    def _frame_length(self) -> int:
+        return int(self._input_details[0]["shape"][0])
+
     def _prepare_waveform(self, audio: np.ndarray) -> np.ndarray:
+        """Mono-float waveform trimmed/padded to exactly one model frame."""
         waveform = audio.astype(np.float32)
         if waveform.ndim > 1:
             waveform = np.mean(waveform, axis=1)
-        if waveform.size == 0:
-            return waveform
-        expected_len = int(self._input_details[0]["shape"][0])
+        expected_len = self._frame_length()
         if waveform.size != expected_len:
             if waveform.size > expected_len:
                 waveform = waveform[:expected_len]
@@ -83,15 +89,50 @@ class YAMNetClassifier(AudioClassifier):
                 )
         return waveform.reshape(-1)
 
-    def _run_inference(self, waveform: np.ndarray) -> np.ndarray:
+    def _prepare_frames(self, audio: np.ndarray) -> list[np.ndarray]:
+        """Split the buffer into model-sized frames covering the whole window.
+
+        The YAMNet TFLite graph consumes a single 0.975s frame per invoke.
+        Classifying only the first frame of a multi-second buffer would ignore
+        the rest, so tile the buffer into consecutive frames (padding the
+        final partial frame with silence) and let _run_inference average them.
+        """
+        waveform = audio.astype(np.float32)
+        if waveform.ndim > 1:
+            waveform = np.mean(waveform, axis=1)
+        frame_len = self._frame_length()
+        if waveform.size == 0:
+            return [np.zeros(frame_len, dtype=np.float32)]
+        if waveform.size <= frame_len:
+            return [self._prepare_waveform(waveform)]
+
+        frames: list[np.ndarray] = []
+        for start in range(0, waveform.size, frame_len):
+            chunk = waveform[start : start + frame_len]
+            if chunk.size < frame_len:
+                chunk = np.pad(chunk, (0, frame_len - chunk.size), mode="constant")
+            frames.append(chunk.astype(np.float32))
+            if len(frames) >= MAX_INFERENCE_FRAMES:
+                break
+        return frames
+
+    def _run_inference(self, frames: list[np.ndarray]) -> np.ndarray:
         input_index = self._input_details[0]["index"]
-        self.interpreter.set_tensor(input_index, waveform)
-        self.interpreter.invoke()
         output_index = self._output_details[0]["index"]
-        result = self.interpreter.get_tensor(output_index)
-        if result.ndim == 3:
-            result = np.mean(result, axis=1)
-        return result.squeeze().astype(np.float32)
+        combined: np.ndarray | None = None
+        for frame in frames:
+            self.interpreter.set_tensor(input_index, frame)
+            self.interpreter.invoke()
+            result = self.interpreter.get_tensor(output_index)
+            if result.ndim == 3:
+                result = np.mean(result, axis=1)
+            scores = result.squeeze().astype(np.float32)
+            # Element-wise max, not mean: a sound present in only part of the
+            # buffer must keep its peak confidence (mean would dilute it below
+            # the configured start_confidence and swallow the event).
+            combined = scores if combined is None else np.maximum(combined, scores)
+        assert combined is not None, "classify() must pass at least one frame"
+        return combined.astype(np.float32)
 
     def _build_detections(self, scores: np.ndarray) -> list[Detection]:
         if scores.size == 0:

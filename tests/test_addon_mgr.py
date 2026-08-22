@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -14,9 +15,7 @@ def mock_response():
     """Create a mock aiohttp response."""
     response = AsyncMock()
     response.status = 200
-    response.content_length = 100
-    response.json = AsyncMock(return_value={"data": {}})
-    response.text = AsyncMock(return_value="")
+    response.text = AsyncMock(return_value='{"data": {}}')
     return response
 
 
@@ -121,8 +120,8 @@ async def test_close_no_session() -> None:
 @pytest.mark.asyncio
 async def test_make_request_success(addon_manager, mock_session) -> None:
     """Test successful API request."""
-    mock_session.request.return_value.__aenter__.return_value.json = AsyncMock(
-        return_value={"data": {"test": "value"}}
+    mock_session.request.return_value.__aenter__.return_value.text = AsyncMock(
+        return_value=json.dumps({"data": {"test": "value"}})
     )
 
     result = await addon_manager._make_request("GET", "/test")
@@ -146,12 +145,42 @@ async def test_make_request_error_status(addon_manager, mock_session) -> None:
 
 @pytest.mark.asyncio
 async def test_make_request_empty_response(addon_manager, mock_session) -> None:
-    """Test API request with empty response."""
-    mock_session.request.return_value.__aenter__.return_value.content_length = 0
+    """Test API request with empty response body."""
+    mock_session.request.return_value.__aenter__.return_value.text = AsyncMock(
+        return_value=""
+    )
 
     result = await addon_manager._make_request("GET", "/test")
 
     assert result == {}
+
+
+@pytest.mark.asyncio
+async def test_make_request_non_json_response(addon_manager, mock_session) -> None:
+    """A non-JSON body is surfaced as None instead of raising."""
+    mock_session.request.return_value.__aenter__.return_value.text = AsyncMock(
+        return_value="<html>gateway error</html>"
+    )
+
+    result = await addon_manager._make_request("GET", "/test")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_make_request_chunked_json_body(addon_manager, mock_session) -> None:
+    """Chunked responses (content_length None) must still be parsed as JSON.
+
+    Regression test: the old implementation treated content_length=None as
+    an empty body, silently discarding Supervisor API payloads.
+    """
+    ctx = mock_session.request.return_value.__aenter__.return_value
+    ctx.status = 200
+    ctx.text = AsyncMock(return_value='{"data": {"options": {"audio": {}}}}')
+
+    result = await addon_manager._make_request("GET", "/addons/self/info")
+
+    assert result == {"data": {"options": {"audio": {}}}}
 
 
 @pytest.mark.asyncio
@@ -178,16 +207,18 @@ async def test_get_option_success(addon_manager, mock_session) -> None:
     """Test get_option retrieves option successfully."""
     mock_response = AsyncMock()
     mock_response.status = 200
-    mock_response.content_length = 100
-    mock_response.json = AsyncMock(
-        return_value={
-            "data": {
-                "options": {
-                    "audio": {"source_path": "rtsp://example.com/stream"},
-                    "other": {"setting": "value"},
+    mock_response.text = AsyncMock(return_value='{"data": {}}')
+    mock_response.text = AsyncMock(
+        return_value=json.dumps(
+            {
+                "data": {
+                    "options": {
+                        "audio": {"source_path": "rtsp://example.com/stream"},
+                        "other": {"setting": "value"},
+                    }
                 }
             }
-        }
+        )
     )
 
     mock_cm = MagicMock()
@@ -206,15 +237,17 @@ async def test_get_option_category_exists_key_missing(
     """Test get_option returns None when key is missing."""
     mock_response = AsyncMock()
     mock_response.status = 200
-    mock_response.content_length = 100
-    mock_response.json = AsyncMock(
-        return_value={
-            "data": {
-                "options": {
-                    "audio": {"sample_rate": 16000},
+    mock_response.text = AsyncMock(return_value='{"data": {}}')
+    mock_response.text = AsyncMock(
+        return_value=json.dumps(
+            {
+                "data": {
+                    "options": {
+                        "audio": {"sample_rate": 16000},
+                    }
                 }
             }
-        }
+        )
     )
 
     mock_cm = MagicMock()
@@ -231,15 +264,17 @@ async def test_get_option_missing_category(addon_manager, mock_session) -> None:
     """Test get_option returns None when category is missing."""
     mock_response = AsyncMock()
     mock_response.status = 200
-    mock_response.content_length = 100
-    mock_response.json = AsyncMock(
-        return_value={
-            "data": {
-                "options": {
-                    "other": {"setting": "value"},
+    mock_response.text = AsyncMock(return_value='{"data": {}}')
+    mock_response.text = AsyncMock(
+        return_value=json.dumps(
+            {
+                "data": {
+                    "options": {
+                        "other": {"setting": "value"},
+                    }
                 }
             }
-        }
+        )
     )
 
     mock_cm = MagicMock()
@@ -270,21 +305,25 @@ async def test_set_option_uses_info_endpoint(addon_manager, mock_session) -> Non
     # Mock for get_addon_info -> POST /addons/self/options
     info_response = AsyncMock()
     info_response.status = 200
-    info_response.content_length = 100
-    info_response.json = AsyncMock(
-        return_value={
-            "data": {
-                "options": {
-                    "audio": {"source_path": "old-path"},
+    info_response.text = AsyncMock(return_value='{"data": {}}')
+    info_response.text = AsyncMock(
+        return_value=json.dumps(
+            {
+                "data": {
+                    "options": {
+                        "audio": {"source_path": "old-path"},
+                    }
                 }
             }
-        }
+        )
     )
 
     post_response = AsyncMock()
     post_response.status = 200
-    post_response.content_length = 100
-    post_response.json = AsyncMock(return_value={"data": {}, "result": "ok"})
+    post_response.text = AsyncMock(return_value='{"data": {}}')
+    post_response.text = AsyncMock(
+        return_value=json.dumps({"data": {}, "result": "ok"})
+    )
 
     mock_get_cm = MagicMock()
     mock_get_cm.__aenter__ = AsyncMock(return_value=info_response)
@@ -311,22 +350,26 @@ async def test_set_option_success(addon_manager, mock_session) -> None:
     # First call - GET /addons/self/info
     info_response = AsyncMock()
     info_response.status = 200
-    info_response.content_length = 100
-    info_response.json = AsyncMock(
-        return_value={
-            "data": {
-                "options": {
-                    "audio": {"source_path": "old-path"},
+    info_response.text = AsyncMock(return_value='{"data": {}}')
+    info_response.text = AsyncMock(
+        return_value=json.dumps(
+            {
+                "data": {
+                    "options": {
+                        "audio": {"source_path": "old-path"},
+                    }
                 }
             }
-        }
+        )
     )
 
     # Second call - POST /addons/self/options
     post_response = AsyncMock()
     post_response.status = 200
-    post_response.content_length = 100
-    post_response.json = AsyncMock(return_value={"data": {}, "result": "ok"})
+    post_response.text = AsyncMock(return_value='{"data": {}}')
+    post_response.text = AsyncMock(
+        return_value=json.dumps({"data": {}, "result": "ok"})
+    )
 
     mock_get_cm = MagicMock()
     mock_get_cm.__aenter__ = AsyncMock(return_value=info_response)
@@ -357,15 +400,17 @@ async def test_set_option_post_fails(addon_manager, mock_session) -> None:
     # GET succeeds
     info_response = AsyncMock()
     info_response.status = 200
-    info_response.content_length = 100
-    info_response.json = AsyncMock(
-        return_value={
-            "data": {
-                "options": {
-                    "audio": {"source_path": "old-path"},
+    info_response.text = AsyncMock(return_value='{"data": {}}')
+    info_response.text = AsyncMock(
+        return_value=json.dumps(
+            {
+                "data": {
+                    "options": {
+                        "audio": {"source_path": "old-path"},
+                    }
                 }
             }
-        }
+        )
     )
 
     # POST fails with error status
@@ -393,22 +438,26 @@ async def test_set_option_creates_new_category(addon_manager, mock_session) -> N
     # GET returns existing options
     info_response = AsyncMock()
     info_response.status = 200
-    info_response.content_length = 100
-    info_response.json = AsyncMock(
-        return_value={
-            "data": {
-                "options": {
-                    "audio": {"source_path": "old-path"},
+    info_response.text = AsyncMock(return_value='{"data": {}}')
+    info_response.text = AsyncMock(
+        return_value=json.dumps(
+            {
+                "data": {
+                    "options": {
+                        "audio": {"source_path": "old-path"},
+                    }
                 }
             }
-        }
+        )
     )
 
     # POST succeeds
     post_response = AsyncMock()
     post_response.status = 200
-    post_response.content_length = 100
-    post_response.json = AsyncMock(return_value={"data": {}, "result": "ok"})
+    post_response.text = AsyncMock(return_value='{"data": {}}')
+    post_response.text = AsyncMock(
+        return_value=json.dumps({"data": {}, "result": "ok"})
+    )
 
     mock_get_cm = MagicMock()
     mock_get_cm.__aenter__ = AsyncMock(return_value=info_response)
@@ -428,8 +477,8 @@ async def test_restart_success(addon_manager, mock_session) -> None:
     """Test successful restart."""
     mock_response = AsyncMock()
     mock_response.status = 200
-    mock_response.content_length = 100
-    mock_response.json = AsyncMock(return_value={"data": {}})
+    mock_response.text = AsyncMock(return_value='{"data": {}}')
+    mock_response.text = AsyncMock(return_value=json.dumps({"data": {}}))
 
     mock_cm = MagicMock()
     mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
@@ -461,8 +510,10 @@ async def test_get_addon_info_success(addon_manager, mock_session) -> None:
     """Test successful add-on info retrieval."""
     mock_response = AsyncMock()
     mock_response.status = 200
-    mock_response.content_length = 100
-    mock_response.json = AsyncMock(return_value={"data": {"version": "1.0.0"}})
+    mock_response.text = AsyncMock(return_value='{"data": {}}')
+    mock_response.text = AsyncMock(
+        return_value=json.dumps({"data": {"version": "1.0.0"}})
+    )
 
     mock_cm = MagicMock()
     mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
@@ -495,17 +546,19 @@ async def test_get_addon_info_with_options(addon_manager, mock_session) -> None:
     mock_response = AsyncMock()
     mock_response.status = 200
     mock_response.content_length = 200
-    mock_response.json = AsyncMock(
-        return_value={
-            "data": {
-                "name": "HA Audio Events",
-                "version": "1.0.0",
-                "options": {
-                    "audio": {"source_path": "rtsp://example.com/stream"},
-                    "classifier": {"threshold": 0.8},
-                },
+    mock_response.text = AsyncMock(
+        return_value=json.dumps(
+            {
+                "data": {
+                    "name": "HA Audio Events",
+                    "version": "1.0.0",
+                    "options": {
+                        "audio": {"source_path": "rtsp://example.com/stream"},
+                        "classifier": {"threshold": 0.8},
+                    },
+                }
             }
-        }
+        )
     )
 
     mock_cm = MagicMock()
