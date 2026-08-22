@@ -5,6 +5,20 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-22
+### Fixed
+- Self-healing for legacy saved options: `homeassistant.url` values like `http://supervisor/homeassistant` (the broken pre-0.1.11 default) are normalised to `http://supervisor/core` at startup — camera streaming and entity updates work again without manually editing options
+- Dead audio sources no longer fail silently: when ffmpeg exits non-zero (unreachable RTSP camera, stream with no audio track), the add-on now logs a loud error naming the exit code plus recent ffmpeg output
+
+### Added
+- Inline documentation for every add-on option via `translations/en.yaml` — names and descriptions now render directly in the Home Assistant configuration panel, with links to full docs
+- Dropdown selection for options fixed by the pipeline (`model`, `sample_rate`, `channels`, `format`) so invalid values can't be entered, plus a new `log_level` dropdown
+- Removed `homeassistant.url`/`token` from fresh-install defaults: inside the add-on these are provided by the Supervisor automatically; existing saved values stay valid and legacy URLs self-heal (see above)
+- Per-option reference table added to the README
+
+### Changed
+- Version bump to 0.4.0
+
 ## [0.3.0] - 2026-08-22
 ### Fixed
 - **Security**: GitHub Actions PR-title validation interpolated the attacker-controlled PR title directly into a shell script (script injection). It now goes through an env var; the version-bump workflow's inputs are likewise isolated

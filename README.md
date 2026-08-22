@@ -108,13 +108,14 @@ To classify audio from a test audio file placed inside `/config`:
 
 ```yaml
 model: yamnet
+log_level: info
 buffer_seconds: 3.0
 
 audio:
   sample_rate: 16000
   channels: 1
   format: pcm_s16le
-  source_path: null     # null = default microphone; or "rtsp://..." or "/config/audio.wav"
+  source_path: null     # null = default microphone; or "camera.x" / "rtsp://..." / "/config/audio.wav"
 
 activity:
   rms_threshold: 0.04   # Minimum RMS signal strength to trigger model analysis
@@ -140,10 +141,8 @@ aggregation:
   end_timeout: 5.0      # Seconds of low confidence before ending an event
 
 homeassistant:
-  enabled: true
-  url: "http://supervisor/core"
-  token: null           # Automatically uses SUPERVISOR_TOKEN inside HA OS add-on
-  entity_prefix: "audio"
+  enabled: true         # url/token are provided automatically inside the add-on;
+  entity_prefix: "audio"  # standalone installs may still set them (see notes below)
 
 mqtt:
   enabled: false
@@ -161,6 +160,43 @@ webui:
   port: 8099
   auth_token: null       # Set to require a token on /api endpoints (recommended outside HA ingress)
 ```
+
+### Option reference
+
+Every option is also documented inline in the add-on's configuration panel
+(via `translations/en.yaml`). Values fixed by the YAMNet pipeline
+(`model`, `sample_rate`, `channels`, `format`, and `log_level`) render as
+dropdowns in Home Assistant.
+
+| Option | Default | Purpose |
+| :--- | :--- | :--- |
+| `model` | `yamnet` | Classifier model. Only YAMNet is available. |
+| `log_level` | `info` | Add-on log verbosity (`debug` when reporting issues). |
+| `buffer_seconds` | `3.0` | Rolling audio window kept for analysis; longer = slower detections. |
+| `audio.sample_rate` | `16000` | Fixed by YAMNet. |
+| `audio.channels` | `1` | Mono; ffmpeg input is downmixed automatically. |
+| `audio.format` | `pcm_s16le` | Internal PCM format fed to the classifier. |
+| `audio.source_path` | `null` | Camera entity id, RTSP URL, or file path. Empty = host microphone/PulseAudio. |
+| `activity.rms_threshold` | `0.04` | Average loudness needed before inference runs (CPU saver). Lower = more sensitive. |
+| `activity.peak_threshold` | `0.1` | Loudest single sample needed before inference runs. |
+| `activity.hold_time` | `2.0` | Keep analysing this long after sound fades. |
+| `classifier.threshold` | `0.8` | Ignore predictions below this confidence (0-1). |
+| `classifier.max_results` | `5` | Top-K predictions considered per pass. |
+| `classifier.include` | see YAML | Labels that create events/entities (empty = all 521; substring match). |
+| `classifier.exclude` | `music, silence` | Labels never reported. |
+| `aggregation.start_confidence` | `0.85` | Confidence required to open an event. |
+| `aggregation.end_timeout` | `5.0` | Absence duration before an event ends / sensor turns off. |
+| `homeassistant.enabled` | `true` | Update HA entities + fire events over REST. |
+| `homeassistant.entity_prefix` | `audio` | Prefix for created entity ids. |
+| `mqtt.*` | disabled | Alternative MQTT publishing path incl. discovery; credentials/TLS optional. |
+| `webui.enabled` | `true` | Ingress panel for source picking + live detections. |
+| `webui.auth_token` | `null` | Optional shared token guarding the panel API outside ingress. |
+
+> **Note on `url`/`token`:** when running as a Home Assistant add-on these are
+> provided automatically (`http://supervisor/core` + the Supervisor token) and
+> are intentionally not shown in the add-on options. Legacy saved values such
+> as `http://supervisor/homeassistant` are normalised automatically at startup.
+> Standalone container installs can still set both via `config.yaml`.
 
 ---
 

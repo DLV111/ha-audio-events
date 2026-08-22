@@ -98,6 +98,32 @@ def _load_config(path: Path) -> dict[str, Any]:
     return _load_yaml(path)
 
 
+def normalize_ha_url(url: str | None) -> str | None:
+    """Normalize legacy Home Assistant API URLs.
+
+    Existing installs may still carry the pre-0.1.11 default
+    ``http://supervisor/homeassistant``, which is not a valid Supervisor
+    proxy path and silently breaks every event/state call. Map the known
+    legacy forms to the canonical ``http://supervisor/core`` so old saved
+    options heal themselves on startup.
+    """
+    if url is None:
+        return None
+    cleaned = url.strip().rstrip("/")
+    if not cleaned:
+        return None
+    if cleaned in (
+        "http://supervisor/homeassistant",
+        "http://supervisor:80/homeassistant",
+    ):
+        return "http://supervisor/core"
+    if cleaned == "http://supervisor/core/api":
+        # /api is appended by every client; a url already ending in /api
+        # would produce /api/api.
+        return "http://supervisor/core"
+    return cleaned
+
+
 def load_config(path: Path | str | None = None) -> AppConfig:
     if path is not None:
         # An explicitly provided path must exist: silently falling back to a
@@ -164,7 +190,10 @@ def load_config(path: Path | str | None = None) -> AppConfig:
         ),
         homeassistant=HomeAssistantConfig(
             enabled=bool(raw.get("homeassistant", {}).get("enabled", True)),
-            url=str(raw.get("homeassistant", {}).get("url", "http://supervisor/core")),
+            url=(
+                normalize_ha_url(raw.get("homeassistant", {}).get("url"))
+                or "http://supervisor/core"
+            ),
             token=(
                 raw.get("homeassistant", {}).get("token")
                 or os.getenv("HASS_TOKEN")

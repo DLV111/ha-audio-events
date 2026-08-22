@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 import wave
+from collections import deque
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 from app.audio.resample import ensure_mono, pcm_s16le_to_float32
-from app.config import AudioSourceConfig, HomeAssistantConfig
+from app.config import AudioSourceConfig, HomeAssistantConfig, normalize_ha_url
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,6 +25,12 @@ class AudioStreamSource:
     ha_config: HomeAssistantConfig | None = None
     chunk_seconds: float = 0.5
 
+    @staticmethod
+    def build_camera_stream_url(ha_url: str, entity_id: str) -> str:
+        """Build the HA camera audio-proxy URL for an entity id."""
+        base = normalize_ha_url(ha_url) or "http://supervisor/core"
+        return f"{base.rstrip('/')}/api/camera_proxy_stream/{entity_id}"
+
     async def stream(self) -> AsyncIterator[np.ndarray]:
         if self.config.source_path:
             source = str(self.config.source_path).strip()
@@ -32,13 +39,8 @@ class AudioStreamSource:
             if source.startswith("camera."):
                 ha_url = (
                     self.ha_config.url if self.ha_config else "http://supervisor/core"
-                ).rstrip("/")
-                if ha_url.endswith("/homeassistant"):
-                    stream_url = f"{ha_url}/api/camera_proxy_stream/{source}"
-                elif ha_url.endswith("/api"):
-                    stream_url = f"{ha_url}/camera_proxy_stream/{source}"
-                else:
-                    stream_url = f"{ha_url}/api/camera_proxy_stream/{source}"
+                )
+                stream_url = self.build_camera_stream_url(ha_url, source)
 
                 token = (
                     (self.ha_config.token if self.ha_config else None)
@@ -155,10 +157,14 @@ class AudioStreamSource:
         # Drain stderr in the background. If nobody reads the stderr pipe,
         # ffmpeg blocks once the OS pipe buffer fills (~64KB), which deadlocks
         # long-running streams (e.g. chatty RTSP sources).
+        stderr_tail: deque[str] = deque(maxlen=10)
         stderr_task: asyncio.Task[None] | None = None
         if proc.stderr is not None:
-            stderr_task = asyncio.create_task(self._drain_stderr(proc.stderr))
+            stderr_task = asyncio.create_task(
+                self._drain_stderr(proc.stderr, stderr_tail)
+            )
 
+        unexpected_exit: int | str | None = None
         try:
             while True:
                 if proc.stdout is None:
@@ -167,6 +173,13 @@ class AudioStreamSource:
                 if not raw:
                     break
                 yield pcm_s16le_to_float32(raw, self.config.channels)
+            # stdout hit EOF: either the source finished (file) or ffmpeg
+            # died (unreachable camera/URL). Give it a few seconds to exit
+            # so we can tell the two apart instead of going silent zombie.
+            try:
+                unexpected_exit = await asyncio.wait_for(proc.wait(), timeout=5)
+            except TimeoutError:
+                pass
         except Exception:
             _LOGGER.exception("Error in ffmpeg audio stream reader")
             raise
@@ -180,9 +193,19 @@ class AudioStreamSource:
                     await proc.wait()
                 except Exception:
                     _LOGGER.exception("Error terminating ffmpeg process")
+            if unexpected_exit not in (None, 0):
+                _LOGGER.error(
+                    "Audio stream ended unexpectedly: ffmpeg exited with "
+                    "code %s. The source is likely unreachable or has no "
+                    "audio track. Recent ffmpeg output:\n%s",
+                    unexpected_exit,
+                    "\n".join(stderr_tail) or "(no stderr captured)",
+                )
 
     @staticmethod
-    async def _drain_stderr(stderr: asyncio.StreamReader) -> None:
+    async def _drain_stderr(
+        stderr: asyncio.StreamReader, tail: deque[str] | None = None
+    ) -> None:
         """Consume ffmpeg stderr, logging each line, until EOF."""
         while True:
             line = await stderr.readline()
@@ -191,6 +214,8 @@ class AudioStreamSource:
             text = line.decode("utf-8", errors="replace").strip()
             if text:
                 _LOGGER.warning("ffmpeg stderr: %s", text)
+                if tail is not None:
+                    tail.append(text)
 
     async def _stream_stdin(self) -> AsyncIterator[np.ndarray]:
         chunk_size = int(
