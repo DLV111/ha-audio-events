@@ -64,7 +64,7 @@ jobs:
           source .venv/bin/activate
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          pip install aiohttp numpy PyYAML "paho-mqtt>=2.1,<3.0" "ai-edge-litert>=2.1.0,<3.0.0" pytest pytest-asyncio ruff black mypy pytest-cov
+          pip install aiohttp numpy PyYAML "paho-mqtt>=2.1,<3.0" "ai-edge-litert>=2.1.0,<3.0.0" pytest pytest-asyncio ruff black mypy pytest-cov types-PyYAML
 
       - name: Run pytest with coverage
         run: |
@@ -124,7 +124,7 @@ jobs:
       - name: Install dependencies
         run: |
           source .venv/bin/activate
-          pip install aiohttp numpy PyYAML "paho-mqtt>=2.1,<3.0" "ai-edge-litert>=2.1.0,<3.0.0" pytest pytest-asyncio ruff black mypy
+          pip install aiohttp numpy PyYAML "paho-mqtt>=2.1,<3.0" "ai-edge-litert>=2.1.0,<3.0.0" pytest pytest-asyncio ruff black mypy types-PyYAML
 
       - name: Validate WebUI imports
         run: |
