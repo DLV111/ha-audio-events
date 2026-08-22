@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
@@ -248,7 +249,13 @@ async def test_run_pipeline_wires_up_webui_correctly() -> None:
         mock_addon_manager_class.return_value = mock_addon_manager_instance
 
         mock_webui_instance = MagicMock()
-        mock_webui_instance.start = AsyncMock(return_value=None)
+        _webui_ready = asyncio.Event()
+
+        async def _webui_start(**kwargs):
+            _webui_ready.set()
+
+        mock_webui_instance.start = AsyncMock(side_effect=_webui_start)
+        mock_webui_instance.started = _webui_ready
         mock_webui_class.return_value = mock_webui_instance
 
         mock_ha_client_instance = MagicMock()
@@ -321,6 +328,103 @@ async def test_pipeline_flushes_active_events_when_stream_ends() -> None:
 
 
 @pytest.mark.asyncio
+async def test_webui_starts_while_stream_is_still_live() -> None:
+    """Regression for a live incident: the Web UI used to be awaited only
+    AFTER the detection task finished, but a healthy live stream never ends
+    -- so the ingress panel never became reachable ('app not ready' forever)
+    while detection quietly worked. The server must bind while the stream is
+    still flowing, and a later pipeline failure must neither crash the run
+    nor stop the already-started server."""
+    import asyncio as aio
+
+    config = AppConfig(
+        model="yamnet",
+        audio=AudioSourceConfig(sample_rate=16000, channels=1),
+        activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
+        buffer_seconds=3.0,
+        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
+        homeassistant=HomeAssistantConfig(enabled=False),
+        mqtt=MQTTConfig(enabled=False),
+        webui=WebUIConfig(enabled=True, host="127.0.0.1", port=8123),
+    )
+
+    started = aio.Event()
+
+    class SlowLiveStream:
+        """First chunk flows immediately; the 'live' stream then hangs until
+        poked, proving the panel comes up while detection is still running."""
+
+        def __init__(self):
+            self.n = 0
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            self.n += 1
+            if self.n == 1:
+                return np.zeros(8000, dtype=np.float32)
+            # Simulate the stream hanging/never ending until we poke it.
+            await started.wait()
+            raise RuntimeError("stream exploded mid-run")
+
+    stream = SlowLiveStream()
+
+    with (
+        patch("app.main.AudioStreamSource") as mock_source_class,
+        patch("app.main.build_classifier"),
+        patch("app.main.EventAggregator") as mock_aggregator,
+        patch("app.main.AddonManager") as mock_addon_manager_class,
+        patch("app.main.WebUI") as mock_webui_class,
+        patch("app.main.HomeAssistantClient") as mock_ha_client_class,
+        patch.dict("os.environ", {"SUPERVISOR_TOKEN": "t"}),
+    ):
+        mock_source = MagicMock()
+        mock_source.stream.return_value = stream
+        mock_source_class.return_value = mock_source
+
+        aggregator = MagicMock()
+        aggregator.update.return_value = []
+        aggregator.flush.return_value = []
+        mock_aggregator.return_value = aggregator
+
+        addon_mgr = MagicMock()
+        addon_mgr.close = AsyncMock()
+        mock_addon_manager_class.return_value = addon_mgr
+
+        webui = MagicMock()
+        ready = aio.Event()
+
+        async def _start(**kwargs):
+            ready.set()
+
+        webui.start = AsyncMock(side_effect=_start)
+        webui.started = ready
+        mock_webui_class.return_value = webui
+
+        ha_client = MagicMock()
+        ha_client.close = AsyncMock()
+        ha_client.init_entities = AsyncMock()
+        mock_ha_client_class.return_value = ha_client
+
+        pipeline_task = aio.create_task(_run_pipeline(config))
+
+        # The panel must come up while the stream is still live: the second
+        # chunk blocks on `started`, so at bind time the pipeline must be
+        # running (not finished) -- server and detection are concurrent.
+        await aio.wait_for(ready.wait(), timeout=2)
+        assert not pipeline_task.done()
+
+        # Now break the stream; the pipeline must survive it.
+        started.set()
+        await aio.wait_for(pipeline_task, timeout=5)
+
+        webui.start.assert_awaited_once()
+        aggregator.flush.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_webui_survives_pipeline_failure() -> None:
     """Regression: a failing audio pipeline (e.g. bad source_path) used to
     tear down the whole process via asyncio.gather, making it impossible to
@@ -367,7 +471,13 @@ async def test_webui_survives_pipeline_failure() -> None:
         mock_addon_manager_class.return_value = mock_addon_manager_instance
 
         mock_webui_instance = MagicMock()
-        mock_webui_instance.start = AsyncMock(return_value=None)
+        _webui_ready = asyncio.Event()
+
+        async def _webui_start(**kwargs):
+            _webui_ready.set()
+
+        mock_webui_instance.start = AsyncMock(side_effect=_webui_start)
+        mock_webui_instance.started = _webui_ready
         mock_webui_class.return_value = mock_webui_instance
 
         mock_ha_client_instance = MagicMock()

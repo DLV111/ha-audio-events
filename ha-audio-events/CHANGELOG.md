@@ -5,6 +5,10 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-08-23
+### Fixed
+- **Web UI never came up while a stream was running** (regression since 0.3.0): `webui.start()` was awaited only *after* the detection task finished, but a healthy live stream never finishes -- so the ingress panel showed "app not ready" forever while detection quietly worked. The server now binds immediately and detection runs concurrently; a pipeline failure still leaves the panel up, and bind failures fail loudly within 10s.
+
 ## [0.4.2] - 2026-08-22
 ### Fixed
 - Web UI panel no longer breaks with cryptic JSON errors ("Unexpected non-whitespace character after JSON") when the add-on is stopped or restarting: responses are now parsed defensively and the panel explains what actually happened (add-on unreachable vs connection lost during restart)
