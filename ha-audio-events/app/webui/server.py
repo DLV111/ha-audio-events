@@ -62,6 +62,9 @@ class WebUI:
         self.host = host
         self.app = web.Application(middlewares=[auth_middleware])
         self.app[_AUTH_TOKEN_KEY] = auth_token or ""
+        # Set once the TCP site is bound; lets callers confirm reachability
+        # without probing the port.
+        self.started = asyncio.Event()
         self.app.router.add_get("/", self.serve_index)
         self.app.router.add_get("/api/cameras", self.get_cameras)
         self.app.router.add_get("/api/microphones", self.get_microphones)
@@ -84,6 +87,7 @@ class WebUI:
         site = web.TCPSite(runner, host, port)
         _LOGGER.info("Web UI server starting on %s:%s", host, port)
         await site.start()
+        self.started.set()
         _LOGGER.info("Web UI server started successfully")
         try:
             # Wait forever until cancelled (e.g. when the detection loop

@@ -173,10 +173,21 @@ async def _run_pipeline(config: AppConfig) -> None:
             history,
             auth_token=config.webui.auth_token,
         )
-        # Run the detection loop first; the web server must be reachable even
-        # while detection is running, and must survive a pipeline failure
-        # (e.g. a bad source_path) so the user can fix the source from the
-        # ingress panel instead of staring at a crash-looping add-on.
+        # The Web UI must come up immediately and stay up regardless of what
+        # the audio pipeline does: a healthy live stream never ends, and a
+        # broken one must still leave the panel reachable so the user can
+        # pick a working source. Run both concurrently.
+        webui_task = asyncio.create_task(
+            webui.start(host=config.webui.host, port=config.webui.port)
+        )
+        try:
+            await asyncio.wait_for(webui.started.wait(), timeout=10)
+        except TimeoutError as err:
+            raise RuntimeError(
+                f"Web UI failed to bind {config.webui.host}:{config.webui.port} "
+                "within 10s"
+            ) from err
+
         detect_task = asyncio.create_task(_detect())
         try:
             try:
@@ -191,8 +202,10 @@ async def _run_pipeline(config: AppConfig) -> None:
                 )
             finally:
                 await _flush_active_events()
-            # Serve until cancelled (add-on stop/restart).
-            await webui.start(host=config.webui.host, port=config.webui.port)
+            # Detection over (stream end or failure): keep serving until
+            # cancelled (add-on stop/restart). If the server itself died,
+            # awaiting it re-raises that instead of hanging forever.
+            await webui_task
         finally:
             await addon_mgr.close()
             if ha_client is not None:
