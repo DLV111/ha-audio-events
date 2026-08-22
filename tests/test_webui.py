@@ -5,7 +5,7 @@ Tests the camera discovery and source configuration endpoints.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 from aiohttp.test_utils import AioHTTPTestCase
 from app.addon_mgr import AddonManager
@@ -109,11 +109,50 @@ class TestWebUI(AioHTTPTestCase):
         assert data["status"] == "success"
         assert "configured" in data["message"]
 
-        # Verify the calls were made
+        # Verify the option was set; restart happens on a delay, not inline.
         self.mock_addon_manager.set_option.assert_called_once_with(
             "audio", "source_path", "camera.front_door"
         )
-        self.mock_addon_manager.restart.assert_called_once()
+
+    async def test_set_source_restarts_only_after_response_is_delivered(self):
+        """Regression: restarting the add-on used to run inline, killing the
+        container before the HTTP response reached the browser -- the panel
+        then showed cryptic JSON parse errors. The response must be fully
+        delivered first, with the restart following on a short delay."""
+        import asyncio
+
+        self.mock_addon_manager.set_option = AsyncMock(return_value=True)
+        self.mock_addon_manager.restart = AsyncMock(return_value=True)
+
+        with patch.object(type(self.webui), "RESTART_DELAY", 0.05):
+            resp = await self.client.request(
+                "POST",
+                "/api/source",
+                json={"source": "camera.front_door"},
+            )
+            assert resp.status == 200
+            _ = await resp.read()
+
+            # Response is in the browser's hands: restart must not have run yet.
+            self.mock_addon_manager.restart.assert_not_called()
+
+            await asyncio.sleep(0.2)
+            self.mock_addon_manager.restart.assert_awaited_once()
+
+    async def test_set_source_failure_never_restarts(self):
+        """A failed option write must not schedule a container restart."""
+        import asyncio
+
+        self.mock_addon_manager.set_option = AsyncMock(return_value=False)
+        self.mock_addon_manager.restart = AsyncMock(return_value=True)
+
+        resp = await self.client.request(
+            "POST", "/api/source", json={"source": "camera.front_door"}
+        )
+        assert resp.status == 500
+
+        await asyncio.sleep(0.05)
+        self.mock_addon_manager.restart.assert_not_called()
 
     async def test_set_source_missing_parameter(self):
         """Test setting source with missing parameter."""
@@ -136,18 +175,24 @@ class TestWebUI(AioHTTPTestCase):
         assert "Failed to set source" in data["error"]
 
     async def test_set_source_restart_failure(self):
-        """Test setting source succeeds but restart fails."""
+        """Restart failures happen after the response is delivered, so they
+        surface as a logged error -- the browser still gets success (the
+        source WAS configured)."""
+        import asyncio
+
         self.mock_addon_manager.set_option = AsyncMock(return_value=True)
         self.mock_addon_manager.restart = AsyncMock(return_value=False)
 
-        resp = await self.client.request(
-            "POST",
-            "/api/source",
-            json={"source": "camera.front_door"},
-        )
-        assert resp.status == 500
-        data = await resp.json()
-        assert "failed to restart" in data["error"]
+        with patch.object(type(self.webui), "RESTART_DELAY", 0.01):
+            resp = await self.client.request(
+                "POST",
+                "/api/source",
+                json={"source": "camera.front_door"},
+            )
+            assert resp.status == 200
+            await asyncio.sleep(0.05)
+
+        self.mock_addon_manager.restart.assert_awaited_once()
 
     async def test_webui_availability(self):
         """Test that Web UI is accessible."""
@@ -276,6 +321,8 @@ class TestWebUIAuth(AioHTTPTestCase):
         assert resp.status == 200
 
     async def test_post_source_requires_token(self):
+        import asyncio
+
         self.mock_addon_manager.set_option = AsyncMock(return_value=True)
         self.mock_addon_manager.restart = AsyncMock(return_value=True)
 
@@ -285,13 +332,15 @@ class TestWebUIAuth(AioHTTPTestCase):
         assert resp.status == 401
         self.mock_addon_manager.set_option.assert_not_called()
 
-        resp = await self.client.request(
-            "POST",
-            "/api/source",
-            json={"source": "camera.x"},
-            headers={"X-WebUI-Token": self.TOKEN},
-        )
-        assert resp.status == 200
+        with patch.object(type(self.webui), "RESTART_DELAY", 0.01):
+            resp = await self.client.request(
+                "POST",
+                "/api/source",
+                json={"source": "camera.x"},
+                headers={"X-WebUI-Token": self.TOKEN},
+            )
+            assert resp.status == 200
+            await asyncio.sleep(0.05)
 
     async def test_index_page_open_without_token(self):
         """The page itself must load so the user can be prompted for the
@@ -334,3 +383,16 @@ class TestWebUIHtmlSafety(AioHTTPTestCase):
         # No template-literal may be assigned to any innerHTML sink.
         assert ".innerHTML = `" not in html
         assert "textContent" in html
+
+    async def test_responses_are_parsed_defensively(self):
+        """Regression: the panel used to call .json() directly on every
+        response; when the add-on was stopped, the ingress proxy answered
+        with non-JSON error pages and users saw cryptic errors like
+        'Unexpected non-whitespace character after JSON at position 3'."""
+        resp = await self.client.request("GET", "/")
+        html = await resp.text()
+        assert "parseApiResponse" in html
+        assert "application/json" in html
+        # No bare .json() parsing of network responses may remain.
+        assert "await response.json()" not in html
+        assert "Response.json()" not in html

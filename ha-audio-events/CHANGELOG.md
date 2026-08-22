@@ -5,6 +5,11 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-08-22
+### Fixed
+- Web UI panel no longer breaks with cryptic JSON errors ("Unexpected non-whitespace character after JSON") when the add-on is stopped or restarting: responses are now parsed defensively and the panel explains what actually happened (add-on unreachable vs connection lost during restart)
+- Applying a source no longer kills its own HTTP response: the add-on restart is scheduled ~1s after the confirmation reply is delivered, instead of destroying the container mid-request
+
 ## [0.4.1] - 2026-08-22
 ### Fixed
 - Add-on option defaults no longer use `null` for optional string fields (`mqtt.username`/`password`, `webui.auth_token`, `audio.source_path`). The Supervisor's validator rejects null for nullable schema fields with "Missing required option", which could block add-on start/update on real installs (observed live). Blank strings are now the defaults, and `load_config` coerces blanks back to proper `None` values so app behaviour is unchanged.
