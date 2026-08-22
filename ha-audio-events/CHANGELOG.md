@@ -5,6 +5,13 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2026-08-23
+### Changed
+- Quiet logs: per-request access lines for the panel's 3-second `/api/detections` polling are filtered out instead of flooding the add-on log
+- The "bound without an auth token" warning now fires only for standalone deployments -- behind Home Assistant ingress it was noise on every start
+- Add-on manifest enables `watchdog: true` by default so a crashed container auto-restarts instead of sitting down silently
+- README troubleshooting gains an entry for the panel's "app seems not ready" retry dialog
+
 ## [0.4.3] - 2026-08-23
 ### Fixed
 - **Web UI never came up while a stream was running** (regression since 0.3.0): `webui.start()` was awaited only *after* the detection task finished, but a healthy live stream never finishes -- so the ingress panel showed "app not ready" forever while detection quietly worked. The server now binds immediately and detection runs concurrently; a pipeline failure still leaves the panel up, and bind failures fail loudly within 10s.

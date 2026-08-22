@@ -5,6 +5,7 @@ Tests the camera discovery and source configuration endpoints.
 
 from __future__ import annotations
 
+import logging
 from unittest.mock import AsyncMock, Mock, patch
 
 from aiohttp.test_utils import AioHTTPTestCase
@@ -396,3 +397,51 @@ class TestWebUIHtmlSafety(AioHTTPTestCase):
         # No bare .json() parsing of network responses may remain.
         assert "await response.json()" not in html
         assert "Response.json()" not in html
+
+
+class TestWebUIBindNotices:
+    """The open-bind warning must fire only for standalone deployments:
+    behind Home Assistant ingress (SUPERVISOR_TOKEN present) it is noise."""
+
+    def _notice(self, auth_token=None):
+        from app.addon_mgr import AddonManager as _A  # noqa: F401
+        from app.homeassistant.client import HomeAssistantClient as _H
+
+        return WebUI(
+            Mock(spec=_H), Mock(spec=AddonManager), auth_token=auth_token
+        )._log_bind_notice
+
+    def test_warning_when_standalone(self, caplog):
+        import os
+        from unittest.mock import patch
+
+        with patch.dict(os.environ, {}, clear=True), caplog.at_level(logging.WARNING):
+            self._notice()("0.0.0.0", 8099)
+        assert any("without an auth token" in r.message for r in caplog.records)
+
+    def test_quiet_behind_ingress(self, caplog):
+        import os
+        from unittest.mock import patch
+
+        with (
+            patch.dict(os.environ, {"SUPERVISOR_TOKEN": "x"}, clear=True),
+            caplog.at_level(logging.WARNING),
+        ):
+            self._notice()("0.0.0.0", 8099)
+        assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+    def test_quiet_with_auth_token_even_standalone(self, caplog):
+        import os
+        from unittest.mock import patch
+
+        with patch.dict(os.environ, {}, clear=True), caplog.at_level(logging.WARNING):
+            self._notice(auth_token="secret")("0.0.0.0", 8099)
+        assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+    def test_quiet_on_loopback(self, caplog):
+        import os
+        from unittest.mock import patch
+
+        with patch.dict(os.environ, {}, clear=True), caplog.at_level(logging.WARNING):
+            self._notice()("127.0.0.1", 8099)
+        assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
