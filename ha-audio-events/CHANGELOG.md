@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Security**: GitHub Actions PR-title validation interpolated the attacker-controlled PR title directly into a shell script (script injection). It now goes through an env var; the version-bump workflow's inputs are likewise isolated
 - **CI**: version-bump workflow staged a non-existent `ha-audio-events/config.json`, so every bump run failed before committing. It now stages `config.yaml` and no longer relies on a fragile editable install
 - **Deadlock**: ffmpeg was spawned with `stderr=PIPE` that nobody drained -- long-running RTSP/Pulse streams could block forever once the pipe buffer filled. stderr is now drained concurrently and logged
-- **Latency**: only the first 0.975 s of each 3 s buffer was ever classified (YAMNet frame truncation). The buffer is now tiled into consecutive model frames with score averaging, capped at 10 frames
+- **Latency**: only the first 0.975 s of each 3 s buffer was ever classified (YAMNet frame truncation). The buffer is now tiled into consecutive model frames reduced by element-wise max (peak confidence preserved), capped at 10 frames
 - Sensors stuck "on": active detections are now flushed as `ended` when the stream stops or fails, so Home Assistant binary sensors never hang in the on state
 - Web UI now genuinely survives audio-pipeline failures so a bad source can be fixed from the ingress panel (previously the process exited despite comments claiming otherwise)
 - MQTT: blocking `connect()` crashed the add-on at startup whenever the broker wasn't up yet (boot-order race); it now connects asynchronously with automatic retry/backoff

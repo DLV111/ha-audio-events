@@ -89,7 +89,7 @@ def test_prepare_frames_caps_inference_cost() -> None:
     assert len(frames) == MAX_INFERENCE_FRAMES
 
 
-def test_run_inference_averages_scores_across_frames() -> None:
+def test_run_inference_takes_max_across_frames() -> None:
     classifier = _classifier_with_frame_len()
 
     calls: list[np.ndarray] = []
@@ -102,10 +102,9 @@ def test_run_inference_averages_scores_across_frames() -> None:
             pass
 
         def get_tensor(self, index):
-            # Distinguishable score per call: first frame "sees" label 7,
-            # second frame label 3.
+            # Frame 1 "hears" label 7 at 0.8; frame 2 hears label 3 at 0.6.
             scores = np.zeros(521, dtype=np.float32)
-            scores[7 if len(calls) == 1 else 3] = 0.8
+            scores[7 if len(calls) == 1 else 3] = 0.8 if len(calls) == 1 else 0.6
             return scores.reshape(1, 521)
 
     classifier.interpreter = _FakeInterpreter()
@@ -116,8 +115,9 @@ def test_run_inference_averages_scores_across_frames() -> None:
     )
 
     assert result.shape == (521,)
-    assert result[7] == pytest.approx(0.4)  # (0.8 + 0) / 2
-    assert result[3] == pytest.approx(0.4)
+    # Max (not mean): a sound in only one frame keeps its peak score.
+    assert result[7] == pytest.approx(0.8)
+    assert result[3] == pytest.approx(0.6)
     # Both frames were actually submitted to the interpreter.
     assert len(calls) == 2
 

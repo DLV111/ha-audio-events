@@ -119,7 +119,7 @@ class YAMNetClassifier(AudioClassifier):
     def _run_inference(self, frames: list[np.ndarray]) -> np.ndarray:
         input_index = self._input_details[0]["index"]
         output_index = self._output_details[0]["index"]
-        total: np.ndarray | None = None
+        combined: np.ndarray | None = None
         for frame in frames:
             self.interpreter.set_tensor(input_index, frame)
             self.interpreter.invoke()
@@ -127,9 +127,12 @@ class YAMNetClassifier(AudioClassifier):
             if result.ndim == 3:
                 result = np.mean(result, axis=1)
             scores = result.squeeze().astype(np.float32)
-            total = scores if total is None else total + scores
-        assert total is not None, "classify() must pass at least one frame"
-        return (total / len(frames)).astype(np.float32)
+            # Element-wise max, not mean: a sound present in only part of the
+            # buffer must keep its peak confidence (mean would dilute it below
+            # the configured start_confidence and swallow the event).
+            combined = scores if combined is None else np.maximum(combined, scores)
+        assert combined is not None, "classify() must pass at least one frame"
+        return combined.astype(np.float32)
 
     def _build_detections(self, scores: np.ndarray) -> list[Detection]:
         if scores.size == 0:
