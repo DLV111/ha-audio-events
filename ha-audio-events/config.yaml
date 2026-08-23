@@ -7,9 +7,6 @@ arch:
   - aarch64
 startup: application
 boot: auto
-# Auto-restart the container if it crashes, so a bad source or transient
-# failure can't leave detection silently down until someone notices.
-watchdog: true
 host_network: false
 hassio_api: true
 homeassistant_api: true
@@ -116,7 +113,7 @@ logger: info
 map:
   - type: homeassistant_config
     read_only: true
-  - type: addons
+  - type: local_apps
     read_only: true
   - type: ssl
     read_only: true

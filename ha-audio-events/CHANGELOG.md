@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Quiet logs: per-request access lines for the panel's 3-second `/api/detections` polling are filtered out instead of flooding the add-on log
 - The "bound without an auth token" warning now fires only for standalone deployments -- behind Home Assistant ingress it was noise on every start
-- Add-on manifest enables `watchdog: true` by default so a crashed container auto-restarts instead of sitting down silently
+- ~~Add-on manifest enables `watchdog: true`~~ REVERTED before release: this Supervisor build rejects a boolean `watchdog` and refuses to parse the manifest (blocking all updates); recommend enabling Watchdog via the add-on's UI toggle instead
 - README troubleshooting gains an entry for the panel's "app seems not ready" retry dialog
 
 ## [0.4.3] - 2026-08-23
