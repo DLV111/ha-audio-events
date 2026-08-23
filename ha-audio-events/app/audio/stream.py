@@ -19,11 +19,24 @@ from app.config import AudioSourceConfig, HomeAssistantConfig, normalize_ha_url
 _LOGGER = logging.getLogger(__name__)
 
 
+class NoAudioStreamError(RuntimeError):
+    """Raised when a source delivers no audio bytes at all.
+
+    Typical cause: an HA camera proxy stream that is video-only (MJPEG),
+    or a device whose microphone isn't streaming. Without this guard the
+    pipeline blocks forever on the first read and the user just sees
+    "no detections ever" with no hint why.
+    """
+
+
 @dataclass
 class AudioStreamSource:
     config: AudioSourceConfig
     ha_config: HomeAssistantConfig | None = None
     chunk_seconds: float = 0.5
+    # How long to wait for the FIRST audio byte before declaring the source
+    # dead. Generous: slow cameras/networks must not trip it.
+    first_byte_timeout: float = 20.0
 
     @staticmethod
     def build_camera_stream_url(ha_url: str, entity_id: str) -> str:
@@ -165,13 +178,34 @@ class AudioStreamSource:
             )
 
         unexpected_exit: int | str | None = None
+        got_first_byte = False
         try:
             while True:
                 if proc.stdout is None:
                     raise RuntimeError("ffmpeg subprocess has no stdout pipe")
-                raw = await proc.stdout.read(chunk_size)
+                try:
+                    if got_first_byte:
+                        raw = await proc.stdout.read(chunk_size)
+                    else:
+                        # First byte decides whether the source carries audio
+                        # at all; without this a video-only proxy blocks the
+                        # read forever and the add-on looks simply "quiet".
+                        raw = await asyncio.wait_for(
+                            proc.stdout.read(chunk_size),
+                            timeout=self.first_byte_timeout,
+                        )
+                except TimeoutError:
+                    raise NoAudioStreamError(
+                        f"No audio received from source within "
+                        f"{self.first_byte_timeout:.0f}s. The stream is "
+                        f"likely video-only (e.g. an HA camera MJPEG proxy) "
+                        f"or the device is not streaming its microphone. "
+                        f"Use an audio-capable URL (direct camera RTSP, "
+                        f"go2rtc, or an ESP32 mic stream)."
+                    ) from None
                 if not raw:
                     break
+                got_first_byte = True
                 yield pcm_s16le_to_float32(raw, self.config.channels)
             # stdout hit EOF: either the source finished (file) or ffmpeg
             # died (unreachable camera/URL). Give it a few seconds to exit

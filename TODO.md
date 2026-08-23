@@ -8,6 +8,8 @@ Context: add-on v0.4.2 shipped via PRs #14–#17; live instance is
 
 ## 🔴 Urgent — live install housekeeping
 
+> ✅ RESOLVED 2026-08-23: production options restored; v0.4.3+ deployed.
+
 ### 1. Restore production options (left in test state)
 
 The end-to-end detection test boosted sensitivity and never got reverted,
@@ -34,7 +36,7 @@ restoring options, start it and confirm `state: started`.
 
 ## 🐛 Bugs to investigate
 
-### 2. Container died despite "webui survives pipeline failure" design
+### 2. ✅ FIXED (PR #19, v0.4.3) — Container died despite "webui survives pipeline failure" design
 
 v0.4.2's `_run_pipeline` catches `_detect()` exceptions and keeps serving
 the Web UI so users can fix a bad source from the panel. Despite that, the
@@ -51,7 +53,7 @@ Suspects to check:
 Action: reproduce with a deliberately 5XX-ing source, capture full log +
 traceback, fix, add a container-level regression test.
 
-### 3. Bare ffmpeg stderr bypassed the stderr drain
+### 3. ✅ VERIFIED NON-ISSUE — Bare ffmpeg stderr bypassed the stderr drain
 
 Log showed `Error opening input files: Server returned 5XX Server Error
 reply` **without** the `app.audio.stream: ffmpeg stderr:` prefix — i.e. it
@@ -67,13 +69,17 @@ Hypotheses:
 Action: verify image provenance; grep all `create_subprocess_exec` sites;
 add a test asserting ffmpeg output always goes through `_drain_stderr`.
 
-### 4. Camera proxy stream reliability / missing audio track
+### 4. 🟡 FIX SHIPPED v0.4.5 (PR pending merge) — Camera proxy stream reliability / missing audio track
 
 Neither `camera.garage_camera` nor `camera.shed_fluent` produced a single
 detection even with near-zero thresholds over several minutes, and
 `shed_fluent` intermittently returns 5XX from `/api/camera_proxy_stream/`.
 Strong suspicion: HA's camera proxy serves MJPEG (video-only) for these
 integrations, so there is literally no audio to classify.
+
+Findings (2026-08-23 live test): garage/shed proxies deliver ZERO audio bytes
+(even rms_threshold=0 produced nothing) while ffmpeg stays connected --
+video-only MJPEG confirmed. First-byte-timeout guard shipped in v0.4.5.
 
 Actions:
 - probe the resolved stream for an audio track before/at start; if absent,
@@ -95,14 +101,14 @@ Ideas: heartbeat sensor (`sensor.audio_last_analysis` timestamp),
 bytes-received indicator in the panel, activity-gate statistics at debug
 log level.
 
-### 6. Web UI auth warning is noisy behind ingress
+### 6. ✅ FIXED (PR #20, v0.4.4) — Web UI auth warning is noisy behind ingress
 
 `WARNING: Web UI is bound to 0.0.0.0 without an auth token...` fires on
 every start even though ingress protects the port in add-on context.
 Suppress when running under Supervisor (detect ingress/SUPERVISOR_TOKEN);
 keep the warning for standalone deployments.
 
-### 7. Ingress retry dialog after restarts
+### 7. ✅ DOCUMENTED (PR #20) — Ingress retry dialog after restarts
 
 Browser showed HA's "The app seems to not be ready" dialog repeatedly
 around restarts. Mostly genuine downtime, but worth documenting
@@ -116,13 +122,13 @@ validate; existing installs therefore still see those fields in the UI
 (with the healed value). Once the installed base has migrated, drop them
 from the schema entirely.
 
-### 9. Watchdog/boot defaults
+### 9. ✅ FIXED (PR #20, watchdog:true default) — Watchdog/boot defaults
 
 Live install has `boot: manual` + `watchdog: false`, so any crash leaves
 the add-on down silently until noticed. Recommend `watchdog: true` in
 README/docs (and consider manifest default).
 
-### 10. Log noise from panel polling
+### 10. ✅ FIXED (PR #20) — Log noise from panel polling
 
 `aiohttp.access` INFO lines every ~3 s flood the add-on log while the
 panel is open. Filter access logs for `/api/detections` or raise their
@@ -134,7 +140,7 @@ level.
 
 ## 🧪 Verification gaps
 
-### 11. End-to-end detection never confirmed on live install
+### 11. ⚠️ BLOCKED ON SOURCE — End-to-end detection never confirmed on live install
 
 Entities get created and REST calls work, but an actual
 detection → `audio.detected` event → `sensor.audio_last_audio_event`

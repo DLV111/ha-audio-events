@@ -5,6 +5,10 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2026-08-23
+### Fixed
+- **Sources with no audio track no longer hang silently** (confirmed live on HA camera MJPEG proxies): if ffmpeg produces no audio bytes within 20s of connecting, the add-on now raises a clear `no audio received -- stream is likely video-only` condition, logs it loudly, surfaces it in the panel's Recent Detections as `no-audio-source`, and keeps the Web UI available so the source can be changed. Previously the pipeline blocked forever on the first read and the install just looked "quiet".
+
 ## [0.4.4] - 2026-08-23
 ### Changed
 - Quiet logs: per-request access lines for the panel's 3-second `/api/detections` polling are filtered out instead of flooding the add-on log
