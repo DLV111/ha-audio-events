@@ -8,7 +8,7 @@ import sys
 from app.addon_mgr import AddonManager
 from app.audio.activity import ActivityDetector
 from app.audio.buffer import CircularAudioBuffer
-from app.audio.stream import AudioStreamSource
+from app.audio.stream import AudioStreamSource, NoAudioStreamError
 from app.classifiers.registry import build_classifier
 from app.config import AppConfig, load_config
 from app.detection.aggregate import EventAggregator
@@ -147,15 +147,22 @@ async def _run_pipeline(config: AppConfig) -> None:
             _LOGGER.exception("Failed to flush active events on shutdown")
 
     async def _detect() -> None:
-        async for chunk in source.stream():
-            buffer.append(chunk)
-            window = buffer.get_window(config.buffer_seconds)
-            if not detector.should_analyze(window):
-                continue
+        try:
+            async for chunk in source.stream():
+                buffer.append(chunk)
+                window = buffer.get_window(config.buffer_seconds)
+                if not detector.should_analyze(window):
+                    continue
 
-            detections = await classifier.classify(window)
-            filtered = filter_detections(detections, config.classifier)
-            await _publish_events(aggregator.update(filtered))
+                detections = await classifier.classify(window)
+                filtered = filter_detections(detections, config.classifier)
+                await _publish_events(aggregator.update(filtered))
+        except NoAudioStreamError as err:
+            # Dead-but-connected source (e.g. video-only camera proxy).
+            # Treat like an ended stream so the panel stays up and the
+            # reason is unmistakable in the log.
+            _LOGGER.error("Audio source unusable: %s", err)
+            history.add("no-audio-source", 0.0, "error")
 
     if config.webui.enabled:
         # The webui needs to query Home Assistant (to list camera entities)
