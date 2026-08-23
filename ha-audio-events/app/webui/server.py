@@ -6,9 +6,11 @@ Provides ingress panel for selecting audio source from Home Assistant entities.
 from __future__ import annotations
 
 import asyncio
+import csv
 import hmac
 import logging
 import os
+from pathlib import Path
 
 from aiohttp import web
 
@@ -66,12 +68,17 @@ class WebUI:
         # Set once the TCP site is bound; lets callers confirm reachability
         # without probing the port.
         self.started = asyncio.Event()
+        self._class_names = self._load_class_names()
         self.app.router.add_get("/", self.serve_index)
         self.app.router.add_get("/api/cameras", self.get_cameras)
         self.app.router.add_get("/api/microphones", self.get_microphones)
         self.app.router.add_get("/api/detections", self.get_detections)
         self.app.router.add_post("/api/source", self.set_source)
         self.app.router.add_get("/api/source", self.get_source)
+        # Classifier filter endpoints
+        self.app.router.add_get("/api/classifiers", self.get_classifiers)
+        self.app.router.add_post("/api/classifiers", self.set_classifiers)
+        self.app.router.add_get("/api/class-map", self.get_class_map)
 
     def _log_bind_notice(self, host: str, port: int) -> None:
         """Warn appropriately about an unauthenticated non-loopback bind."""
@@ -174,6 +181,27 @@ class WebUI:
         button:hover {
             background: #0056b3;
         }
+        .filter-controls {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .filter-row {
+            margin-bottom: 15px;
+        }
+        .filter-row:last-child {
+            margin-bottom: 0;
+        }
+        .filter-controls label {
+            font-style: italic;
+            display: block;
+            margin-bottom: 3px;
+            font-weight: 400;
+            color: #666;
+        }
+        .filter-controls select {
+            height: 110px;
+        }
         button:disabled {
             background: #ccc;
             cursor: not-allowed;
@@ -248,6 +276,22 @@ class WebUI:
             <div id="detections-list" style="max-height: 240px; overflow-y: auto;">
                 <div class="loading">Waiting for detections...</div>
             </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 20px;">
+            <h3>Audio Class Filters</h3>
+            <p class="subtitle">Choose which detected sounds are reported (from the YAMNet label list).</p>
+            <form id="filters-form">
+                <div class="filter-row">
+                    <label for="include-select">Include (empty = report all classes)</label>
+                    <select id="include-select" multiple></select>
+                </div>
+                <div class="filter-row">
+                    <label for="exclude-select">Exclude</label>
+                    <select id="exclude-select" multiple></select>
+                </div>
+                <button type="submit" id="filters-btn">Apply Filters</button>
+            </form>
         </div>
     </div>
 
@@ -397,6 +441,90 @@ class WebUI:
             } else {
                 display.textContent = 'No source configured';
                 display.style.color = '#6c757d';
+            }
+        }
+
+        let allClasses = [];
+
+        // Load YAMNet class names and current include/exclude selections,
+        // then populate both multi-select dropdowns.
+        async function loadFilters() {
+            try {
+                const mapResponse = await apiFetch('api/class-map');
+                if (mapResponse.ok) {
+                    const data = await parseApiResponse(mapResponse, 'class map');
+                    allClasses = data.classes || [];
+                }
+
+                let current = { include: [], exclude: [] };
+                const filtersResponse = await apiFetch('api/classifiers');
+                if (filtersResponse.ok) {
+                    current = await parseApiResponse(filtersResponse, 'classifier filters');
+                }
+
+                populateClassSelect(current.include || [], current.exclude || []);
+            } catch (error) {
+                console.warn('Failed to load classifier filters:', error);
+            }
+        }
+
+        function populateClassSelect(includeSelected, excludeSelected) {
+            const includeSel = document.getElementById('include-select');
+            const excludeSel = document.getElementById('exclude-select');
+
+            includeSel.innerHTML = '';
+            excludeSel.innerHTML = '';
+
+            allClasses.forEach(name => {
+                const value = name.toLowerCase();
+
+                const incOpt = document.createElement('option');
+                incOpt.value = value;
+                incOpt.textContent = name;
+                if (includeSelected.includes(value)) { incOpt.selected = true; }
+                includeSel.appendChild(incOpt);
+
+                const excOpt = document.createElement('option');
+                excOpt.value = value;
+                excOpt.textContent = name;
+                if (excludeSelected.includes(value)) { excOpt.selected = true; }
+                excludeSel.appendChild(excOpt);
+            });
+        }
+
+        async function applyFilters(e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('filters-btn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Applying...';
+
+            try {
+                const include = Array.from(document.getElementById('include-select').selectedOptions)
+                    .map(o => o.value);
+                const exclude = Array.from(document.getElementById('exclude-select').selectedOptions)
+                    .map(o => o.value);
+
+                const response = await apiFetch('api/classifiers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ include: include, exclude: exclude })
+                });
+
+                if (response.ok) {
+                    await parseApiResponse(response, 'apply filters result');
+                    showMessage('Audio class filters updated!', 'success');
+                    showStatus('Filters applied. The add-on is restarting to apply changes.', 'success');
+                } else {
+                    const error = await parseApiResponse(response, 'error details');
+                    showMessage(`Error: ${error.error || 'Failed to update filters'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
             }
         }
 
@@ -567,6 +695,8 @@ class WebUI:
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
+            loadFilters();
+            document.getElementById('filters-form').addEventListener('submit', applyFilters);
             pollDetections();
             setInterval(pollDetections, 3000);
         });
@@ -728,3 +858,94 @@ class WebUI:
             raise
         except Exception:
             _LOGGER.exception("Delayed add-on restart failed")
+
+    def _load_class_names(self) -> list[str]:
+        """Load YAMNet class names from the class map CSV.
+
+        Same lookup convention as YAMNetClassifier._load_labels(): the class
+        map sits next to the model, resolved relative to the add-on's
+        working directory. Loaded once at startup; the file is ~30 KB.
+        """
+        csv_path = Path("models/yamnet_class_map.csv")
+        if not csv_path.exists():
+            _LOGGER.warning("Class map CSV not found at %s", csv_path)
+            return []
+        classes: list[str] = []
+        try:
+            with csv_path.open("r", encoding="utf-8", newline="") as handle:
+                for row in csv.DictReader(handle):
+                    display_name = (row.get("display_name") or "").strip()
+                    if display_name and display_name not in classes:
+                        classes.append(display_name)
+        except Exception:
+            _LOGGER.exception("Error loading class map CSV")
+        return classes
+
+    async def get_class_map(self, request: web.Request) -> web.Response:
+        """Return the list of audio class names for filter dropdowns."""
+        return web.json_response({"classes": self._class_names})
+
+    async def get_classifiers(self, request: web.Request) -> web.Response:
+        """Get current include/exclude filter lists."""
+        try:
+            include = await self.addon_manager.get_option("classifier", "include") or []
+            exclude = await self.addon_manager.get_option("classifier", "exclude") or []
+            return web.json_response(
+                {
+                    "include": [str(item).lower() for item in include],
+                    "exclude": [str(item).lower() for item in exclude],
+                }
+            )
+        except Exception as e:
+            _LOGGER.exception("Error fetching classifier filters")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def set_classifiers(self, request: web.Request) -> web.Response:
+        """Set include/exclude filter lists and restart the add-on."""
+        try:
+            data = await request.json()
+
+            include_raw = data.get("include", [])
+            exclude_raw = data.get("exclude", [])
+            if not isinstance(include_raw, list) or not isinstance(exclude_raw, list):
+                return web.json_response(
+                    {"error": "include and exclude must be lists of strings"},
+                    status=400,
+                )
+            include = [
+                str(item).strip().lower() for item in include_raw if str(item).strip()
+            ]
+            exclude = [
+                str(item).strip().lower() for item in exclude_raw if str(item).strip()
+            ]
+
+            success = await self.addon_manager.set_option(
+                "classifier", "include", include
+            )
+            if not success:
+                return web.json_response(
+                    {"error": "Failed to set include filter"}, status=500
+                )
+
+            success = await self.addon_manager.set_option(
+                "classifier", "exclude", exclude
+            )
+            if not success:
+                return web.json_response(
+                    {"error": "Failed to set exclude filter"}, status=500
+                )
+
+            asyncio.create_task(self._delayed_restart())
+            _LOGGER.info(
+                "Classifier filters updated; restarting add-on in %ss",
+                self.RESTART_DELAY,
+            )
+            return web.json_response(
+                {
+                    "status": "success",
+                    "message": "Filters updated; add-on is restarting",
+                }
+            )
+        except Exception as e:
+            _LOGGER.exception("Error setting classifier filters")
+            return web.json_response({"error": str(e)}, status=500)
