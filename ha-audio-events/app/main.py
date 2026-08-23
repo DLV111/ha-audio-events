@@ -53,9 +53,15 @@ async def _run_pipeline(config: AppConfig) -> None:
         if config.homeassistant.enabled
         else None
     )
-    # Initialize HA entities before using them
+    # Initialize HA entities in the background: when the Supervisor is
+    # unreachable (or slow) each default-state POST waits out its HTTP
+    # timeout sequentially, which would otherwise stall startup -- and the
+    # Web UI must come up regardless of Home Assistant's reachability.
+    # update_state() already logs per-call failures, so events published
+    # before initialisation completes degrade gracefully.
+    entity_init_task: asyncio.Task | None = None
     if ha_client is not None:
-        await ha_client.init_entities()
+        entity_init_task = asyncio.create_task(ha_client.init_entities())
 
     entity_ids = build_entity_ids(config.homeassistant)
     label_sensor_ids = build_label_sensor_entity_ids(
@@ -169,9 +175,14 @@ async def _run_pipeline(config: AppConfig) -> None:
         # regardless of whether homeassistant.enabled is set for event
         # publishing, so give it its own client if one wasn't already created.
         webui_ha_client = ha_client or HomeAssistantClient(config.homeassistant)
-        # init_entities() is idempotent, so it's safe to call even when the
-        # detection pipeline already initialized them.
-        await webui_ha_client.init_entities()
+        # init_entities() is idempotent; when the panel has its own client
+        # (homeassistant publishing disabled) still initialise its entities,
+        # but in the background -- never block the Web UI on Supervisor I/O.
+        webui_entity_init_task: asyncio.Task | None = None
+        if webui_ha_client is not ha_client:
+            webui_entity_init_task = asyncio.create_task(
+                webui_ha_client.init_entities()
+            )
         supervisor_token = os.getenv("SUPERVISOR_TOKEN", "")
         addon_mgr = AddonManager(supervisor_token)
         webui = WebUI(
@@ -214,6 +225,9 @@ async def _run_pipeline(config: AppConfig) -> None:
             # awaiting it re-raises that instead of hanging forever.
             await webui_task
         finally:
+            for task in (entity_init_task, webui_entity_init_task):
+                if task is not None and not task.done():
+                    task.cancel()
             await addon_mgr.close()
             if ha_client is not None:
                 await ha_client.close()
@@ -226,6 +240,8 @@ async def _run_pipeline(config: AppConfig) -> None:
             await _detect()
         finally:
             await _flush_active_events()
+            if entity_init_task is not None and not entity_init_task.done():
+                entity_init_task.cancel()
         if ha_client is not None:
             await ha_client.close()
         if mqtt_client is not None:
