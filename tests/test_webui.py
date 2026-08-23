@@ -445,3 +445,138 @@ class TestWebUIBindNotices:
         with patch.dict(os.environ, {}, clear=True), caplog.at_level(logging.WARNING):
             self._notice()("127.0.0.1", 8099)
         assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+class TestWebUIClassifierFilters(AioHTTPTestCase):
+    """Tests for the classification filter endpoints (/api/class-map,
+    GET/POST /api/classifiers) backing the include/exclude dropdowns."""
+
+    async def get_application(self):
+        self.mock_hass_client = Mock(spec=HomeAssistantClient)
+        self.mock_addon_manager = Mock(spec=AddonManager)
+        self.webui = WebUI(self.mock_hass_client, self.mock_addon_manager)
+        return self.webui.app
+
+    async def test_get_class_map_returns_loaded_classes(self):
+        """The class map endpoint serves the names loaded from
+        yamnet_class_map.csv at startup."""
+        self.webui._class_names = ["Speech", "Dog", "Thunderstorm"]
+
+        resp = await self.client.request("GET", "/api/class-map")
+        assert resp.status == 200
+        data = await resp.json()
+        assert data == {"classes": ["Speech", "Dog", "Thunderstorm"]}
+
+    async def test_get_classifiers_returns_lowercase_lists(self):
+        """Stored options are normalised to lowercase, matching how the
+        pipeline compares labels."""
+        self.mock_addon_manager.get_option = AsyncMock(
+            side_effect=[["Train", "Dog"], ["Music"]]
+        )
+
+        resp = await self.client.request("GET", "/api/classifiers")
+        assert resp.status == 200
+        data = await resp.json()
+        assert data == {"include": ["train", "dog"], "exclude": ["music"]}
+
+    async def test_get_classifiers_empty_when_unset(self):
+        self.mock_addon_manager.get_option = AsyncMock(return_value=None)
+
+        resp = await self.client.request("GET", "/api/classifiers")
+        assert resp.status == 200
+        data = await resp.json()
+        assert data == {"include": [], "exclude": []}
+
+    async def test_set_classifiers_success_schedules_restart(self):
+        """Both option writes happen and a delayed restart follows."""
+        import asyncio
+
+        self.mock_addon_manager.set_option = AsyncMock(return_value=True)
+        self.mock_addon_manager.restart = AsyncMock(return_value=True)
+
+        with patch.object(type(self.webui), "RESTART_DELAY", 0.05):
+            resp = await self.client.request(
+                "POST",
+                "/api/classifiers",
+                json={"include": ["Speech", " Dog "], "exclude": ["Music"]},
+            )
+            assert resp.status == 200
+            data = await resp.json()
+            assert data["status"] == "success"
+            _ = await resp.read()
+
+            # Values are lowercased/stripped before persisting.
+            assert self.mock_addon_manager.set_option.call_count == 2
+            self.mock_addon_manager.set_option.assert_any_call(
+                "classifier", "include", ["speech", "dog"]
+            )
+            self.mock_addon_manager.set_option.assert_any_call(
+                "classifier", "exclude", ["music"]
+            )
+
+            # Response delivered first, restart afterwards (same contract
+            # as set_source).
+            self.mock_addon_manager.restart.assert_not_called()
+            await asyncio.sleep(0.2)
+            self.mock_addon_manager.restart.assert_awaited_once()
+
+    async def test_set_classifiers_rejects_non_list_payload(self):
+        """A malformed payload gets an explicit 400 and never touches the
+        Supervisor options."""
+        self.mock_addon_manager.set_option = AsyncMock(return_value=True)
+
+        resp = await self.client.request(
+            "POST",
+            "/api/classifiers",
+            json={"include": "dog", "exclude": []},
+        )
+        assert resp.status == 400
+        data = await resp.json()
+        assert "lists" in data["error"]
+        self.mock_addon_manager.set_option.assert_not_called()
+
+    async def test_set_classifiers_partial_failure_never_restarts(self):
+        """If the second option write fails, no restart is scheduled."""
+        import asyncio
+
+        self.mock_addon_manager.set_option = AsyncMock(side_effect=[True, False])
+        self.mock_addon_manager.restart = AsyncMock(return_value=True)
+
+        resp = await self.client.request(
+            "POST",
+            "/api/classifiers",
+            json={"include": [], "exclude": []},
+        )
+        assert resp.status == 500
+
+        await asyncio.sleep(0.05)
+        self.mock_addon_manager.restart.assert_not_called()
+
+
+class TestWebUIFilterMarkup(AioHTTPTestCase):
+    """The index page must contain the filter controls wired up by JS."""
+
+    async def get_application(self):
+        self.webui = WebUI(Mock(spec=HomeAssistantClient), Mock(spec=AddonManager))
+        return self.webui.app
+
+    async def test_index_contains_filter_controls(self):
+        resp = await self.client.request("GET", "/")
+        assert resp.status == 200
+        html = await resp.text()
+        # Form + multi-selects rendered server-side
+        assert 'id="filters-form"' in html
+        assert 'id="include-select"' in html
+        assert 'id="exclude-select"' in html
+        assert "<h3>Audio Class Filters</h3>" in html
+
+    async def test_index_wires_filter_javascript(self):
+        resp = await self.client.request("GET", "/")
+        html = await resp.text()
+        # JS fetches both endpoints and populates/submits via DOM APIs
+        # (textContent-style construction, no innerHTML interpolation of
+        # class names -- same XSS posture as the detections panel).
+        assert "'api/class-map'" in html
+        assert "'api/classifiers'" in html
+        assert "populateClassSelect" in html
+        assert "applyFilters" in html
