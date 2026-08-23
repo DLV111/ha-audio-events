@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import hmac
 import logging
+import os
 
 from aiohttp import web
 
@@ -72,16 +73,29 @@ class WebUI:
         self.app.router.add_post("/api/source", self.set_source)
         self.app.router.add_get("/api/source", self.get_source)
 
-    async def start(self, host: str = "0.0.0.0", port: int = 8099) -> None:
-        """Start the aiohttp web server and run until cancelled."""
-        if host != "127.0.0.1" and not self.auth_token:
+    def _log_bind_notice(self, host: str, port: int) -> None:
+        """Warn appropriately about an unauthenticated non-loopback bind."""
+        if host == "127.0.0.1" or self.auth_token:
+            return
+        if os.getenv("SUPERVISOR_TOKEN"):
+            # Running as a Home Assistant add-on: ingress authenticates
+            # every request before it reaches us, so an open bind is fine.
+            _LOGGER.debug(
+                "Web UI bound to %s:%s behind Home Assistant ingress", host, port
+            )
+        else:
             _LOGGER.warning(
-                "Web UI is bound to %s without an auth token; anyone who can "
-                "reach this port can change the audio source and restart the "
-                "add-on. Set 'webui.auth_token' when exposing it outside "
-                "Home Assistant ingress.",
+                "Web UI is bound to %s without an auth token; anyone who "
+                "can reach this port can change the audio source and "
+                "restart the add-on. Set 'webui.auth_token' when exposing "
+                "it outside Home Assistant ingress.",
                 host,
             )
+
+    async def start(self, host: str = "0.0.0.0", port: int = 8099) -> None:
+        """Start the aiohttp web server and run until cancelled."""
+        self._log_bind_notice(host, port)
+        runner = web.AppRunner(self.app)
         runner = web.AppRunner(self.app)
         await runner.setup()
         site = web.TCPSite(runner, host, port)

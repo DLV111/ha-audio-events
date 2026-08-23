@@ -260,11 +260,17 @@ python3 -m app.demo tests/fixtures/audio/train/freight_train_01.wav
    - If using host microphone, ensure `Audio input` hardware access is enabled in add-on settings.
    - If using RTSP, check that `source_path` URL is valid and accessible from your Home Assistant network.
 
-2. **No sounds detected**:
+2. **Panel shows "The app seems to not be ready" / retry dialog**:
+   - The add-on was restarting when you opened the panel (e.g. right after
+     applying a source). Wait a few seconds and hit **Retry**, or reload
+     the page.
+   - If it persists, check the add-on Log tab for a startup traceback.
+
+3. **No sounds detected**:
    - Check if your sound label is listed under `classifier.include`.
    - Try lowering `activity.rms_threshold` (e.g., to `0.01`) if input signal level is low.
    - Try lowering `classifier.threshold` (e.g., to `0.6`).
 
-3. **Entities not showing up in Home Assistant**:
+4. **Entities not showing up in Home Assistant**:
    - Verify `homeassistant.enabled` is `true`.
    - If using MQTT, ensure `mqtt.enabled` is `true` and broker credentials match.

@@ -1,12 +1,15 @@
 name: HA Audio Events
 slug: ha_audio_events
-version: 0.4.3
+version: 0.4.4
 description: Home Assistant add-on for audio event detection using TensorFlow Lite.
 arch:
   - amd64
   - aarch64
 startup: application
 boot: auto
+# Auto-restart the container if it crashes, so a bad source or transient
+# failure can't leave detection silently down until someone notices.
+watchdog: true
 host_network: false
 hassio_api: true
 homeassistant_api: true
