@@ -278,6 +278,11 @@ PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail
 
    These steps ensure code quality standards and prevent breaking changes.
 6. **Package Layout**: The `app` package is in `ha-audio-events/app/`. Use `PYTHONPATH=ha-audio-events` when running Python directly (not via pytest). Do not attempt `pip install -e` due to setuptools auto-discovery conflicts with root-level `app/` and `models/` directories.
+7. **Version Bump & Changelog Are Mandatory On Every PR**: Every pull request MUST include a version bump and a changelog entry — no exceptions, including docs-only or CI-only changes. Do this as part of the PR itself, never as a follow-up:
+   1. Pick the target version with SemVer against the current version in `pyproject.toml`: new user-facing functionality → **minor** (`0.4.5` → `0.5.0`); bug fixes / internal changes → **patch** (`0.4.5` → `0.4.6`).
+   2. Run `make version VERSION=x.y.z` to update all manifests (`pyproject.toml`, `ha-audio-events/config.yaml`, translations) in one step.
+   3. Add an entry at the top of `ha-audio-events/CHANGELOG.md` following its Keep-a-Changelog format: `## [x.y.z] - YYYY-MM-DD` with `### Added` / `### Fixed` / `### Changed` bullets summarising the PR's user-visible changes.
+   4. Include both files in the same PR; CI reviewers should reject PRs that ship code without them.
 
 # Solution on resolving common API response errors:
 

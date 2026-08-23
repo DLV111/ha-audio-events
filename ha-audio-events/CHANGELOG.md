@@ -5,6 +5,14 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-23
+### Added
+- **Audio class filters in the Web UI panel**: a new "Audio Class Filters" section with Include / Exclude multi-select dropdowns populated from all 521 YAMNet class names — no more free-text editing of `classifier.include`/`classifier.exclude` in the add-on options. Applying filters persists them to the add-on options and restarts the add-on, using the same response-then-restart contract as the source picker.
+- New panel endpoints: `GET /api/class-map` (YAMNet class names, loaded once at startup from `yamnet_class_map.csv`) and `GET/POST /api/classifiers` (read/persist the filter lists; malformed payloads get an explicit 400).
+
+### Fixed
+- **Startup no longer stalls for minutes when Home Assistant is slow or unreachable** (reproduced on plain 0.4.5): entity initialisation POSTed default states sequentially, each waiting out its HTTP timeout, which kept the ingress panel offline during that window. Initialisation now runs as a background task; per-call failures were already logged.
+
 ## [0.4.5] - 2026-08-23
 ### Fixed
 - **Sources with no audio track no longer hang silently** (confirmed live on HA camera MJPEG proxies): if ffmpeg produces no audio bytes within 20s of connecting, the add-on now raises a clear `no audio received -- stream is likely video-only` condition, logs it loudly, surfaces it in the panel's Recent Detections as `no-audio-source`, and keeps the Web UI available so the source can be changed. Previously the pipeline blocked forever on the first read and the install just looked "quiet".
