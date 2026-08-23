@@ -122,7 +122,14 @@ validate; existing installs therefore still see those fields in the UI
 (with the healed value). Once the installed base has migrated, drop them
 from the schema entirely.
 
-### 9. ✅ FIXED (PR #20, watchdog:true default) — Watchdog/boot defaults
+### 9. ⚠️ PARTIALLY REVERTED — Watchdog/boot defaults
+
+`watchdog: true` in the manifest caused this Supervisor build to fail
+manifest parsing (`expected string or buffer ... Got True`), detaching
+the add-on from the store and blocking ALL updates. Reverted in
+fix/watchdog-manifest-schema. Reintroduce only after verifying the
+accepted schema type (possibly string "true") against the pinned
+Supervisor version; meanwhile users enable Watchdog via the UI toggle.
 
 Live install has `boot: manual` + `watchdog: false`, so any crash leaves
 the add-on down silently until noticed. Recommend `watchdog: true` in
