@@ -219,3 +219,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Graphify intermediates
+
+# Files that should not be tracked
+
+
+
+
+
+graphify-out/
+
+
+
+
+" && git status
