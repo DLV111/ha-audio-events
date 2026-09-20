@@ -1,0 +1,9 @@
+.graphify/
+.hermes/
+.claude/
+.openhands/
+*.pyc
+.DS_Store
+node_modules/
+dist/
+build/

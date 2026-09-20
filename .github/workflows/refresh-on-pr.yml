@@ -1,0 +1,76 @@
+name: Graphify Index Refresh on PRs into main
+
+on:
+  pull_request:
+    branches: ["main", "develop"]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: "Target branch for refresh (main/develop)"
+        required: true
+        default: "main"
+        type: choice
+        options:
+          - main
+          - develop
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
+        fetch-depth: 0
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Install graphifyy
+      run: |
+        pip install graphifyy==0.9.64
+
+    - name: Setup git config
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Run graphify refresh
+      run: |
+        graphify update .
+        echo "Graphify index refreshed"
+
+    - name: Check for changes
+      id: changes
+      run: |
+        git diff --stat
+        if git diff --stat > /dev/null; then
+          echo "changes=true" >> $GITHUB_OUTPUT
+        else
+          echo "changes=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Commit and push if changed
+      if: steps.changes.outputs.changes == 'true'
+      run: |
+        git add graphify-out/graph.json
+        git add graphify-out/GRAPH_REPORT.md
+        git add graphify-out/graph.html
+        git add graphify-out/.graphify_labels.json
+        git add graphify-out/.graphify_labels.json.sig
+        git add graphify-out/.graphify_root
+        git add graphify-out/manifest.json
+        git add .gitattributes
+        git add .graphifyignore
+        git add .gitignore
+        git add .github/workflows/refresh-on-pr.yml
+        git commit -m "auto: refresh graphify index on PR ${{ github.event.pull_request.number }}"
+        git push origin HEAD:${{ github.head_ref }}
