@@ -336,9 +336,9 @@
     "semantic_hash": ""
   },
   ".github/workflows/refresh-on-pr.yml": {
-    "mtime": 1789878305.362546,
-    "seen": 1789878429.6488762,
-    "ast_hash": "cfd6656e136238b23f85bba28b36b04b",
+    "mtime": 1789876087.3128119,
+    "seen": 1789878228.2809062,
+    "ast_hash": "29d6d8b9abe95b2436e8c08496923c48",
     "semantic_hash": ""
   },
   ".github/workflows/version-bump.yml": {
@@ -447,18 +447,6 @@
     "mtime": 1789817375.2585266,
     "seen": 1789878228.2809591,
     "ast_hash": "02662bbaff360919ed59cd93b6970b0b",
-    "semantic_hash": ""
-  },
-  ".claude/skills/run-ha-audio-fix/driver.py": {
-    "mtime": 1789817375.1405246,
-    "seen": 1789878429.6487463,
-    "ast_hash": "63a59be7d7441bc1cc9a9e5e18ff4b8f",
-    "semantic_hash": ""
-  },
-  ".claude/skills/run-ha-audio-fix/SKILL.md": {
-    "mtime": 1789817375.1405246,
-    "seen": 1789878429.6488714,
-    "ast_hash": "b2aaad736f201ed6166a21c55be21e90",
     "semantic_hash": ""
   }
 }
