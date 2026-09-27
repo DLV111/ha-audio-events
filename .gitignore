@@ -180,8 +180,11 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Graphify intermediates (only ignore what's not tracked)
+# Graphify intermediates (generated output, not source)
 
+graphify-out/
+.graphify/
+.graphify_*/
 cost.json
 graphify-out/cache/
 graphify-out/.graphify_cached.json

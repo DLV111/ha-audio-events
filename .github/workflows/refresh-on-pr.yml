@@ -1,78 +1,56 @@
-name: Graphify Index Refresh on PRs into main
+name: Graphify Index Refresh on PRs
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "develop"]
     types: [opened, synchronize, reopened]
-    paths-ignore: ['graphify-out/**']
+    paths-ignore:
+      - 'graphify-out/**'
+      - '.graphify/**'
   workflow_dispatch: {}
 
 jobs:
   refresh:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     concurrency:
-      group: refresh-${{ github.event.pull_request.number }}
+      group: refresh-${{ github.event.pull_request.number || github.run_id }}
       cancel-in-progress: true
     permissions:
       contents: write
       pull-requests: read
 
     steps:
-    - name: Skip fork PRs
-      if: github.event.pull_request.head.repo.full_name != github.repository
-      id: skip-fork
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
 
-    - name: Cache graphify
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: graphify-cache-${{ runner.os }}-${{ hashFiles('graphify.yaml') }}-${{ hashFiles('.graphifyignore') }}
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
 
-    - name: Checkout repository
-      if: steps.skip-fork.outputs.skip == 'true'
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.head_ref }}
-        fetch-depth: 0
+      - name: Install graphifyy
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "graphifyy==0.9.64"
 
-    - name: Setup Python
-      if: steps.skip-fork.outputs.skip == 'true'
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-        cache: 'pip'
+      - name: Refresh graph index
+        run: graphify update .
 
-    - name: Install graphifyy
-      if: steps.skip-fork.outputs.skip == 'true'
-      run: |
-        pip install graphifyy==0.9.64
+      - name: Commit graph updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A -f graphify-out
 
-    - name: Setup git config
-      if: steps.skip-fork.outputs.skip == 'true'
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --cached --quiet; then
+            echo "No graphify updates to commit"
+            exit 0
+          fi
 
-    - name: Check for changes
-      if: steps.skip-fork.outputs.skip == 'true'
-      id: changes
-      run: |
-        if git status --porcelain -- graphify-out/ | grep -q .; then
-          echo "changes=true" >> $GITHUB_OUTPUT
-        else
-          echo "changes=false" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Commit and push if changed
-      if: steps.changes.outputs.changes == 'true' && steps.skip-fork.outputs.skip == 'true'
-      run: |
-        git add graphify-out/graph.json
-        git add graphify-out/GRAPH_REPORT.md
-        git add graphify-out/graph.html
-        git add graphify-out/.graphify_labels.json
-        git add graphify-out/.graphify_labels.json.sig
-        git add graphify-out/.graphify_root
-        git add graphify-out/manifest.json
-        git commit -m "auto: refresh graphify index on PR ${{ github.event.pull_request.number }}"
-        git pull --rebase origin ${{ github.head_ref }}
-        git push origin ${{ github.head_ref }}
+          git commit -m "auto: refresh graphify index"
+          git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
