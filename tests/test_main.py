@@ -21,6 +21,10 @@ from app.detection.models import EventMessage
 from app.main import _run_pipeline, format_event_summary, main_sync
 
 
+class TestPipelineError(RuntimeError):
+    """Test-only error used to validate exception handling paths."""
+
+
 def test_format_event_summary_uses_label_and_duration() -> None:
     event = EventMessage(
         event_type="audio.detected",
@@ -500,6 +504,36 @@ def test_main_sync_success(mock_run, mock_logging, mock_load_config) -> None:
     mock_config = MagicMock()
     mock_load_config.return_value = mock_config
 
+    def _close_and_return(coro):
+        coro.close()
+
+    mock_run.side_effect = _close_and_return
+
+    main_sync()
+
+    mock_load_config.assert_called_once()
+    mock_logging.assert_called_once_with(mock_config.log_level)
+    mock_run.assert_called_once()
+
+
+@patch("app.main.load_config")
+@patch("app.main.configure_logging")
+@patch("app.main.asyncio.run")
+def test_main_sync_closes_coroutine_on_interrupt(
+    mock_run, mock_logging, mock_load_config
+) -> None:
+    """Regression guard: mocked run paths must close the coroutine they
+    never execute, otherwise pytest raises RuntimeWarning: coroutine was
+    never awaited."""
+    mock_config = MagicMock()
+    mock_load_config.return_value = mock_config
+
+    def _raise_and_close(coro):
+        coro.close()
+        raise KeyboardInterrupt()
+
+    mock_run.side_effect = _raise_and_close
+
     main_sync()
 
     mock_load_config.assert_called_once()
@@ -517,7 +551,12 @@ def test_main_sync_keyboard_interrupt(
     """Test main_sync handles KeyboardInterrupt."""
     mock_config = MagicMock()
     mock_load_config.return_value = mock_config
-    mock_run.side_effect = KeyboardInterrupt()
+
+    def _raise_and_close(coro):
+        coro.close()
+        raise KeyboardInterrupt()
+
+    mock_run.side_effect = _raise_and_close
 
     main_sync()
 
@@ -537,7 +576,12 @@ def test_main_sync_exception(
     could tell a real crash apart from a clean run."""
     mock_config = MagicMock()
     mock_load_config.return_value = mock_config
-    mock_run.side_effect = Exception("Test error")
+
+    def _raise_and_close(coro):
+        coro.close()
+        raise TestPipelineError("Test error")
+
+    mock_run.side_effect = _raise_and_close
 
     with pytest.raises(SystemExit) as exc_info:
         main_sync()

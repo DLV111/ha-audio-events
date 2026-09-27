@@ -5,6 +5,11 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-09-28
+### Fixed
+- **Regression coverage for startup and shutdown**: tightened the async tests around `_run_pipeline()` and `main_sync()` so coroutine cleanup and interrupt handling no longer leave behind unawaited tasks or silent warnings during CI.
+- **Test reliability**: corrected the mocked HA client exception paths so they mimic synchronous `aiohttp` call failures without creating spurious `RuntimeWarning` warnings during the suite.
+
 ## [0.5.0] - 2026-08-23
 ### Added
 - **Audio class filters in the Web UI panel**: a new "Audio Class Filters" section with Include / Exclude multi-select dropdowns populated from all 521 YAMNet class names — no more free-text editing of `classifier.include`/`classifier.exclude` in the add-on options. Applying filters persists them to the add-on options and restarts the add-on, using the same response-then-restart contract as the source picker.

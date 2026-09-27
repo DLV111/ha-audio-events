@@ -191,7 +191,7 @@ class TestHomeAssistantClient:
         """Test fire_event logs exception on error."""
         client = HomeAssistantClient(ha_config)
         mock_session = MagicMock()
-        mock_session.post = AsyncMock(
+        mock_session.post = MagicMock(
             side_effect=aiohttp.ClientError("Connection failed")
         )
         mock_session.close = AsyncMock()
@@ -317,7 +317,7 @@ class TestHomeAssistantClient:
         """Test update_state logs exception on error."""
         client = HomeAssistantClient(ha_config)
         mock_session = MagicMock()
-        mock_session.post = AsyncMock(
+        mock_session.post = MagicMock(
             side_effect=aiohttp.ClientError("Connection failed")
         )
         mock_session.close = AsyncMock()
