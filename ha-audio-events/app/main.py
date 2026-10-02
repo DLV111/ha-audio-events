@@ -93,30 +93,6 @@ async def _run_pipeline(config: AppConfig) -> None:
                     ),
                 )
                 await ha_client.update_state(
-                    entity_ids["last_audio_confidence"],
-                    f"{event.confidence:.2f}",
-                    {
-                        "label": event.label,
-                        "friendly_name": friendly_names["last_audio_confidence"],
-                    },
-                )
-                await ha_client.update_state(
-                    entity_ids["audio_model"],
-                    event.model,
-                    {
-                        "label": event.label,
-                        "friendly_name": friendly_names["audio_model"],
-                    },
-                )
-                await ha_client.update_state(
-                    entity_ids["audio_event_duration"],
-                    f"{event.duration:.2f}",
-                    {
-                        "label": event.label,
-                        "friendly_name": friendly_names["audio_event_duration"],
-                    },
-                )
-                await ha_client.update_state(
                     entity_ids["audio_active"],
                     "on" if event.state != "ended" else "off",
                     {

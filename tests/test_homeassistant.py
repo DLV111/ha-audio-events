@@ -15,3 +15,6 @@ def test_build_entity_ids_prefix() -> None:
 
     assert entity_ids["last_audio_event"] == "sensor.audio_last_audio_event"
     assert entity_ids["audio_active"] == "binary_sensor.audio_audio_active"
+    assert "audio_event_duration" not in entity_ids
+    assert "last_audio_confidence" not in entity_ids
+    assert "audio_model" not in entity_ids

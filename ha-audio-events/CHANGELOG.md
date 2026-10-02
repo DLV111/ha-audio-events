@@ -5,6 +5,10 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-09-28
+### Changed
+- Removed the standalone Audio Event Duration, Audio Model, and Last Audio Confidence sensors; these details remain available in Home Assistant event data and Last Audio Event attributes.
+
 ## [0.5.1] - 2026-09-28
 ### Fixed
 - **Regression coverage for startup and shutdown**: tightened the async tests around `_run_pipeline()` and `main_sync()` so coroutine cleanup and interrupt handling no longer leave behind unawaited tasks or silent warnings during CI.

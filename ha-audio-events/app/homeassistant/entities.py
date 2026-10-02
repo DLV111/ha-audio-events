@@ -21,9 +21,6 @@ def build_entity_ids(config: HomeAssistantConfig) -> dict[str, str]:
     prefix = config.entity_prefix
     return {
         "last_audio_event": f"sensor.{prefix}_last_audio_event",
-        "last_audio_confidence": f"sensor.{prefix}_last_audio_confidence",
-        "audio_model": f"sensor.{prefix}_audio_model",
-        "audio_event_duration": f"sensor.{prefix}_audio_event_duration",
         "audio_active": f"binary_sensor.{prefix}_audio_active",
     }
 
@@ -39,9 +36,6 @@ def build_friendly_names(config: HomeAssistantConfig) -> dict[str, str]:
     prefix = config.entity_prefix.replace("_", " ").title()
     return {
         "last_audio_event": f"{prefix} Last Audio Event",
-        "last_audio_confidence": f"{prefix} Last Audio Confidence",
-        "audio_model": f"{prefix} Audio Model",
-        "audio_event_duration": f"{prefix} Audio Event Duration",
         "audio_active": f"{prefix} Audio Active",
     }
 
