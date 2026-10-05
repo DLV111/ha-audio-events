@@ -1,6 +1,6 @@
 [project]
 name = "ha-audio-events"
-version = "0.1.7"
+version = "0.6.0"
 description = "Home Assistant add-on for audio event detection using TensorFlow Lite."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -15,14 +15,20 @@ dependencies = [
 dev = [
   "pytest>=8.0",
   "pytest-asyncio>=0.22",
+  "pytest-cov>=5.0",
   "ruff>=0.0.281",
-  "black>=24.3.0",
-  "mypy>=1.9"
+  "black>=24.0",
+  "mypy>=1.9",
+  "types-PyYAML"
 ]
 
 [project.scripts]
 ha-audio-events = "app.main:main_sync"
 ha-audio-events-bump-version = "app.versioning:main"
+
+[tool.setuptools.packages.find]
+where = ["ha-audio-events"]
+include = ["app*"]
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
@@ -30,3 +36,15 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 pythonpath = ["ha-audio-events"]
+# Coverage options are only used in coverage-check job (explicitly passed via CLI)
+# addopts = "--cov=ha-audio-events/app --cov-report=term-missing"
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_configs = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+# LiteRT ships no type stubs.
+module = ["ai_edge_litert.*", "tflite_runtime.*"]
+ignore_missing_imports = true

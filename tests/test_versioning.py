@@ -23,6 +23,12 @@ def test_bump_version_updates_all_manifests(tmp_path: Path) -> None:
     updated = bump_version("0.2.0", root=tmp_path)
 
     assert len(updated) == 3
-    assert (tmp_path / "pyproject.toml").read_text(encoding="utf-8") == '[project]\nname = "demo"\nversion = "0.2.0"\n'
-    assert (tmp_path / "ha-audio-events" / "config.yaml").read_text(encoding="utf-8") == "name: Demo\nversion: 0.2.0\n"
-    assert (tmp_path / "ha-audio-events" / "config.json").read_text(encoding="utf-8") == '{\n  "name": "Demo",\n  "version": "0.2.0"\n}\n'
+    assert (tmp_path / "pyproject.toml").read_text(
+        encoding="utf-8"
+    ) == '[project]\nname = "demo"\nversion = "0.2.0"\n'
+    assert (tmp_path / "ha-audio-events" / "config.yaml").read_text(
+        encoding="utf-8"
+    ) == "name: Demo\nversion: 0.2.0\n"
+    assert (tmp_path / "ha-audio-events" / "config.json").read_text(
+        encoding="utf-8"
+    ) == '{\n  "name": "Demo",\n  "version": "0.2.0"\n}\n'

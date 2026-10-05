@@ -1,0 +1,200 @@
+# Friendly names and inline help shown in the Home Assistant add-on
+# configuration panel.
+#
+# Full docs: https://github.com/DLV111/ha-audio-events#full-configuration-reference
+configuration:
+  model:
+    name: Detection model
+    description: >-
+      The audio event classifier to run. YAMNet recognises 521 sound
+      categories (dogs, sirens, speech, trains, ...). Currently only yamnet
+      is available.
+
+  log_level:
+    name: Log level
+    description: >-
+      Verbosity of the add-on's own log output. info is recommended;
+      use debug when reporting issues.
+
+  buffer_seconds:
+    name: Audio buffer (seconds)
+    description: >-
+      How many seconds of rolling audio are kept for analysis. Longer
+      buffers catch slow-building sounds but delay detections. 3 seconds
+      works well for most cases.
+
+  audio:
+    name: Audio source
+    description: >-
+      Where the sound comes from: a Home Assistant camera entity, an RTSP
+      URL, or a local file. See
+      https://github.com/DLV111/ha-audio-events#audio-source-configuration
+
+    sample_rate:
+      name: Sample rate (Hz)
+      description: >-
+        Fixed at 16000 Hz - this is what the YAMNet model requires.
+    channels:
+      name: Channels
+      description: >-
+        Mono (1). Stereo input from ffmpeg is downmixed automatically.
+    format:
+      name: PCM format
+      description: >-
+        Internal sample format fed to the classifier. Leave as pcm_s16le.
+    source_path:
+      name: Source path / entity / URL
+      description: >-
+        One of: a camera entity id such as "camera.front_door", an RTSP URL
+        such as "rtsp://user:pass@192.168.1.50:554/stream", or a file path
+        inside the add-on such as "/config/sounds/test.wav". Leave empty to
+        capture from the host microphone/PulseAudio instead.
+
+  activity:
+    name: Activity detection (CPU saver)
+    description: >-
+      Frames quieter than these thresholds skip model inference entirely,
+      saving CPU on silence.
+
+    rms_threshold:
+      name: RMS threshold (0.0-1.0)
+      description: >-
+        Average loudness required before analysis runs. Lower = more
+        sensitive. If quiet sounds are missed try 0.01-0.02.
+    peak_threshold:
+      name: Peak threshold (0.0-1.0)
+      description: >-
+        Loudest single sample required before analysis runs. Lower = more
+        sensitive.
+    hold_time:
+      name: Hold time (seconds)
+      description: >-
+        After sound drops below the thresholds, keep analysing for this
+        long so fading sounds are still classified.
+
+  classifier:
+    name: Classification filters
+    description: >-
+      Which of YAMNet's 521 labels you care about and how confident a
+      match must be. The full label list is at
+      https://github.com/DLV111/ha-audio-events/blob/main/ha-audio-events/models/yamnet_class_map.csv
+
+    threshold:
+      name: Confidence threshold (0.0-1.0)
+      description: >-
+        Ignore predictions below this confidence. 0.6 balances false
+        positives vs missed events; raise if you get spurious triggers.
+    max_results:
+      name: Max results per frame
+      description: >-
+        How many top predictions are considered each analysis pass.
+    include:
+      name: Labels to track
+      description: >-
+        Only these labels create events/entities (empty = all 521).
+        Substring matching applies: "dog" also matches "barking, dog".
+        Browse valid names in yamnet_class_map.csv linked above.
+    exclude:
+      name: Labels to ignore
+      description: >-
+        Never report these labels even if detected (e.g. music, silence).
+
+  aggregation:
+    name: Event smoothing
+    description: >-
+      Consecutive detections of the same label are merged into one event
+      with start/end states so automations fire once, not per frame.
+
+    start_confidence:
+      name: Start confidence (0.0-1.0)
+      description: >-
+        Confidence needed to open a new event. Keep close to or above the
+        classifier threshold.
+    end_timeout:
+      name: End timeout (seconds)
+      description: >-
+        A label must be absent for this long before its event ends and the
+        binary sensor turns off.
+
+  homeassistant:
+    name: Home Assistant integration
+    description: >-
+      Creates binary_sensor.audio_* entities and fires audio.detected
+      events via the REST API. Connection details are provided
+      automatically by the Supervisor - no URL/token needed.
+
+    enabled:
+      name: Enabled
+      description: Update HA entities and fire events for detections.
+    entity_prefix:
+      name: Entity prefix
+      description: >-
+        Prefix for created entities, e.g. "audio" produces
+        binary_sensor.audio_dog. Change only if you have conflicts.
+    url:
+      name: API URL (advanced)
+      description: >-
+        Deprecated for add-on use - managed automatically and normalised
+        on startup. For standalone container installs only.
+    token:
+      name: API token (advanced)
+      description: >-
+        Deprecated for add-on use - SUPERVISOR_TOKEN is used
+        automatically. For standalone container installs only.
+
+  mqtt:
+    name: MQTT integration
+    description: >-
+      Alternative to REST: publishes MQTT discovery configs and state
+      updates so HA picks entities up via your broker. Enable only one of
+      MQTT or the REST integration (or neither).
+
+    enabled:
+      name: Enabled
+      description: Publish detection state to MQTT with discovery.
+    host:
+      name: Broker host
+      description: Hostname of your MQTT broker, e.g. core-mosquitto for
+        the official Mosquitto add-on.
+    port:
+      name: Broker port
+      description: Usually 1883 (plain) or 8883 (TLS).
+    topic:
+      name: Base topic
+      description: Root topic for event payloads, default audio/events.
+    discovery_prefix:
+      name: Discovery prefix
+      description: MQTT discovery base topic, usually homeassistant.
+    username:
+      name: Broker username
+      description: Only if your broker requires authentication.
+    password:
+      name: Broker password
+      description: Only if your broker requires authentication.
+    tls:
+      name: Use TLS
+      description: Connect to the broker over TLS (typically port 8883).
+
+  webui:
+    name: Web UI (ingress panel)
+    description: >-
+      The side-panel page used to pick the audio source and watch recent
+      detections. Keep enabled unless you configure everything in YAML.
+
+    enabled:
+      name: Enabled
+      description: Serve the source-picker panel on the ingress port.
+    host:
+      name: Bind address
+      description: >-
+        Leave 0.0.0.0 behind Home Assistant ingress. Standalone users can
+        restrict to 127.0.0.1.
+    port:
+      name: Port
+      description: Ingress port; leave at 8099 unless it conflicts.
+    auth_token:
+      name: API auth token
+      description: >-
+        Optional shared secret protecting the panel's API when accessed
+        outside ingress (standalone deployments). The panel prompts for
+        it once per browser session.

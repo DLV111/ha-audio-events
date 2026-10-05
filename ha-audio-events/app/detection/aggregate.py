@@ -1,47 +1,51 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Iterable, List
+from collections.abc import Iterable
+from datetime import UTC, datetime, timedelta
 
-from app.config import AggregationConfig
 from app.classifiers.base import Detection
+from app.config import AggregationConfig
 from app.detection.models import AggregatedEvent, EventMessage
 
 
 class EventAggregator:
     def __init__(self, config: AggregationConfig) -> None:
         self.config = config
-        self._active_events: Dict[str, AggregatedEvent] = {}
+        self._active_events: dict[str, AggregatedEvent] = {}
 
-    def update(self, detections: Iterable[Detection], timestamp: datetime | None = None) -> list[EventMessage]:
+    def update(
+        self, detections: Iterable[Detection], timestamp: datetime | None = None
+    ) -> list[EventMessage]:
         events: list[EventMessage] = []
-        now = timestamp if timestamp is not None else datetime.now(timezone.utc)
-        detections_by_label: Dict[str, Detection] = {}
+        now = timestamp if timestamp is not None else datetime.now(UTC)
+        detections_by_label: dict[str, Detection] = {}
         for detection in detections:
             detections_by_label[detection.label] = detection
 
         inactive_labels = list(self._active_events.keys())
         for label in inactive_labels:
             state = self._active_events[label]
-            if label not in detections_by_label:
-                if now - state.last_seen_at >= timedelta(seconds=self.config.end_timeout):
-                    state.duration = (state.last_seen_at - state.started_at).total_seconds()
-                    events.append(
-                        EventMessage(
-                            event_type="audio.detected",
-                            label=label,
-                            confidence=state.confidence,
-                            duration=state.duration,
-                            state="ended",
-                            model=state.model,
-                        )
+            if (
+                label not in detections_by_label
+                and now - state.last_seen_at
+                >= timedelta(seconds=self.config.end_timeout)
+            ):
+                state.duration = (state.last_seen_at - state.started_at).total_seconds()
+                events.append(
+                    EventMessage(
+                        event_type="audio.detected",
+                        label=label,
+                        confidence=state.confidence,
+                        duration=state.duration,
+                        state="ended",
+                        model=state.model,
                     )
-                    del self._active_events[label]
+                )
+                del self._active_events[label]
 
         for detection in detections:
-            state = self._active_events.get(detection.label)
-            if state is None:
+            existing = self._active_events.get(detection.label)
+            if existing is None:
                 if detection.confidence >= self.config.start_confidence:
                     self._active_events[detection.label] = AggregatedEvent(
                         label=detection.label,
@@ -61,18 +65,40 @@ class EventAggregator:
                         )
                     )
             else:
-                state.last_seen_at = now
-                state.confidence = max(state.confidence, detection.confidence)
-                state.duration = (now - state.started_at).total_seconds()
+                existing.last_seen_at = now
+                existing.confidence = max(existing.confidence, detection.confidence)
+                existing.duration = (now - existing.started_at).total_seconds()
                 events.append(
                     EventMessage(
                         event_type="audio.detected",
                         label=detection.label,
-                        confidence=state.confidence,
-                        duration=state.duration,
+                        confidence=existing.confidence,
+                        duration=existing.duration,
                         state="active",
-                        model=state.model,
+                        model=existing.model,
                     )
                 )
 
+        return events
+
+    def flush(self) -> list[EventMessage]:
+        """End every active event immediately.
+
+        Called on pipeline shutdown so Home Assistant binary sensors don't
+        stay stuck "on" after the audio stream stops or errors out.
+        """
+        events: list[EventMessage] = []
+        for label, state in self._active_events.items():
+            state.duration = (state.last_seen_at - state.started_at).total_seconds()
+            events.append(
+                EventMessage(
+                    event_type="audio.detected",
+                    label=label,
+                    confidence=state.confidence,
+                    duration=state.duration,
+                    state="ended",
+                    model=state.model,
+                )
+            )
+        self._active_events.clear()
         return events

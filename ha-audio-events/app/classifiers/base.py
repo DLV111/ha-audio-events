@@ -17,5 +17,4 @@ class Detection:
 
 class AudioClassifier(ABC):
     @abstractmethod
-    async def classify(self, audio: np.ndarray) -> list[Detection]:
-        ...
+    async def classify(self, audio: np.ndarray) -> list[Detection]: ...

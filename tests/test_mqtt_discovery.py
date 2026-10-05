@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from app.config import MQTTConfig
-from app.homeassistant.discovery import build_label_state_topic, build_mqtt_discovery_payload
+from app.homeassistant.discovery import (
+    build_label_state_topic,
+    build_mqtt_discovery_payload,
+)
 
 
 def _config() -> MQTTConfig:

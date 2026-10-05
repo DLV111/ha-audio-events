@@ -5,7 +5,12 @@ from app.homeassistant.entities import build_entity_ids
 
 
 def test_build_entity_ids_prefix() -> None:
-    config = HomeAssistantConfig(enabled=True, url="http://supervisor/homeassistant", token="test", entity_prefix="audio")
+    config = HomeAssistantConfig(
+        enabled=True,
+        url="http://supervisor/homeassistant",
+        token="test",
+        entity_prefix="audio",
+    )
     entity_ids = build_entity_ids(config)
 
     assert entity_ids["last_audio_event"] == "sensor.audio_last_audio_event"

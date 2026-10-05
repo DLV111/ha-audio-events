@@ -1,12 +1,23 @@
 from __future__ import annotations
 
-from typing import Dict, List
+import re
 
 from app.config import HomeAssistantConfig
 from app.detection.models import EventMessage
 
 
-def build_entity_ids(config: HomeAssistantConfig) -> Dict[str, str]:
+def slugify_label(label: str) -> str:
+    """Convert an audio label into a valid Home Assistant object_id slug.
+
+    YAMNet display names contain spaces, commas and other characters that are
+    not allowed in entity IDs (e.g. "Child speech, kid speaking"), so replace
+    every invalid run with a single underscore.
+    """
+    slug = re.sub(r"[^a-z0-9_]+", "_", label.lower()).strip("_")
+    return slug or "unknown"
+
+
+def build_entity_ids(config: HomeAssistantConfig) -> dict[str, str]:
     prefix = config.entity_prefix
     return {
         "last_audio_event": f"sensor.{prefix}_last_audio_event",
@@ -17,15 +28,14 @@ def build_entity_ids(config: HomeAssistantConfig) -> Dict[str, str]:
     }
 
 
-def build_label_sensor_entity_ids(config: HomeAssistantConfig, labels: List[str]) -> Dict[str, str]:
+def build_label_sensor_entity_ids(
+    config: HomeAssistantConfig, labels: list[str]
+) -> dict[str, str]:
     prefix = config.entity_prefix
-    return {
-        label: f"binary_sensor.{prefix}_{label.replace(' ', '_').lower()}"
-        for label in labels
-    }
+    return {label: f"binary_sensor.{prefix}_{slugify_label(label)}" for label in labels}
 
 
-def build_friendly_names(config: HomeAssistantConfig) -> Dict[str, str]:
+def build_friendly_names(config: HomeAssistantConfig) -> dict[str, str]:
     prefix = config.entity_prefix.replace("_", " ").title()
     return {
         "last_audio_event": f"{prefix} Last Audio Event",
@@ -36,7 +46,9 @@ def build_friendly_names(config: HomeAssistantConfig) -> Dict[str, str]:
     }
 
 
-def build_label_friendly_names(config: HomeAssistantConfig, labels: List[str]) -> Dict[str, str]:
+def build_label_friendly_names(
+    config: HomeAssistantConfig, labels: list[str]
+) -> dict[str, str]:
     prefix = config.entity_prefix.replace("_", " ").title()
     return {label: f"{prefix} {label.title()}" for label in labels}
 

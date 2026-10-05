@@ -38,7 +38,9 @@ class CircularAudioBuffer:
     def get_all(self) -> np.ndarray:
         if self._filled < self.capacity:
             return self._buffer[: self._filled].copy()
-        return np.concatenate((self._buffer[self._write_index :], self._buffer[: self._write_index]))
+        return np.concatenate(
+            (self._buffer[self._write_index :], self._buffer[: self._write_index])
+        )
 
     def get_window(self, seconds: float) -> np.ndarray:
         requested = int(self.sample_rate * seconds)

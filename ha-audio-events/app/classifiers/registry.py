@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.config import AppConfig
 from app.classifiers.base import AudioClassifier
 from app.classifiers.yamnet import YAMNetClassifier
+from app.config import AppConfig
 
 
 def build_classifier(config: AppConfig) -> AudioClassifier:

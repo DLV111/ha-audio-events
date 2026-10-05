@@ -8,7 +8,18 @@ from pathlib import Path
 
 def bump_version(new_version: str, root: Path | None = None) -> list[Path]:
     """Update version references in the add-on manifests and python package metadata."""
-    project_root = Path(root or Path(__file__).resolve().parents[1])
+    # Find the repository root (where pyproject.toml lives)
+    # Script is at ha-audio-events/app/versioning.py, so parents[2] = repo root
+    if root is None:
+        script_path = Path(__file__).resolve()
+        # Go up to find pyproject.toml (repo root)
+        project_root = script_path.parents[2]
+        # Verify we found the right place
+        if not (project_root / "pyproject.toml").exists():
+            # Fallback: try parents[1] in case structure is different
+            project_root = script_path.parents[1]
+    else:
+        project_root = Path(root)
 
     targets = [
         project_root / "pyproject.toml",
@@ -30,11 +41,13 @@ def bump_version(new_version: str, root: Path | None = None) -> list[Path]:
             target.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
         else:
             if target.name == "pyproject.toml":
-                pattern = re.compile(r'(^version\s*=\s*)(["\'][^"\']+["\'])', re.MULTILINE)
+                pattern = re.compile(
+                    r'(^version\s*=\s*)(["\'][^"\']+["\'])', re.MULTILINE
+                )
                 updated = pattern.sub(rf'\g<1>"{new_version}"', content)
             else:
-                pattern = re.compile(r'(^version:\s*)(.+)$', re.MULTILINE)
-                updated = pattern.sub(rf'\g<1>{new_version}', content)
+                pattern = re.compile(r"(^version:\s*)(.+)$", re.MULTILINE)
+                updated = pattern.sub(rf"\g<1>{new_version}", content)
             target.write_text(updated, encoding="utf-8")
 
         updated_files.append(target)
@@ -43,7 +56,9 @@ def bump_version(new_version: str, root: Path | None = None) -> list[Path]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Bump the add-on version in all release manifests")
+    parser = argparse.ArgumentParser(
+        description="Bump the add-on version in all release manifests"
+    )
     parser.add_argument("version", help="New version string, e.g. 0.2.0")
     args = parser.parse_args()
 

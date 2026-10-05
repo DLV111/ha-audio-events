@@ -41,8 +41,6 @@ This document provides AI assistants with a comprehensive technical guide to the
 ```
 ha-audio-events/
 ├── agents.md                       # (This file) AI context, architecture, & development guide
-├── app/
-│   └── versioning.py              # Version bumping utility (duplicate of ha-audio-events/app/versioning.py)
 ├── ha-audio-events/               # HA Add-on root & Python package source
 │   ├── app/                       # Core Python codebase
 │   │   ├── __init__.py
@@ -68,31 +66,21 @@ ha-audio-events/
 │   │   │   ├── discovery.py       # MQTT Discovery payload generator
 │   │   │   ├── entities.py        # Entity ID & attribute builders for HA binary sensors
 │   │   │   └── mqtt.py            # MQTT client (paho-mqtt wrapper)
-│   │   └── utils/
-│   │       └── logging.py         # Logging configuration helper
-│   ├── config.json                # Home Assistant add-on options & schema specification
-│   ├── config.yaml                # Default options for container/local execution
+│   │   ├── utils/
+│   │   │   └── logging.py         # Logging configuration helper
+│   │   └── webui/                 # Ingress panel server
+│   │       └── server.py          # aiohttp app: source picker, detections feed, optional token auth
+│   ├── config.yaml                # Add-on manifest: options, schema, ingress settings
 │   ├── Dockerfile                 # Container image based on python:3.12-slim
-│   ├── logo.png                   # HA Add-on icon
+│   ├── models/                    # Model artifacts used by the container build context
+│   │   ├── yamnet.tflite
+│   │   └── yamnet_class_map.csv
+│   ├── logo.png                   # HA Add-on icon (removed when broken; re-add a real PNG)
 │   └── run.sh                     # Container start script executing `python3 -m app.main`
-├── models/
+├── models/                        # Model artifacts for local runs from the repo root
 │   ├── yamnet.tflite              # Pre-trained TFLite model (~4.1 MB)
 │   └── yamnet_class_map.csv       # YAMNet 521 audio class label map
 ├── tests/                         # Pytest test suite & audio test fixtures
-│   ├── fixtures/
-│   │   └── audio/                 # Sample audio files (dog barking, train horn, etc.)
-│   │       ├── manifest.json
-│   │       ├── dog-barking/
-│   │       └── train/
-│   ├── test_audio_classifier_integration.py
-│   ├── test_audio_fixtures.py
-│   ├── test_detection.py
-│   ├── test_homeassistant.py
-│   ├── test_main.py
-│   ├── test_mqtt_discovery.py
-│   ├── test_stream.py
-│   ├── test_versioning.py
-│   └── test_yamnet_label_loading.py
 ├── config.yaml                    # Local testing config file
 ├── Makefile                       # Developer tasks (test, version bump, update model, etc.)
 ├── pyproject.toml                 # Packaging, dependencies, scripts (`ha-audio-events`)
@@ -102,9 +90,16 @@ ha-audio-events/
 
 ### Key Layout Note
 
-The application code lives in `ha-audio-events/app/`, **not** the root `app/`.
-The root `app/` directory only contains `versioning.py` (a duplicate of
-`ha-audio-events/app/versioning.py`).
+The application code lives in `ha-audio-events/app/`. There is **no** root
+`app/` package anymore (a stale diverged duplicate of `versioning.py` was
+removed); always run Python with `PYTHONPATH=ha-audio-events`.
+
+Two copies of `models/` exist on purpose:
+- root `models/` is resolved by `build_classifier()` when running locally
+  from the repo root (pytest, demo);
+- `ha-audio-events/models/` ships the same files inside the container build
+  context where `/app` *is* `ha-audio-events/`. Keep both in sync when
+  updating the model.
 
 The `pyproject.toml` configures pytest with `pythonpath = ["ha-audio-events"]`,
 so all imports use `from app.xxx import ...` and resolve to
@@ -174,12 +169,51 @@ Run unit and integration tests using the virtual environment's pytest:
 .venv/bin/pytest -v
 ```
 
+### Complete Test Workflow (Use Before Pushing)
+
+The recommended way to run all checks locally is via the Makefile, which mirrors the CI pipeline:
+
+```bash
+# Run ALL checks: unit tests + linting (ruff) + formatting (black) + coverage
+make test
+```
+
+This runs three sub-targets:
+- **`make test-lint`** - Runs ruff check on source and tests
+- **`make test-format`** - Runs black format check with `--target-version py312`
+- **`make test-with-coverage`** - Runs pytest with coverage (60% threshold)
+
+**All three must pass (exit code 0) before pushing to GitHub.**
+
+You can also run them individually:
+```bash
+make test-lint          # Just linting
+make test-format        # Just format check
+make test-with-coverage # Just coverage check (includes test execution)
+make test-unit          # Just unit tests (no coverage)
+```
+
 ### Test Results (as of last run)
-- **32 tests, all passing** in ~4 seconds
+- **44 tests, all passing** in ~4 seconds
+- Coverage: **64%** (threshold: 60%)
 - Integration tests require `models/yamnet.tflite` and `models/yamnet_class_map.csv`
   (present in the repo). If missing, those tests are skipped.
 - `test_stream.py::test_stream_source_wav_file` requires
   `tests/fixtures/audio/train/freight_train_01.wav` (present).
+
+### CI Pipeline Alignment
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs the exact same commands in a single job:
+1. Install dependencies (no editable install, uses `PYTHONPATH=ha-audio-events`, installs `pytest-cov`)
+2. Install `ffmpeg` system package (required for MP3 fixture conversion)
+3. Run `pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v`
+4. Run `ruff check ha-audio-events/app/ tests/`
+5. Run `black --check ha-audio-events/app/ tests/`
+6. Upload coverage report as artifact
+
+**If `make test` passes locally, CI will pass.**
+
+The old CI had separate `test` and `coverage-check` jobs that ran tests twice. Now both CI and local run tests once with coverage.
 
 ### Running the Demo
 
@@ -199,6 +233,11 @@ PYTHONPATH=ha-audio-events .venv/bin/python -m app.demo tests/fixtures/audio/tra
 > with the provided file path.
 
 ### Useful Makefile Commands
+- **`make test`**: Run ALL checks (linting + formatting + coverage with tests)
+- **`make test-unit`**: Run unit tests only (no coverage)
+- **`make test-lint`**: Run ruff linting
+- **`make test-format`**: Run black format check
+- **`make test-with-coverage`**: Run tests with coverage (60% threshold)
 - **`make test-fixtures`**: Run pytest against fixture test files.
 - **`make demo-file FILE=path/to/audio.wav`**: Test classifier pipeline on a single audio file.
 - **`make test-container`**: Build Podman/Docker image and run container smoke test.
@@ -213,6 +252,12 @@ PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
 
 # Auto-fix what's possible
 PYTHONPATH=ha-audio-events .venv/bin/ruff check --fix ha-audio-events/app/ tests/
+
+# Check formatting
+PYTHONPATH=ha-audio-events .venv/bin/black --check --target-version py312 ha-audio-events/app/ tests/
+
+# Check coverage
+PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing
 ```
 
 > **Note**: There are pre-existing linting issues (import sorting, unused imports,
@@ -226,5 +271,76 @@ PYTHONPATH=ha-audio-events .venv/bin/ruff check --fix ha-audio-events/app/ tests
 2. **Type Annotations & Modern Python**: Code uses Python 3.12+ features (`from __future__ import annotations`, type syntax `str | None`, `list[str]`).
 3. **Async Architecture**: Core pipeline in `main.py` and HA HTTP calls are asynchronous (`asyncio`). CPU-heavy inference is offloaded via `asyncio.to_thread`.
 4. **Configuration Consistency**: When modifying options or schemas, ensure both `app/config.py` dataclasses, `config.yaml`, and `ha-audio-events/config.json` schema definitions remain synchronized.
-5. **Verification**: Always execute `.venv/bin/pytest` after making code modifications to ensure no regressions occur.
+5. **Verification & Linting**: After ALL Python code changes are complete, you MUST:
+   1. Run `.venv/bin/ruff check --fix ha-audio-events/app/ tests/` to auto-fix any linting issues
+   2. Run `.venv/bin/pytest -v` to execute the full test suite and verify no regressions
+   3. Run `make test` locally to run the complete workflow (lint + format + coverage) before pushing
+
+   These steps ensure code quality standards and prevent breaking changes.
 6. **Package Layout**: The `app` package is in `ha-audio-events/app/`. Use `PYTHONPATH=ha-audio-events` when running Python directly (not via pytest). Do not attempt `pip install -e` due to setuptools auto-discovery conflicts with root-level `app/` and `models/` directories.
+7. **Version Bump & Changelog Are Mandatory On Every PR**: Every pull request MUST include a version bump and a changelog entry — no exceptions, including docs-only or CI-only changes. Do this as part of the PR itself, never as a follow-up:
+   1. Pick the target version with SemVer against the current version in `pyproject.toml`: new user-facing functionality → **minor** (`0.4.5` → `0.5.0`); bug fixes / internal changes → **patch** (`0.4.5` → `0.4.6`).
+   2. Run `make version VERSION=x.y.z` to update all manifests (`pyproject.toml`, `ha-audio-events/config.yaml`, translations) in one step.
+   3. Add an entry at the top of `ha-audio-events/CHANGELOG.md` following its Keep-a-Changelog format: `## [x.y.z] - YYYY-MM-DD` with `### Added` / `### Fixed` / `### Changed` bullets summarising the PR's user-visible changes.
+   4. Include both files in the same PR; CI reviewers should reject PRs that ship code without them.
+
+# Solution on resolving common API response errors:
+
+When fixing add-on option update failures:
+1. Modify the `set_option` method in `addon_mgr.py` to:
+   - Validate API responses for proper "result": "ok" structure
+   - Add comprehensive logging for debug visibility
+   - Handle empty responses gracefully
+2. Commit changes to `fix/addon-manager-option-error` branch
+3. Push to remote and create PR with issue description and context
+4. Reference this branch when applying similar fixes
+
+This ensures proper API response handling for the "Failed to set source in add-on options" error.
+
+---
+
+## 🤖 Automated Skill: Audio Config Boolean Handling
+
+**Purpose**  
+Fixes the situation where the Home Assistant add‑on receives a boolean (`true`/`false`) for the `audio` option instead of the expected mapping object. This prevents a `AttributeError: 'bool' object has no attribute 'get'`.
+
+**Location**  
+`.claude/skills/run-ha-audio-fix/`  
+- `SKILL.md` — skill definition with frontmatter
+- `driver.py` — Python driver implementing all workflow steps
+
+**How to invoke**  
+```bash
+# Create a work‑branch and scaffold everything
+/ha-audio-fix start
+
+# Apply the standard fix‑set (code, tests, version bump)
+/ha-audio-fix apply --bump patch
+
+# Verify locally that all tests pass
+/ha-audio-fix test
+
+# Push the branch and open a PR (requires `gh` auth)
+/ha-audio-fix pr create --title "Fix audio config boolean handling" \
+    --body "Automated fix for bool‑audio config handling (see skill logs)."
+
+# Monitor CI; the skill will retry automatically if any check fails
+/ha-audio-fix monitor --max 6 --interval 30
+
+# (When the PR is merged) clean up the temporary branch
+/ha-audio-fix clean
+```
+
+**What the skill does internally**  
+1. Creates a short‑lived branch (`skill/automated/20260815-xxxx`).  
+2. Applies the patch set (currently contains the boolean‑config fix).  
+3. Bumps the version in `pyproject.toml` (patch‑level increment by default).  
+4. Updates `agents.md` with this documentation block.  
+5. Pushes the branch, opens a PR, and watches CI.  
+6. If any check fails, it attempts a quick remediation before giving up.  
+
+**Who can use it?**  
+Any maintainer or contributor who wants a repeatable, auditable way to introduce small fixes without manually juggling branch creation, version bumping, and CI monitoring.
+
+**Where is the source of truth?**  
+All actions are logged in `skill.log` (JSON Lines). The log can be inspected directly or imported into analytics pipelines.

@@ -35,6 +35,41 @@ A Home Assistant add-on and standalone application for real-time audio event det
 
 ## Audio Source Configuration
 
+The add-on provides a flexible interface for selecting audio sources through:
+- A live web UI panel (ingress panel) that dynamically lists available Home Assistant camera entities
+- Configuration settings in YAML
+- Direct RTSP URL entry
+
+### Ingress Web UI Source Picker
+
+The new ingress-based web UI provides a dynamic source picker interface:
+- Automatically discovers camera entities in your Home Assistant instance
+- Allows selecting from available cameras or entering custom RTSP URLs
+- Provides intuitive configuration with immediate validation
+- Integrates seamlessly with add-on settings and restarts for changes to take effect
+
+#### Web UI Features
+
+- **Dynamic Camera Discovery**: Automatically lists all camera entities visible to Home Assistant
+- **Source Selection**: Choose from existing cameras or enter custom RTSP network streams
+- **Real-time Validation**: Validation happens as you configure sources
+- **Integrated Testing**: Verify your selected source works before applying
+- **Contextual Help**: Descriptions and examples for each source type
+
+#### Usage Steps
+
+1. **Access the Web UI**: Navigate to `http://<HA_IP>:8099` in your browser
+2. **Browser Entity Discovery**: The Web UI searches for camera entities in your HA instance
+3. **Select Source Type**: Choose from available camera entities or enter a custom RTSP URL
+4. **Configure Options**: Set additional parameters like authentication if needed
+5. **Apply Changes**: Save your configuration and the add-on restarts automatically
+6. **Verify Activation**: The add-on will update Home Assistant entities to reflect the new source
+
+> **Note**: The ingress Web UI is accessible directly through the configured ingress port (default 8099) and integrates with the add-on's configuration system.
+The add-on provides a flexible interface for selecting audio sources through:
+- A live web UI panel (ingress panel) that dynamically lists available Home Assistant camera entities
+- Configuration settings in YAML
+- Direct RTSP URL entry
 `ha-audio-events` supports three primary audio ingestion modes:
 
 ### Mode 1: Host Microphone / PulseAudio (Default)
@@ -59,7 +94,7 @@ To analyze live audio from a raw RTSP camera stream:
     source_path: "rtsp://admin:password@192.168.1.50:554/h264Preview_01_main"
   ```
 
-### Mode 3: Local Audio File (Testing / Demonstration)
+### Mode 4: Local Audio File (Testing / Demonstration)
 To classify audio from a test audio file placed inside `/config`:
 - Set `audio.source_path` to the file path:
   ```yaml
@@ -73,13 +108,14 @@ To classify audio from a test audio file placed inside `/config`:
 
 ```yaml
 model: yamnet
+log_level: info
 buffer_seconds: 3.0
 
 audio:
   sample_rate: 16000
   channels: 1
   format: pcm_s16le
-  source_path: null     # null = default microphone; or "rtsp://..." or "/config/audio.wav"
+  source_path: null     # null = default microphone; or "camera.x" / "rtsp://..." / "/config/audio.wav"
 
 activity:
   rms_threshold: 0.04   # Minimum RMS signal strength to trigger model analysis
@@ -105,10 +141,8 @@ aggregation:
   end_timeout: 5.0      # Seconds of low confidence before ending an event
 
 homeassistant:
-  enabled: true
-  url: "http://supervisor/homeassistant"
-  token: null           # Automatically uses SUPERVISOR_TOKEN inside HA OS add-on
-  entity_prefix: "audio"
+  enabled: true         # url/token are provided automatically inside the add-on;
+  entity_prefix: "audio"  # standalone installs may still set them (see notes below)
 
 mqtt:
   enabled: false
@@ -116,7 +150,53 @@ mqtt:
   port: 1883
   topic: "audio/events"
   discovery_prefix: "homeassistant"
+  username: null         # Optional broker credentials
+  password: null
+  tls: false
+
+webui:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8099
+  auth_token: null       # Set to require a token on /api endpoints (recommended outside HA ingress)
 ```
+
+### Option reference
+
+Every option is also documented inline in the add-on's configuration panel
+(via `translations/en.yaml`). Values fixed by the YAMNet pipeline
+(`model`, `sample_rate`, `channels`, `format`, and `log_level`) render as
+dropdowns in Home Assistant.
+
+| Option | Default | Purpose |
+| :--- | :--- | :--- |
+| `model` | `yamnet` | Classifier model. Only YAMNet is available. |
+| `log_level` | `info` | Add-on log verbosity (`debug` when reporting issues). |
+| `buffer_seconds` | `3.0` | Rolling audio window kept for analysis; longer = slower detections. |
+| `audio.sample_rate` | `16000` | Fixed by YAMNet. |
+| `audio.channels` | `1` | Mono; ffmpeg input is downmixed automatically. |
+| `audio.format` | `pcm_s16le` | Internal PCM format fed to the classifier. |
+| `audio.source_path` | `null` | Camera entity id, RTSP URL, or file path. Empty = host microphone/PulseAudio. |
+| `activity.rms_threshold` | `0.04` | Average loudness needed before inference runs (CPU saver). Lower = more sensitive. |
+| `activity.peak_threshold` | `0.1` | Loudest single sample needed before inference runs. |
+| `activity.hold_time` | `2.0` | Keep analysing this long after sound fades. |
+| `classifier.threshold` | `0.8` | Ignore predictions below this confidence (0-1). |
+| `classifier.max_results` | `5` | Top-K predictions considered per pass. |
+| `classifier.include` | see YAML | Labels that create events/entities (empty = all 521; substring match). |
+| `classifier.exclude` | `music, silence` | Labels never reported. |
+| `aggregation.start_confidence` | `0.85` | Confidence required to open an event. |
+| `aggregation.end_timeout` | `5.0` | Absence duration before an event ends / sensor turns off. |
+| `homeassistant.enabled` | `true` | Update HA entities + fire events over REST. |
+| `homeassistant.entity_prefix` | `audio` | Prefix for created entity ids. |
+| `mqtt.*` | disabled | Alternative MQTT publishing path incl. discovery; credentials/TLS optional. |
+| `webui.enabled` | `true` | Ingress panel for source picking + live detections. |
+| `webui.auth_token` | `null` | Optional shared token guarding the panel API outside ingress. |
+
+> **Note on `url`/`token`:** when running as a Home Assistant add-on these are
+> provided automatically (`http://supervisor/core` + the Supervisor token) and
+> are intentionally not shown in the add-on options. Legacy saved values such
+> as `http://supervisor/homeassistant` are normalised automatically at startup.
+> Standalone container installs can still set both via `config.yaml`.
 
 ---
 
@@ -180,11 +260,17 @@ python3 -m app.demo tests/fixtures/audio/train/freight_train_01.wav
    - If using host microphone, ensure `Audio input` hardware access is enabled in add-on settings.
    - If using RTSP, check that `source_path` URL is valid and accessible from your Home Assistant network.
 
-2. **No sounds detected**:
+2. **Panel shows "The app seems to not be ready" / retry dialog**:
+   - The add-on was restarting when you opened the panel (e.g. right after
+     applying a source). Wait a few seconds and hit **Retry**, or reload
+     the page.
+   - If it persists, check the add-on Log tab for a startup traceback.
+
+3. **No sounds detected**:
    - Check if your sound label is listed under `classifier.include`.
    - Try lowering `activity.rms_threshold` (e.g., to `0.01`) if input signal level is low.
    - Try lowering `classifier.threshold` (e.g., to `0.6`).
 
-3. **Entities not showing up in Home Assistant**:
+4. **Entities not showing up in Home Assistant**:
    - Verify `homeassistant.enabled` is `true`.
    - If using MQTT, ensure `mqtt.enabled` is `true` and broker credentials match.

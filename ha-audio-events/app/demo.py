@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import subprocess
 import sys
-import tempfile
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from app.audio.activity import ActivityDetector
@@ -22,9 +22,7 @@ from app.config import (
 )
 from app.detection.aggregate import EventAggregator
 from app.detection.filter import filter_detections
-
-
-from datetime import datetime, timezone, timedelta
+from app.detection.models import EventMessage
 
 
 def format_file_result(path: str, label: str, duration: float) -> str:
@@ -38,7 +36,19 @@ def _prepare_audio_for_demo(audio_path: str) -> str:
 
     output = Path("/tmp") / f"{source.stem}.wav"
     subprocess.run(
-        ["ffmpeg", "-y", "-i", str(source), "-ar", "16000", "-ac", "1", "-f", "wav", str(output)],
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(source),
+            "-ar",
+            "16000",
+            "-ac",
+            "1",
+            "-f",
+            "wav",
+            str(output),
+        ],
         check=True,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -58,8 +68,12 @@ async def run_demo(audio_path: str) -> list[str]:
             format="pcm_s16le",
             source_path=converted_path,
         ),
-        activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001, hold_time=0.5),
-        classifier=ClassifierConfig(threshold=0.05, max_results=5, include=[], exclude=["music", "silence"]),
+        activity=ActivityConfig(
+            rms_threshold=0.001, peak_threshold=0.001, hold_time=0.5
+        ),
+        classifier=ClassifierConfig(
+            threshold=0.05, max_results=5, include=[], exclude=["music", "silence"]
+        ),
         aggregation=AggregationConfig(start_confidence=0.05, end_timeout=2.0),
         homeassistant=HomeAssistantConfig(
             enabled=False,
@@ -87,9 +101,9 @@ async def run_demo(audio_path: str) -> list[str]:
     source = AudioStreamSource(config.audio)
     aggregator = EventAggregator(config.aggregation)
 
-    base_time = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    base_time = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
     stream_time = 0.0
-    last_seen_event: dict[str, object] = {}
+    last_seen_event: dict[str, EventMessage] = {}
 
     async for chunk in source.stream():
         chunk_seconds = len(chunk) / config.audio.sample_rate
@@ -112,13 +126,13 @@ async def run_demo(audio_path: str) -> list[str]:
     results: list[str] = []
     sorted_events = sorted(
         last_seen_event.values(),
-        key=lambda e: getattr(e, "duration", 0.0),
+        key=lambda e: e.duration,
         reverse=True,
     )
     for event in sorted_events:
-        duration = getattr(event, "duration", 0.0)
-        label = getattr(event, "label", "unknown")
-        results.append(format_file_result(Path(audio_path).name, label, duration))
+        results.append(
+            format_file_result(Path(audio_path).name, event.label, event.duration)
+        )
 
     return results
 
@@ -138,4 +152,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

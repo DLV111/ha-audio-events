@@ -45,14 +45,27 @@ class MQTTConfig:
     port: int = 1883
     topic: str = "audio/events"
     discovery_prefix: str = "homeassistant"
+    username: str | None = None
+    password: str | None = None
+    tls: bool = False
 
 
 @dataclass(frozen=True)
 class HomeAssistantConfig:
     enabled: bool = True
-    url: str = "http://supervisor/homeassistant"
+    url: str = "http://supervisor/core"
     token: str | None = None
     entity_prefix: str = "audio"
+
+
+@dataclass(frozen=True)
+class WebUIConfig:
+    enabled: bool = True
+    host: str = "0.0.0.0"
+    port: int = 8099
+    # When set, /api endpoints require this shared token. Unnecessary behind
+    # HA ingress; recommended for standalone deployments.
+    auth_token: str | None = None
 
 
 @dataclass(frozen=True)
@@ -65,7 +78,21 @@ class AppConfig:
     aggregation: AggregationConfig = field(default_factory=AggregationConfig)
     homeassistant: HomeAssistantConfig = field(default_factory=HomeAssistantConfig)
     mqtt: MQTTConfig = field(default_factory=MQTTConfig)
+    webui: WebUIConfig = field(default_factory=WebUIConfig)
     log_level: str = "INFO"
+
+
+def _clean_str(value: Any) -> str | None:
+    """Treat blank strings as unset.
+
+    Add-on option defaults use "" rather than null because the Supervisor
+    rejects null for nullable (``str?``) schema fields; this converts them
+    back to real optionals for the app.
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -84,27 +111,83 @@ def _load_config(path: Path) -> dict[str, Any]:
     return _load_yaml(path)
 
 
+def normalize_ha_url(url: str | None) -> str | None:
+    """Normalize legacy Home Assistant API URLs.
+
+    Existing installs may still carry the pre-0.1.11 default
+    ``http://supervisor/homeassistant``, which is not a valid Supervisor
+    proxy path and silently breaks every event/state call. Map the known
+    legacy forms to the canonical ``http://supervisor/core`` so old saved
+    options heal themselves on startup.
+    """
+    if url is None:
+        return None
+    cleaned = url.strip().rstrip("/")
+    if not cleaned:
+        return None
+    if cleaned in (
+        "http://supervisor/homeassistant",
+        "http://supervisor:80/homeassistant",
+    ):
+        return "http://supervisor/core"
+    if cleaned == "http://supervisor/core/api":
+        # /api is appended by every client; a url already ending in /api
+        # would produce /api/api.
+        return "http://supervisor/core"
+    return cleaned
+
+
 def load_config(path: Path | str | None = None) -> AppConfig:
-    config_path = Path(path or "/data/options.json")
-    if not config_path.exists():
-        config_path = Path(path or "config.yaml")
+    if path is not None:
+        # An explicitly provided path must exist: silently falling back to a
+        # default file would mask typos and load the wrong configuration.
+        config_path = Path(path)
+        if not config_path.exists():
+            raise FileNotFoundError(f"Config file not found: {config_path}")
+    else:
+        # Default lookup order for the add-on environment.
+        config_path = Path("/data/options.json")
+        if not config_path.exists():
+            config_path = Path("config.yaml")
     raw = _load_config(config_path)
 
-    audio = raw.get("audio", {})
+    raw_audio = raw.get("audio")
+
+    # Handle case where audio is a boolean (from HA add-on options file)
+    if isinstance(raw_audio, bool):
+        audio_cfg = AudioSourceConfig()
+    else:
+        audio_cfg = AudioSourceConfig(
+            sample_rate=(
+                int(raw_audio.get("sample_rate", 16000))
+                if isinstance(raw_audio, dict)
+                else 16000
+            ),
+            channels=(
+                int(raw_audio.get("channels", 1)) if isinstance(raw_audio, dict) else 1
+            ),
+            format=(
+                str(raw_audio.get("format", "pcm_s16le"))
+                if isinstance(raw_audio, dict)
+                else "pcm_s16le"
+            ),
+            source_path=(
+                _clean_str(raw_audio.get("source_path"))
+                if isinstance(raw_audio, dict)
+                else None
+            ),
+        )
+
     activity = raw.get("activity", {})
     classifier = raw.get("classifier", {})
     aggregation = raw.get("aggregation", {})
     mqtt = raw.get("mqtt", {})
+    webui = raw.get("webui", {})
 
     return AppConfig(
         model=str(raw.get("model", "yamnet")),
         buffer_seconds=float(raw.get("buffer_seconds", 3.0)),
-        audio=AudioSourceConfig(
-            sample_rate=int(audio.get("sample_rate", 16000)),
-            channels=int(audio.get("channels", 1)),
-            format=str(audio.get("format", "pcm_s16le")),
-            source_path=audio.get("source_path"),
-        ),
+        audio=audio_cfg,
         activity=ActivityConfig(
             rms_threshold=float(activity.get("rms_threshold", 0.04)),
             peak_threshold=float(activity.get("peak_threshold", 0.1)),
@@ -122,13 +205,18 @@ def load_config(path: Path | str | None = None) -> AppConfig:
         ),
         homeassistant=HomeAssistantConfig(
             enabled=bool(raw.get("homeassistant", {}).get("enabled", True)),
-            url=str(raw.get("homeassistant", {}).get("url", "http://supervisor/homeassistant")),
+            url=(
+                normalize_ha_url(raw.get("homeassistant", {}).get("url"))
+                or "http://supervisor/core"
+            ),
             token=(
-                raw.get("homeassistant", {}).get("token")
+                _clean_str(raw.get("homeassistant", {}).get("token"))
                 or os.getenv("HASS_TOKEN")
                 or os.getenv("SUPERVISOR_TOKEN")
             ),
-            entity_prefix=str(raw.get("homeassistant", {}).get("entity_prefix", "audio")),
+            entity_prefix=str(
+                raw.get("homeassistant", {}).get("entity_prefix", "audio")
+            ),
         ),
         mqtt=MQTTConfig(
             enabled=bool(mqtt.get("enabled", False)),
@@ -136,6 +224,15 @@ def load_config(path: Path | str | None = None) -> AppConfig:
             port=int(mqtt.get("port", 1883)),
             topic=str(mqtt.get("topic", "audio/events")),
             discovery_prefix=str(mqtt.get("discovery_prefix", "homeassistant")),
+            username=_clean_str(mqtt.get("username")),
+            password=_clean_str(mqtt.get("password")),
+            tls=bool(mqtt.get("tls", False)),
+        ),
+        webui=WebUIConfig(
+            enabled=bool(webui.get("enabled", True)),
+            host=str(webui.get("host", "0.0.0.0")),
+            port=int(webui.get("port", 8099)),
+            auth_token=_clean_str(webui.get("auth_token")),
         ),
         log_level=str(raw.get("log_level", "INFO")),
     )
