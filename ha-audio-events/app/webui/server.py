@@ -25,6 +25,13 @@ _LOGGER = logging.getLogger(__name__)
 # Empty string means "no token configured" (open access / HA ingress).
 _AUTH_TOKEN_KEY = web.AppKey("webui_auth_token", str)
 
+# Static assets live beside this module (app/webui/static). Resolve them from
+# __file__ rather than a CWD-relative "app/webui/static" path: the add-on runs
+# with CWD=/app (== ha-audio-events/), but the test suite and local runs start
+# from the repo root, where "app/webui/static" does not exist -- so a
+# CWD-relative path silently 404s the picker module.
+_STATIC_DIR = Path(__file__).resolve().parent / "static"
+
 
 @web.middleware
 async def auth_middleware(request: web.Request, handler) -> web.StreamResponse:
@@ -245,7 +252,7 @@ class WebUI:
         </div>
     </div>
 
-    <script src="/static/transfer_picker.js"></script>
+    <script src="static/transfer_picker.js"></script>
     <script>
         let cameras = [];
         let microphones = [];
@@ -946,8 +953,10 @@ class WebUI:
 
     async def serve_static(self, request: web.Request) -> web.Response:
         """Serve static assets (e.g. the JS picker module) from the webui dir."""
-        path = Path("app/webui/static") / request.match_info["path"]
-        if not path.is_file():
+        # Contain the requested path inside _STATIC_DIR so a crafted
+        # "../../..." can never escape into the rest of the image.
+        path = (_STATIC_DIR / request.match_info["path"]).resolve()
+        if not path.is_relative_to(_STATIC_DIR) or not path.is_file():
             return web.Response(status=404)
         return web.FileResponse(path)  # type: ignore[return-value]
 

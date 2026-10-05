@@ -5,6 +5,14 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-10-05
+### Fixed
+- **Audio Class Filters no longer fail with "TransferPicker is not defined"**: the panel loaded its picker module from the root-absolute URL `/static/transfer_picker.js`. Under Home Assistant ingress the panel is served from `/api/hassio_ingress/<token>/`, so the browser requested the asset from Home Assistant core, the request never reached the add-on, the classic `<script>` never executed, and the first `TransferPicker.*` call threw. The reference is now relative (`static/transfer_picker.js`), so it resolves under whatever prefix the panel is mounted at, ingress included.
+- **Static assets are served regardless of the process working directory**: `/static/{path}` resolved its directory relative to the current working directory, so it only worked when the add-on had started from `ha-audio-events/` (it 404'd under pytest and any other CWD). It now resolves from the module location and rejects paths that escape the static directory.
+
+### Added
+- Regression tests: a Node `node:vm` test asserting the UMD wrapper assigns a global `TransferPicker` (with its full API) in a classic-script context, plus pytest coverage for the static route, the relative asset reference, and that the served asset matches the Node-tested source.
+
 ## [0.6.0] - 2026-10-05
 ### Added
 - **Dual-list transfer pickers for audio class filters in the Web UI panel**: Replace the two multi-select dropdowns with proper left/right transfer pickers (one for Include, one for Exclude) featuring available/accepted panes, Select All / Remove All, bidirectional transfer arrows, per-group Select / Clear, collapsible group headers, a search box filtering both panes, and a visible "N/M values accepted" counter.

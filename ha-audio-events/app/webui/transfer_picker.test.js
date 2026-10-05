@@ -159,6 +159,39 @@ test('getAcceptedValues returns sorted lowercased values', () => {
   assert.deepEqual(values, ['hammer', 'music']);
 });
 
+// --- UMD browser-global regression ---
+// The panel loads this file as a classic <script> (no module/exports). This
+// guards the UMD wrapper's browser branch: if it ever stops assigning a global
+// `TransferPicker`, the Web UI's Audio Class Filters card fails with
+// "TransferPicker is not defined" before any of the logic above is reached.
+test('UMD wrapper assigns a global TransferPicker in a classic-script context', () => {
+  const fs = require('fs');
+  const pathMod = require('path');
+  const vm = require('vm');
+  const src = fs.readFileSync(pathMod.join(__dirname, 'transfer_picker.js'), 'utf8');
+
+  // Fake browser global: has globalThis/self/window, but no module or exports.
+  const sandbox = {};
+  sandbox.globalThis = sandbox;
+  sandbox.self = sandbox;
+  sandbox.window = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(src, sandbox, { filename: 'transfer_picker.js' });
+
+  const TP = sandbox.TransferPicker;
+  assert.equal(typeof TP, 'object', 'TransferPicker was not assigned on the global');
+
+  ['createState', 'accept', 'remove', 'selectAll', 'removeAll', 'setSearch',
+   'filterState', 'getCounter', 'getAcceptedValues'].forEach(function (name) {
+    assert.equal(typeof TP[name], 'function', 'TransferPicker.' + name + ' is missing');
+  });
+
+  // The global instance must actually work, not just exist.
+  const s = TP.createState(['Hammer', 'Drill'], groupsTree, []);
+  TP.accept(s, 'Hammer');
+  assert.equal(TP.getCounter(s), '1/2 values accepted');
+});
+
 // --- summary ---
 console.log(`\n${passed + failed} tests: ${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
