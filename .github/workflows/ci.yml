@@ -9,6 +9,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
 
 jobs:
   # PR Title Validation - ensures meaningful commit messages
@@ -70,6 +71,15 @@ jobs:
         run: |
           source .venv/bin/activate
           PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=80 --cov-report=term-missing --cov-report=html -v
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run WebUI JS unit tests
+        run: |
+          node ha-audio-events/app/webui/transfer_picker.test.js
 
       - name: Run make test-container
         timeout-minutes: 5

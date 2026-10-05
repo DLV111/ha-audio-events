@@ -5,6 +5,16 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-10-05
+### Added
+- **Dual-list transfer pickers for audio class filters in the Web UI panel**: Replace the two multi-select dropdowns with proper left/right transfer pickers (one for Include, one for Exclude) featuring available/accepted panes, Select All / Remove All, bidirectional transfer arrows, per-group Select / Clear, collapsible group headers, a search box filtering both panes, and a visible "N/M values accepted" counter.
+- **AudioSet-ontology label grouping**: `make update-yamnet-groups` (plus an offline fixture suite) derives each of the 521 YAMNet label groupings from the [AudioSet ontology](https://raw.githubusercontent.com/audioset/ontology/master/ontology.json) into a committed `models/yamnet_groups.json` (no network needed at add-on runtime); labels are rendered grouped by their ontology ancestry (e.g. `Bark` → Animal > Domestic animals, pets > Dog).
+- **JS unit tests for the picker logic**: `transfer_picker.js` is a reusable module (with Node test runner in CI, via `setup-node`) exercising accept/remove/select-all/remove-all/search/filtering/counter behaviour — 13 tests.
+- New panel endpoint `GET /api/groups` exposing the grouped classes tree (consumed by the picker).
+
+### Fixed
+- **`update-yamnet-groups` now keeps the container build context in sync** by also copying `yamnet_groups.json` into `ha-audio-events/models/`, so the add-on has the groups file when it runs `models/yamnet_groups.json` relative to its working directory.
+
 ## [0.5.0] - 2026-08-23
 ### Added
 - **Audio class filters in the Web UI panel**: a new "Audio Class Filters" section with Include / Exclude multi-select dropdowns populated from all 521 YAMNet class names — no more free-text editing of `classifier.include`/`classifier.exclude` in the add-on options. Applying filters persists them to the add-on options and restarts the add-on, using the same response-then-restart contract as the source picker.
