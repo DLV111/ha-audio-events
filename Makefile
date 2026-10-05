@@ -1,4 +1,4 @@
-.PHONY: version version-noninteractive test test-unit test-lint test-format test-types test-container test-container-webui test-container-verbose test-fixtures test-fixtures-container test-fixture-local demo-file download-yamnet-model update-yamnet-model help
+.PHONY: version version-noninteractive test test-unit test-lint test-format test-types test-container test-container-webui test-container-verbose test-fixtures test-fixtures-container test-fixture-local demo-file download-yamnet-model update-yamnet-model update-yamnet-groups help
 
 help:
 	@echo "Available targets:"
@@ -11,6 +11,7 @@ help:
 	@echo "  make demo-file FILE=path/to/file.wav  Run the demo formatter against one audio file"
 	@echo "  make download-yamnet-model  Download the official YAMNet class map"
 	@echo "  make update-yamnet-model  Download the Kaggle YAMNet TFLite package and stage the assets"
+	@echo "  make update-yamnet-groups  Generate models/yamnet_groups.json from the AudioSet ontology"
 
 version:
 	@current_version=$$(grep -E '^version\s*=\s*"' pyproject.toml | head -n1 | sed -E 's/.*"([^"]+)"/\1/'); \
@@ -184,3 +185,11 @@ test-types:
 
 test-with-coverage:
 	@.venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=80 --cov-report=term-missing -v
+
+update-yamnet-groups:
+	@echo "Updating models/yamnet_groups.json from the AudioSet ontology ..."
+	@python3 scripts/update_yamnet_groups.py
+	@echo "Syncing to ha-audio-events/models/ (container build context) ..."
+	@cp models/yamnet_groups.json ha-audio-events/models/yamnet_groups.json
+	@echo "Staged:"
+	@ls -1 models ha-audio-events/models | grep -E 'yamnet_groups'

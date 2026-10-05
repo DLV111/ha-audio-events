@@ -564,19 +564,32 @@ class TestWebUIFilterMarkup(AioHTTPTestCase):
         resp = await self.client.request("GET", "/")
         assert resp.status == 200
         html = await resp.text()
-        # Form + multi-selects rendered server-side
-        assert 'id="filters-form"' in html
-        assert 'id="include-select"' in html
-        assert 'id="exclude-select"' in html
+        # Picker container is the static mount point; panes/transfers are built by JS
+        assert 'id="pickers-container"' in html
+        # Pane / control IDs are built by buildPickerDOM / wirePicker via
+        # getElementById(prefix + '...') -- the picker DOM is created at runtime.
+        assert "getElementById(prefix + '-available')" in html
+        assert "getElementById(prefix + '-accepted')" in html
+        assert "getElementById(prefix + '-accept-btn')" in html
+        assert "getElementById(prefix + '-remove-btn')" in html
+        assert "getElementById(prefix + '-select-all-btn')" in html
+        assert "getElementById(prefix + '-remove-all-btn')" in html
+        assert "getElementById(prefix + '-search')" in html
         assert "<h3>Audio Class Filters</h3>" in html
 
     async def test_index_wires_filter_javascript(self):
         resp = await self.client.request("GET", "/")
         html = await resp.text()
-        # JS fetches both endpoints and populates/submits via DOM APIs
-        # (textContent-style construction, no innerHTML interpolation of
-        # class names -- same XSS posture as the detections panel).
+        # Loads the groups tree (ontology) and class map for the picker
+        assert "'api/groups'" in html
         assert "'api/class-map'" in html
         assert "'api/classifiers'" in html
-        assert "populateClassSelect" in html
+        # TransferPicker module is loaded as a static asset
+        assert 'src="/static/transfer_picker.js"' in html
+        # JS uses TransferPicker API to build picker state and DOM
+        assert "TransferPicker" in html
+        assert "buildPickerDOM" in html
+        assert "renderAllPickers" in html
+        assert "wirePicker" in html
+        assert "loadFilters" in html
         assert "applyFilters" in html
