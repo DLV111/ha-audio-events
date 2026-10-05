@@ -584,8 +584,13 @@ class TestWebUIFilterMarkup(AioHTTPTestCase):
         assert "'api/groups'" in html
         assert "'api/class-map'" in html
         assert "'api/classifiers'" in html
-        # TransferPicker module is loaded as a static asset
-        assert 'src="/static/transfer_picker.js"' in html
+        # TransferPicker module is loaded as a static asset. The reference must
+        # be RELATIVE: under Home Assistant ingress the panel is served from a
+        # non-root prefix (/api/hassio_ingress/<token>/), so a root-absolute
+        # "/static/..." URL is resolved against Home Assistant core, 404s, and
+        # the picker dies with "TransferPicker is not defined".
+        assert 'src="static/transfer_picker.js"' in html
+        assert 'src="/static/' not in html
         # JS uses TransferPicker API to build picker state and DOM
         assert "TransferPicker" in html
         assert "buildPickerDOM" in html
@@ -593,3 +598,65 @@ class TestWebUIFilterMarkup(AioHTTPTestCase):
         assert "wirePicker" in html
         assert "loadFilters" in html
         assert "applyFilters" in html
+
+
+class TestWebUIStaticAssets(AioHTTPTestCase):
+    """Regression: the picker module must actually be fetched and executed by
+    the browser. A 404 here (or a root-absolute URL that only resolves at the
+    domain root) leaves ``TransferPicker`` undefined and the Audio Class
+    Filters card shows "TransferPicker is not defined"."""
+
+    async def get_application(self):
+        self.webui = WebUI(Mock(spec=HomeAssistantClient), Mock(spec=AddonManager))
+        return self.webui.app
+
+    async def test_transfer_picker_module_is_served(self):
+        """GET /static/transfer_picker.js serves the UMD source from any CWD.
+
+        The add-on runs with CWD=/app, but pytest runs from the repo root where
+        app/webui/static does not exist -- the route must resolve the static dir
+        from the module location, not the process working directory.
+        """
+        resp = await self.client.request("GET", "/static/transfer_picker.js")
+        assert resp.status == 200
+        body = await resp.text()
+        assert "TransferPicker = factory()" in body
+        assert "javascript" in resp.headers.get("Content-Type", "")
+
+    async def test_unknown_static_asset_returns_404(self):
+        resp = await self.client.request("GET", "/static/does-not-exist.js")
+        assert resp.status == 404
+
+    async def test_static_route_cannot_escape_static_dir(self):
+        """A crafted path must not be able to read files outside static/."""
+        resp = await self.client.request("GET", "/static/%2e%2e/%2e%2e/config.yaml")
+        assert resp.status == 404
+
+    async def test_picker_reference_resolves_under_a_non_root_mount(self):
+        """Under HA ingress the panel lives at /api/hassio_ingress/<token>/.
+
+        Every asset the page loads must be referenced relatively so it resolves
+        under that prefix instead of the domain root.
+        """
+        resp = await self.client.request("GET", "/")
+        html = await resp.text()
+        assert 'src="static/transfer_picker.js"' in html
+        # No root-absolute asset references anywhere in the panel.
+        assert 'src="/' not in html
+        assert 'href="/' not in html
+
+    async def test_served_picker_matches_node_tested_source(self):
+        """The served asset must be byte-identical to the module the Node tests
+        exercise; otherwise the browser runs untested code."""
+        from pathlib import Path
+
+        src = (
+            Path(__file__).resolve().parents[1]
+            / "ha-audio-events"
+            / "app"
+            / "webui"
+            / "transfer_picker.js"
+        )
+        resp = await self.client.request("GET", "/static/transfer_picker.js")
+        assert resp.status == 200
+        assert (await resp.text()) == src.read_text(encoding="utf-8")
