@@ -1,0 +1,11 @@
+[
+  {"id": "ROOT_SOUNDS", "name": "Sounds of things", "description": "", "child_ids": ["TOOLS", "ENGINE"]},
+  {"id": "TOOLS", "name": "Tools", "description": "", "child_ids": ["HAMMER", "DRILL"]},
+  {"id": "ENGINE", "name": "Engine", "description": "", "child_ids": ["DIESEL_ENGINE"]},
+  {"id": "ROOT_MUSIC", "name": "Music", "description": "", "child_ids": ["ROCK"]},
+  {"id": "ROCK", "name": "Rock music", "description": "", "child_ids": ["ROCK_GUITAR"]},
+  {"id": "HAMMER", "name": "Hammer", "description": "", "child_ids": []},
+  {"id": "DRILL", "name": "Drill", "description": "", "child_ids": []},
+  {"id": "DIESEL_ENGINE", "name": "Diesel engine", "description": "", "child_ids": []},
+  {"id": "ROCK_GUITAR", "name": "Rock guitar", "description": "", "child_ids": []}
+]

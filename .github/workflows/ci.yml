@@ -9,8 +9,38 @@ on:
 
 env:
   PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
 
 jobs:
+  # Branch Guard - enforces the repository's branch flow:
+  #   * only PRs FROM develop may enter main
+  #   * main must never be merged back INTO develop
+  # Gated on pull_request; skipped on push/dispatch.
+  branch-guard:
+    name: Branch Guard
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce PR origin policy
+        env:
+          # Indirection through env vars prevents shell injection from
+          # attacker-controlled ref names (never interpolate them directly).
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          echo "PR: ${HEAD_REF} -> ${BASE_REF}"
+          if [ "${BASE_REF}" = "main" ] && [ "${HEAD_REF}" != "develop" ]; then
+            echo "ERROR: only PRs from 'develop' may be merged into 'main' (got '${HEAD_REF}')."
+            echo "Open the change against 'develop' first, then promote develop -> main."
+            exit 1
+          fi
+          if [ "${BASE_REF}" = "develop" ] && [ "${HEAD_REF}" = "main" ]; then
+            echo "ERROR: 'main' must not be merged back into 'develop'."
+            echo "Re-apply the commit onto develop instead of merging main down."
+            exit 1
+          fi
+          echo "Branch guard passed: ${HEAD_REF} -> ${BASE_REF}"
+
   # PR Title Validation - ensures meaningful commit messages
   pr-title-validation:
     runs-on: ubuntu-latest
@@ -70,6 +100,15 @@ jobs:
         run: |
           source .venv/bin/activate
           PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=80 --cov-report=term-missing --cov-report=html -v
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run WebUI JS unit tests
+        run: |
+          node ha-audio-events/app/webui/transfer_picker.test.js
 
       - name: Run make test-container
         timeout-minutes: 5
