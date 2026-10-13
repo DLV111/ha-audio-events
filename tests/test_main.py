@@ -496,6 +496,98 @@ async def test_webui_survives_pipeline_failure() -> None:
         mock_webui_instance.start.assert_awaited_once_with(host="127.0.0.1", port=8123)
 
 
+@pytest.mark.asyncio
+async def test_mqtt_owns_scalar_entities_not_rest() -> None:
+    """Regression: the scalar entities used to be pushed as REST states, which
+    left them without a registry unique_id (Home Assistant: "does not have a
+    unique ID, therefore its settings cannot be managed from the UI"). With
+    MQTT enabled they must be published over MQTT discovery instead, and no
+    state POST may be issued for them."""
+    config = AppConfig(
+        model="yamnet",
+        audio=AudioSourceConfig(sample_rate=16000, channels=1),
+        activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
+        buffer_seconds=3.0,
+        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
+        homeassistant=HomeAssistantConfig(
+            enabled=True,
+            url="http://localhost:8123",
+            token="test_token",
+            entity_prefix="audio",
+        ),
+        mqtt=MQTTConfig(enabled=True, host="localhost", port=1883),
+        webui=WebUIConfig(enabled=False),
+    )
+
+    event = EventMessage(
+        event_type="audio.detected",
+        label="dog",
+        confidence=0.9,
+        duration=1.5,
+        state="started",
+        model="yamnet",
+    )
+
+    chunk = np.ones(16000, dtype=np.float32) * 0.01
+
+    with (
+        patch("app.main.AudioStreamSource") as mock_source_class,
+        patch("app.main.build_classifier") as mock_classifier,
+        patch("app.main.EventAggregator") as mock_aggregator,
+        patch("app.main.HomeAssistantClient") as mock_ha_client_class,
+        patch("app.main.MQTTClient") as mock_mqtt_client_class,
+    ):
+        mock_source = MagicMock()
+
+        class ChunkAsyncIterator:
+            def __init__(self) -> None:
+                self.yielded = False
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                if not self.yielded:
+                    self.yielded = True
+                    return chunk
+                raise StopAsyncIteration
+
+        mock_source.stream.return_value = ChunkAsyncIterator()
+        mock_source_class.return_value = mock_source
+
+        mock_classifier_instance = AsyncMock()
+        mock_classifier_instance.classify = AsyncMock(return_value=[])
+        mock_classifier.return_value = mock_classifier_instance
+
+        aggregator = MagicMock()
+        aggregator.update.return_value = [event]
+        aggregator.flush.return_value = []
+        mock_aggregator.return_value = aggregator
+
+        ha_client = MagicMock()
+        ha_client.close = AsyncMock()
+        ha_client.init_entities = AsyncMock()
+        ha_client.fire_event = AsyncMock()
+        ha_client.update_state = AsyncMock()
+        mock_ha_client_class.return_value = ha_client
+
+        mqtt_client = MagicMock()
+        mock_mqtt_client_class.return_value = mqtt_client
+
+        await _run_pipeline(config)
+
+    # The REST client still fires the audio.detected event...
+    ha_client.fire_event.assert_awaited_once_with(event)
+    # ...but owns no entity state at all any more.
+    ha_client.update_state.assert_not_called()
+
+    # The two scalar entities are discovered over MQTT even though the include
+    # filter is empty (empty include = report every class).
+    mqtt_client.publish_discovery.assert_called_once_with("audio", [])
+    mqtt_client.publish.assert_called_once_with(event)
+
+
 @patch("app.main.load_config")
 @patch("app.main.configure_logging")
 @patch("app.main.asyncio.run")

@@ -1,4 +1,4 @@
-.PHONY: version version-noninteractive test test-unit test-lint test-format test-types test-container test-container-webui test-container-verbose test-fixtures test-fixtures-container test-fixture-local demo-file download-yamnet-model update-yamnet-model update-yamnet-groups help
+.PHONY: version version-noninteractive test test-unit test-lint test-format test-types test-container test-container-webui test-container-verbose test-fixtures test-fixtures-container test-fixture-local demo-file download-yamnet-model update-yamnet-model update-yamnet-groups generate-class-groups help
 
 help:
 	@echo "Available targets:"
@@ -12,6 +12,7 @@ help:
 	@echo "  make download-yamnet-model  Download the official YAMNet class map"
 	@echo "  make update-yamnet-model  Download the Kaggle YAMNet TFLite package and stage the assets"
 	@echo "  make update-yamnet-groups  Generate models/yamnet_groups.json from the AudioSet ontology"
+	@echo "  make generate-class-groups  Generate models/class_groups.json (grouped class menu for the Web UI)"
 
 version:
 	@current_version=$$(grep -E '^version\s*=\s*"' pyproject.toml | head -n1 | sed -E 's/.*"([^"]+)"/\1/'); \
@@ -193,3 +194,7 @@ update-yamnet-groups:
 	@cp models/yamnet_groups.json ha-audio-events/models/yamnet_groups.json
 	@echo "Staged:"
 	@ls -1 models ha-audio-events/models | grep -E 'yamnet_groups'
+
+generate-class-groups:
+	@echo "Generating models/class_groups.json (grouped class menu) ..."
+	@python3 scripts/generate_class_groups.py

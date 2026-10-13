@@ -32,6 +32,23 @@ def build_label_sensor_entity_ids(
     return {label: f"binary_sensor.{prefix}_{slugify_label(label)}" for label in labels}
 
 
+def build_rest_entity_ids(config: HomeAssistantConfig) -> set[str]:
+    """Entity IDs this add-on deliberately owns via the HA REST API.
+
+    REST state POSTs (``/api/states/<entity_id>``) auto-create entities, but
+    they can never attach a registry ``unique_id`` -- Home Assistant then
+    tells the user the entity "does not have a unique ID, therefore its
+    settings cannot be managed from the UI". Everything this add-on owns is
+    therefore published through MQTT discovery instead (see
+    ``app.homeassistant.discovery``), and this set is empty.
+
+    It is kept as the single, explicit place to declare a future entity that
+    genuinely cannot be MQTT-discovered: add its entity id here and
+    ``HomeAssistantClient.init_entities()`` will create it over REST.
+    """
+    return set()
+
+
 def build_friendly_names(config: HomeAssistantConfig) -> dict[str, str]:
     prefix = config.entity_prefix.replace("_", " ").title()
     return {
