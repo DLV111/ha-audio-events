@@ -32,7 +32,7 @@ def build_mqtt_discovery_payload(
             "unique_id": f"{entity_id}_discovery",
             "device": {
                 "identifiers": [entity_prefix],
-                "name": f"{entity_prefix} audio detector",
+                "name": f"Audio Events ({entity_prefix})",
                 "manufacturer": "HA Audio Events",
             },
             "payload_on": "on",
@@ -64,7 +64,7 @@ def build_scalar_entity_discovery_payloads(
     """
     device = {
         "identifiers": [entity_prefix],
-        "name": f"{entity_prefix} audio detector",
+        "name": f"Audio Events ({entity_prefix})",
         "manufacturer": "HA Audio Events",
     }
     friendly_prefix = entity_prefix.replace("_", " ").title()

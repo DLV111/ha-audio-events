@@ -5,6 +5,19 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-10-17
+### Fixed
+- **MQTT-disabled installs keep working**: entity ownership is now config-driven and mutually exclusive. With `mqtt.enabled=false` the two scalar entities (`sensor.<prefix>_last_audio_event`, `binary_sensor.<prefix>_audio_active`) *and* the per-label sensors named in `classifier.include` are created and updated over the Home Assistant REST API again, exactly as before MQTT discovery existed — they are just not manageable from the UI (no registry `unique_id`). This restores the behaviour of the `0.7.0` release, which published entity state through MQTT only and silently left MQTT-disabled installs with entities that never updated.
+- **No stale `unknown` scalar entities**: the event payload published to `mqtt.topic` — the topic both scalar entities read as their state and attributes — and the per-label state topics are now published **retained**, so the entities keep their last known value across a broker or Home Assistant restart instead of sitting at `unknown` until the next detection.
+- **Discovery survives a slow broker**: MQTT discovery is (re)published from paho's `on_connect` callback using cached payloads, rather than only once at startup. A start-up publish issued before the CONNACK is not queued by paho at QoS 0 and could be dropped silently when the broker was slow or briefly unavailable.
+### Changed
+- The "MQTT is disabled" warning now names **both** the scalar entities and the per-label sensors that lose UI manageability, and says that `unique_id` requires MQTT. Previously it mentioned only the scalar pair, so per-label sensors looked unaffected.
+- The MQTT device advertised through discovery is now named `Audio Events (<prefix>)` instead of `<prefix> audio detector` (which read as "audio audio detector" for the default `audio` prefix).
+- `make generate-class-groups` now syncs `models/class_groups.json` into the container build context (`ha-audio-events/models/`) instead of relying on two hand-copied files.
+
+### Upgrade note
+Entities created by the REST state POSTs have no registry `unique_id`, so with `mqtt.enabled=false` they remain unmanageable in the Home Assistant UI — that is expected and unchanged. Enabling MQTT registers the discovered entities; if you previously ran REST-created entities and then enable MQTT, Home Assistant may briefly show both the newly registered entity and the leftover unmanaged one. The add-on never renames or deletes your entities: delete the stale unmanaged duplicates by hand once.
+
 ## [0.7.0] - 2026-10-13
 ### Added
 - **Menu-driven, mobile-friendly audio class filters**: each Include / Exclude picker now has a horizontally scrollable bar of AudioSet category chips that narrows both panes to one top-level category at a time. Backed by a new `GET /api/class-groups` endpoint serving `models/class_groups.json` — the grouped class menu, generated from the AudioSet ontology with `make generate-class-groups` (never hand-maintained), which partitions all 521 YAMNet classes across the 7 groups of the current ontology.

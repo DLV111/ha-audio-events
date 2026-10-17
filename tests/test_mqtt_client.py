@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import logging
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 from app.config import MQTTConfig
 from app.detection.models import EventMessage
 from app.homeassistant.mqtt import MQTTClient
+
+
+def _connected(is_failure: bool = False) -> SimpleNamespace:
+    """Stand-in for paho's ReasonCode/connack code (v3 int or v5 object)."""
+    return SimpleNamespace(is_failure=is_failure)
 
 
 def _config() -> MQTTConfig:
@@ -95,6 +102,73 @@ def test_mqtt_client_publish_discovery(mock_mqtt_client):
         assert call.kwargs.get("retain") is True
 
 
+def test_mqtt_client_republishes_discovery_on_connect(mock_mqtt_client):
+    """Discovery must be published from the connect callback, not just startup.
+
+    connect_async + loop_start do not queue QoS-0 publishes while the client
+    is still connecting, so a startup publish issued before the CONNACK can
+    be dropped silently when the broker is slow or briefly absent. The
+    callback paho fires after every (re)connection is where discovery is made
+    durable, so it must republish the cached payloads.
+    """
+    client = MQTTClient(_config())
+
+    # paho is handed the client's own callback: that wiring is the fix.
+    assert mock_mqtt_client.on_connect == client._on_connect
+
+    client.publish_discovery("audio", ["dog"])
+    mock_mqtt_client.publish.reset_mock()
+
+    # A successful CONNACK.
+    mock_mqtt_client.on_connect(mock_mqtt_client, None, MagicMock(), _connected())
+
+    topics = [call.args[0] for call in mock_mqtt_client.publish.call_args_list]
+    assert topics == [
+        "homeassistant/sensor/audio_last_audio_event/config",
+        "homeassistant/binary_sensor/audio_audio_active/config",
+        # Pre-existing quirk: the per-label discovery payload keys off the
+        # entity id (which carries its domain) rather than the bare object id.
+        "homeassistant/binary_sensor/binary_sensor.audio_dog/config",
+    ]
+    # Retained, so a broker restart keeps the discovered entities alive.
+    for call in mock_mqtt_client.publish.call_args_list:
+        assert call.kwargs.get("retain") is True
+
+
+def test_mqtt_client_connect_before_discovery_publishes_nothing(
+    mock_mqtt_client,
+):
+    """The startup race must be safe: a CONNACK arriving before
+    publish_discovery() has cached anything logs nothing and publishes
+    nothing -- the caller's own publish then runs against a connected client.
+    """
+    client = MQTTClient(_config())
+    assert client._discovery_payloads == []
+
+    mock_mqtt_client.on_connect(mock_mqtt_client, None, MagicMock(), _connected())
+
+    mock_mqtt_client.publish.assert_not_called()
+
+
+def test_mqtt_client_rejected_connection_skips_discovery(mock_mqtt_client, caplog):
+    """A refused connection (bad credentials, broker down) must not pretend
+    discovery was published -- it warns instead.
+    """
+    client = MQTTClient(_config())
+    client.publish_discovery("audio", [])
+    mock_mqtt_client.publish.reset_mock()
+
+    with caplog.at_level(logging.WARNING, logger="app.homeassistant.mqtt"):
+        mock_mqtt_client.on_connect(
+            mock_mqtt_client, None, MagicMock(), _connected(is_failure=True)
+        )
+
+    mock_mqtt_client.publish.assert_not_called()
+    assert any(
+        "discovery not published" in record.getMessage() for record in caplog.records
+    )
+
+
 def test_mqtt_client_publish_event(mock_mqtt_client):
     """Test MQTT event publishing."""
     config = _config()
@@ -115,8 +189,11 @@ def test_mqtt_client_publish_event(mock_mqtt_client):
     assert mock_mqtt_client.publish.call_count == 2
     calls = mock_mqtt_client.publish.call_args_list
 
-    # First call: main topic
+    # First call: main topic, retained -- this is the payload backing the two
+    # scalar entities, so retaining it keeps them off "unknown" after a broker
+    # or Home Assistant restart.
     assert calls[0].args[0] == "audio/events"
+    assert calls[0].kwargs.get("retain") is True
     import json
 
     payload = json.loads(calls[0].args[1])

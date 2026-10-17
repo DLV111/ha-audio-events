@@ -16,6 +16,13 @@ from app.detection.filter import filter_detections
 from app.detection.history import EventHistory
 from app.detection.models import EventMessage
 from app.homeassistant.client import HomeAssistantClient
+from app.homeassistant.entities import (
+    build_attributes,
+    build_entity_ids,
+    build_friendly_names,
+    build_label_friendly_names,
+    build_label_sensor_entity_ids,
+)
 from app.homeassistant.mqtt import MQTTClient
 from app.utils.logging import configure_logging
 from app.webui.server import WebUI
@@ -40,9 +47,26 @@ async def _run_pipeline(config: AppConfig) -> None:
     classifier = build_classifier(config)
     aggregator = EventAggregator(config.aggregation)
     history = EventHistory()
-    mqtt_client = MQTTClient(config.mqtt) if config.mqtt.enabled else None
+    # Entity ownership is mutually exclusive and config-driven: with MQTT
+    # enabled the entities are created by MQTT discovery (registry unique_id,
+    # manageable from the HA UI), otherwise the REST API owns them (they
+    # exist and update, but HA cannot manage them). See build_rest_entity_ids.
+    mqtt_enabled = config.mqtt.enabled
+    mqtt_client = MQTTClient(config.mqtt) if mqtt_enabled else None
+    entity_ids = build_entity_ids(config.homeassistant)
+    label_sensor_ids = build_label_sensor_entity_ids(
+        config.homeassistant, config.classifier.include
+    )
+    friendly_names = build_friendly_names(config.homeassistant)
+    label_friendly_names = build_label_friendly_names(
+        config.homeassistant, config.classifier.include
+    )
     ha_client = (
-        HomeAssistantClient(config.homeassistant)
+        HomeAssistantClient(
+            config.homeassistant,
+            mqtt_enabled=mqtt_enabled,
+            labels=config.classifier.include,
+        )
         if config.homeassistant.enabled
         else None
     )
@@ -68,26 +92,64 @@ async def _run_pipeline(config: AppConfig) -> None:
         )
     elif ha_client is not None:
         _LOGGER.warning(
-            "MQTT is disabled, so the Home Assistant entities (last audio "
-            "event / audio active) will not exist: they are created by MQTT "
-            "discovery so that Home Assistant can assign them a unique_id. "
-            "Enable the mqtt option to get them."
+            "MQTT is disabled, so Home Assistant cannot assign the entities a "
+            "unique_id and they will not be manageable from the Home Assistant "
+            "UI. They still work: %s and %s (plus one binary_sensor per label "
+            "named in classifier.include, e.g. %s) are created and updated "
+            "over the REST API instead. Enable the mqtt option to get "
+            "UI-manageable entities.",
+            entity_ids["last_audio_event"],
+            entity_ids["audio_active"],
+            f"binary_sensor.{config.homeassistant.entity_prefix}_<label>",
         )
 
     async def _publish_events(events: list[EventMessage]) -> None:
         """Record events in history and push them to Home Assistant / MQTT.
 
-        Entities are owned by MQTT discovery: publishing an event to the
-        firehose topic updates the scalar sensors and the per-label sensors
-        without any REST state POST (which could never assign a unique_id,
-        leaving the entities unmanageable from the Home Assistant UI). The
-        REST client is still used to fire ``audio.detected`` events.
+        The REST client always fires the ``audio.detected`` event. Entity
+        state has exactly one owner: when MQTT is enabled it is published to
+        the firehose topic (updating the discovered scalar and per-label
+        sensors without any REST state POST, which could never assign a
+        unique_id); when MQTT is disabled the REST path pushes the same state
+        as before this feature, so the entities keep updating on installs
+        that never enabled MQTT.
         """
+        rest_owns_entities = mqtt_client is None
         for event in events:
             _LOGGER.info("Detected event: %s", format_event_summary(event))
             history.add(event.label, event.confidence, event.state)
             if ha_client is not None:
                 await ha_client.fire_event(event)
+                if rest_owns_entities:
+                    await ha_client.update_state(
+                        entity_ids["last_audio_event"],
+                        event.label,
+                        build_attributes(
+                            event, friendly_name=friendly_names["last_audio_event"]
+                        ),
+                    )
+                    await ha_client.update_state(
+                        entity_ids["audio_active"],
+                        "on" if event.state != "ended" else "off",
+                        {
+                            "label": event.label,
+                            "friendly_name": friendly_names["audio_active"],
+                            "device_class": "sound",
+                        },
+                    )
+                    if event.label in label_sensor_ids:
+                        await ha_client.update_state(
+                            label_sensor_ids[event.label],
+                            "on" if event.state != "ended" else "off",
+                            {
+                                "label": event.label,
+                                "confidence": str(event.confidence),
+                                "friendly_name": label_friendly_names.get(
+                                    event.label, event.label
+                                ),
+                                "device_class": "sound",
+                            },
+                        )
             if mqtt_client is not None:
                 mqtt_client.publish(event)
 
@@ -124,7 +186,11 @@ async def _run_pipeline(config: AppConfig) -> None:
         # The webui needs to query Home Assistant (to list camera entities)
         # regardless of whether homeassistant.enabled is set for event
         # publishing, so give it its own client if one wasn't already created.
-        webui_ha_client = ha_client or HomeAssistantClient(config.homeassistant)
+        webui_ha_client = ha_client or HomeAssistantClient(
+            config.homeassistant,
+            mqtt_enabled=mqtt_enabled,
+            labels=config.classifier.include,
+        )
         # init_entities() is idempotent; when the panel has its own client
         # (homeassistant publishing disabled) still initialise its entities,
         # but in the background -- never block the Web UI on Supervisor I/O.
