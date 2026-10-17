@@ -12,7 +12,7 @@ help:
 	@echo "  make download-yamnet-model  Download the official YAMNet class map"
 	@echo "  make update-yamnet-model  Download the Kaggle YAMNet TFLite package and stage the assets"
 	@echo "  make update-yamnet-groups  Generate models/yamnet_groups.json from the AudioSet ontology"
-	@echo "  make generate-class-groups  Generate models/class_groups.json (grouped class menu for the Web UI)"
+	@echo "  make generate-class-groups  Generate + sync models/class_groups.json (grouped class menu for the Web UI)"
 
 version:
 	@current_version=$$(grep -E '^version\s*=\s*"' pyproject.toml | head -n1 | sed -E 's/.*"([^"]+)"/\1/'); \
@@ -34,7 +34,7 @@ version:
 			*) echo "Cancelled"; exit 1 ;; \
 		esac; \
 	fi; \
-	PYTHONPATH=ha-audio-events . .venv/bin/activate && python -m app.versioning "$$target_version"
+	PYTHONPATH=ha-audio-events . .venv/bin/activate && PYTHONPATH=ha-audio-events python -m app.versioning "$$target_version"
 
 version-noninteractive:
 	@current_version=$$(grep -E '^version\s*=\s*"' pyproject.toml | head -n1 | sed -E 's/.*"([^"]+)"/\1/'); \
@@ -43,7 +43,7 @@ version-noninteractive:
 		echo "Usage: make version-noninteractive VERSION=0.2.0"; \
 		exit 1; \
 	fi; \
-	PYTHONPATH=ha-audio-events . .venv/bin/activate && python -m app.versioning "$(VERSION)"
+	PYTHONPATH=ha-audio-events . .venv/bin/activate && PYTHONPATH=ha-audio-events python -m app.versioning "$(VERSION)"
 
 download-yamnet-model:
 	@mkdir -p models
@@ -173,19 +173,19 @@ test-container-verbose:
 test: test-lint test-format test-types test-with-coverage
 
 test-unit:
-	@.venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest -v
+	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest -v
 
 test-lint:
-	@.venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
+	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
 
 test-format:
-	@.venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/black --target-version=py312 --check ha-audio-events/app/ tests/
+	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/black --target-version=py312 --check ha-audio-events/app/ tests/
 
 test-types:
-	@.venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/mypy ha-audio-events/app
+	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/mypy ha-audio-events/app
 
 test-with-coverage:
-	@.venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=80 --cov-report=term-missing -v
+	@. .venv/bin/activate && PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=80 --cov-report=term-missing -v
 
 update-yamnet-groups:
 	@echo "Updating models/yamnet_groups.json from the AudioSet ontology ..."
@@ -198,3 +198,7 @@ update-yamnet-groups:
 generate-class-groups:
 	@echo "Generating models/class_groups.json (grouped class menu) ..."
 	@python3 scripts/generate_class_groups.py
+	@echo "Syncing to ha-audio-events/models/ (container build context) ..."
+	@cp models/class_groups.json ha-audio-events/models/class_groups.json
+	@echo "Staged:"
+	@ls -1 models ha-audio-events/models | grep -E 'class_groups'

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+from typing import Self
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
@@ -21,8 +23,49 @@ from app.detection.models import EventMessage
 from app.main import _run_pipeline, format_event_summary, main_sync
 
 
-class TestPipelineError(RuntimeError):
-    """Test-only error used to validate exception handling paths."""
+class PipelineError(RuntimeError):
+    """Test-only error used to validate exception handling paths.
+
+    Deliberately not named ``Test*``: pytest tries to collect classes with a
+    Test prefix and emits a PytestCollectionWarning for this one (it takes a
+    constructor), even though it is just an exception type.
+    """
+
+
+class _FakeHAResponse:
+    """Minimal async-context-manager response for the mocked aiohttp session."""
+
+    status = 200
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, *exc_info: object) -> bool:
+        return False
+
+    async def text(self) -> str:
+        return ""
+
+
+def _make_ha_session_mock() -> MagicMock:
+    """A fake aiohttp session that records every request the client makes."""
+    session = MagicMock()
+    session.post = MagicMock(side_effect=lambda *args, **kwargs: _FakeHAResponse())
+    session.close = AsyncMock()
+    return session
+
+
+def _posted(session: MagicMock) -> list[tuple[str, dict]]:
+    """(url, json payload) for every POST issued through the fake session."""
+    return [
+        (call.args[0], call.kwargs.get("json") or {})
+        for call in session.post.call_args_list
+    ]
+
+
+def _states_posted(session: MagicMock) -> list[str]:
+    """URLs of the state POSTs (auto-creating/updating entities) only."""
+    return [url for url, _payload in _posted(session) if "/api/states/" in url]
 
 
 def test_format_event_summary_uses_label_and_duration() -> None:
@@ -497,19 +540,20 @@ async def test_webui_survives_pipeline_failure() -> None:
 
 
 @pytest.mark.asyncio
-async def test_mqtt_owns_scalar_entities_not_rest() -> None:
+async def test_mqtt_owns_scalar_entities_not_rest(caplog) -> None:
     """Regression: the scalar entities used to be pushed as REST states, which
     left them without a registry unique_id (Home Assistant: "does not have a
     unique ID, therefore its settings cannot be managed from the UI"). With
     MQTT enabled they must be published over MQTT discovery instead, and no
-    state POST may be issued for them."""
+    state POST may be issued for them (mutual exclusivity: one owner per id).
+    """
     config = AppConfig(
         model="yamnet",
         audio=AudioSourceConfig(sample_rate=16000, channels=1),
         activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
         buffer_seconds=3.0,
         aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
-        classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
+        classifier=ClassifierConfig(threshold=0.5, include=["dog"], exclude=[]),
         homeassistant=HomeAssistantConfig(
             enabled=True,
             url="http://localhost:8123",
@@ -530,13 +574,14 @@ async def test_mqtt_owns_scalar_entities_not_rest() -> None:
     )
 
     chunk = np.ones(16000, dtype=np.float32) * 0.01
+    session = _make_ha_session_mock()
 
     with (
         patch("app.main.AudioStreamSource") as mock_source_class,
         patch("app.main.build_classifier") as mock_classifier,
         patch("app.main.EventAggregator") as mock_aggregator,
-        patch("app.main.HomeAssistantClient") as mock_ha_client_class,
         patch("app.main.MQTTClient") as mock_mqtt_client_class,
+        patch("app.homeassistant.client.aiohttp.ClientSession", return_value=session),
     ):
         mock_source = MagicMock()
 
@@ -565,27 +610,160 @@ async def test_mqtt_owns_scalar_entities_not_rest() -> None:
         aggregator.flush.return_value = []
         mock_aggregator.return_value = aggregator
 
-        ha_client = MagicMock()
-        ha_client.close = AsyncMock()
-        ha_client.init_entities = AsyncMock()
-        ha_client.fire_event = AsyncMock()
-        ha_client.update_state = AsyncMock()
-        mock_ha_client_class.return_value = ha_client
-
         mqtt_client = MagicMock()
         mock_mqtt_client_class.return_value = mqtt_client
 
         await _run_pipeline(config)
 
     # The REST client still fires the audio.detected event...
-    ha_client.fire_event.assert_awaited_once_with(event)
-    # ...but owns no entity state at all any more.
-    ha_client.update_state.assert_not_called()
+    assert (
+        "http://localhost:8123/api/events/audio.detected",
+        {
+            "label": "dog",
+            "confidence": 0.9,
+            "duration": 1.5,
+            "state": "started",
+            "model": "yamnet",
+        },
+    ) in _posted(session)
+    # ...but owns no entity state at all any more: not at startup
+    # (init_entities) and not per event.
+    assert _states_posted(session) == []
 
-    # The two scalar entities are discovered over MQTT even though the include
-    # filter is empty (empty include = report every class).
-    mqtt_client.publish_discovery.assert_called_once_with("audio", [])
+    # The two scalar entities are discovered over MQTT even though no filter
+    # for them exists, and every event is published to the firehose topic.
+    mqtt_client.publish_discovery.assert_called_once_with("audio", ["dog"])
     mqtt_client.publish.assert_called_once_with(event)
+
+    # With MQTT owning the entities, nothing warns about lost manageability.
+    assert not [r for r in caplog.records if "unique_id" in r.getMessage()]
+
+
+@pytest.mark.asyncio
+async def test_rest_owns_entities_when_mqtt_disabled(caplog) -> None:
+    """Regression: with MQTT disabled the entities must keep updating.
+
+    The MQTT migration originally published entity state through MQTT only,
+    which silently stopped the scalar entities -- and the per-label sensors
+    named in classifier.include -- from updating on an install with
+    mqtt.enabled=false (the live add-on's configuration). REST is the
+    degraded-but-working fallback: no MQTT at all, and every entity state
+    still pushed over REST.
+    """
+    config = AppConfig(
+        model="yamnet",
+        audio=AudioSourceConfig(sample_rate=16000, channels=1),
+        activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
+        buffer_seconds=3.0,
+        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        classifier=ClassifierConfig(threshold=0.5, include=["dog"], exclude=[]),
+        homeassistant=HomeAssistantConfig(
+            enabled=True,
+            url="http://localhost:8123",
+            token="test_token",
+            entity_prefix="audio",
+        ),
+        mqtt=MQTTConfig(enabled=False),
+        webui=WebUIConfig(enabled=False),
+    )
+
+    event = EventMessage(
+        event_type="audio.detected",
+        label="dog",
+        confidence=0.9,
+        duration=1.5,
+        state="started",
+        model="yamnet",
+    )
+
+    chunk = np.ones(16000, dtype=np.float32) * 0.01
+    session = _make_ha_session_mock()
+
+    with (
+        caplog.at_level(logging.WARNING, logger="app.main"),
+        patch("app.main.AudioStreamSource") as mock_source_class,
+        patch("app.main.build_classifier") as mock_classifier,
+        patch("app.main.EventAggregator") as mock_aggregator,
+        patch("app.main.MQTTClient") as mock_mqtt_client_class,
+        patch("app.homeassistant.client.aiohttp.ClientSession", return_value=session),
+    ):
+        mock_source = MagicMock()
+
+        class ChunkAsyncIterator:
+            def __init__(self) -> None:
+                self.yielded = False
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                if not self.yielded:
+                    self.yielded = True
+                    return chunk
+                raise StopAsyncIteration
+
+        mock_source.stream.return_value = ChunkAsyncIterator()
+        mock_source_class.return_value = mock_source
+
+        mock_classifier_instance = AsyncMock()
+        mock_classifier_instance.classify = AsyncMock(return_value=[])
+        mock_classifier.return_value = mock_classifier_instance
+
+        aggregator = MagicMock()
+        aggregator.update.return_value = [event]
+        aggregator.flush.return_value = []
+        mock_aggregator.return_value = aggregator
+
+        await _run_pipeline(config)
+
+    # No MQTT client, no discovery, no publishes: MQTT is entirely out of the
+    # picture when it is disabled.
+    mock_mqtt_client_class.assert_not_called()
+
+    posts = _posted(session)
+
+    # The event still fires over REST...
+    assert any(
+        url == "http://localhost:8123/api/events/audio.detected" for url, _ in posts
+    )
+    # ...and every entity state is pushed over REST again: the two scalar
+    # entities plus the per-label sensor for the detected label.
+    assert any(
+        url == "http://localhost:8123/api/states/sensor.audio_last_audio_event"
+        and payload.get("state") == "dog"
+        for url, payload in posts
+    )
+    assert any(
+        url == "http://localhost:8123/api/states/binary_sensor.audio_audio_active"
+        and payload.get("state") == "on"
+        for url, payload in posts
+    )
+    assert any(
+        url == "http://localhost:8123/api/states/binary_sensor.audio_dog"
+        and payload.get("state") == "on"
+        for url, payload in posts
+    )
+
+    # init_entities() also ensures the same REST-owned entities exist at
+    # startup, so a freshly configured install has them before the first
+    # detection; that POST set is asserted in
+    # tests/test_homeassistant_client.py (the init task is fire-and-forget
+    # here, so it may legitimately not run before the pipeline is torn down).
+    assert set(_states_posted(session)) == {
+        "http://localhost:8123/api/states/binary_sensor.audio_audio_active",
+        "http://localhost:8123/api/states/binary_sensor.audio_dog",
+        "http://localhost:8123/api/states/sensor.audio_last_audio_event",
+    }
+
+    # The loss is not silent: one warning names the entities that are no
+    # longer UI-manageable and says why (no unique_id without MQTT).
+    warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    warning = warnings[0]
+    assert "unique_id" in warning
+    assert "sensor.audio_last_audio_event" in warning
+    assert "binary_sensor.audio_audio_active" in warning
+    assert "classifier.include" in warning
 
 
 @patch("app.main.load_config")
@@ -671,7 +849,7 @@ def test_main_sync_exception(
 
     def _raise_and_close(coro):
         coro.close()
-        raise TestPipelineError("Test error")
+        raise PipelineError("Test error")
 
     mock_run.side_effect = _raise_and_close
 

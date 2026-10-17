@@ -91,11 +91,28 @@ def test_scalar_discovery_payloads_structure() -> None:
 
     expected_device = {
         "identifiers": ["audio"],
-        "name": "audio audio detector",
+        "name": "Audio Events (audio)",
         "manufacturer": "HA Audio Events",
     }
     assert sensor["device"] == expected_device
     assert binary["device"] == expected_device
+
+
+def test_label_discovery_uses_the_same_device_block() -> None:
+    """Per-label sensors belong to the same device as the scalar entities.
+
+    The device name is the friendly ``Audio Events (<prefix>)`` one (the old
+    ``<prefix> audio detector`` read as "audio audio detector" once the
+    prefix was ``audio``).
+    """
+    config = _config()
+    payloads = build_mqtt_discovery_payload(config, "audio", ["dog"])
+
+    device = json.loads(payloads[0][1])["device"]
+
+    assert device["identifiers"] == ["audio"]
+    assert device["name"] == "Audio Events (audio)"
+    assert device["manufacturer"] == "HA Audio Events"
 
 
 def test_scalar_entities_unique_across_prefixes() -> None:
