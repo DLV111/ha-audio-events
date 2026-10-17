@@ -5,7 +5,10 @@ Tests the camera discovery and source configuration endpoints.
 
 from __future__ import annotations
 
+import csv
+import json
 import logging
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 from aiohttp.test_utils import AioHTTPTestCase
@@ -598,6 +601,111 @@ class TestWebUIFilterMarkup(AioHTTPTestCase):
         assert "wirePicker" in html
         assert "loadFilters" in html
         assert "applyFilters" in html
+
+    async def test_grouped_filter_controls_replace_flat_selects(self):
+        """The 521-label flat multi-selects are gone, replaced by a
+        category-chip menu over per-category checkbox lists."""
+        resp = await self.client.request("GET", "/")
+        assert resp.status == 200
+        html = await resp.text()
+
+        # No flat multi-select (or its old ids) may remain.
+        assert "<select multiple" not in html
+        assert "include-select" not in html
+        assert "exclude-select" not in html
+        assert ".filter-controls select" not in html
+
+        # Both controls are built from the grouped menu instead: a
+        # horizontally scrollable chip bar per picker...
+        assert ".group-chips {" in html
+        assert "overflow-x: auto" in html
+        assert ".group-chip" in html
+        assert "getElementById(prefix + '-chips')" in html
+        assert "All categories" in html
+        # ...driven by the ontology-derived grouped class list.
+        assert "'api/class-groups'" in html
+        assert "activeGroup" in html
+        # ...and the per-category checkbox lists still group the labels.
+        assert "group-header" in html
+        assert "createLabelRow" in html
+        # Buttons inside #filters-form must not submit it (that would POST the
+        # filters and restart the add-on on every category/label click).
+        assert "chip.type = 'button'" in html
+        assert "acceptBtn.type = 'button'" in html
+
+    async def test_picker_is_mobile_friendly(self):
+        """Narrow screens stack the panes and grow the tap targets instead of
+        squeezing two side-by-side panes onto a phone."""
+        resp = await self.client.request("GET", "/")
+        html = await resp.text()
+        assert "@media (max-width: 700px)" in html
+        assert ".picker-body { flex-direction: column; }" in html
+        assert ".transfer-btn { width: 100%; height: 44px; }" in html
+
+
+def _class_map_values() -> set[str]:
+    """Lowercased YAMNet display names, read from the committed class map."""
+    with Path("models/yamnet_class_map.csv").open(
+        encoding="utf-8", newline=""
+    ) as handle:
+        return {
+            (row["display_name"] or "").strip().lower()
+            for row in csv.DictReader(handle)
+            if (row["display_name"] or "").strip()
+        }
+
+
+class TestWebUIClassGroups(AioHTTPTestCase):
+    """GET /api/class-groups backs the menu-driven filter controls: the
+    classes grouped by AudioSet top-level category, derived from the
+    committed ontology mapping rather than hand-maintained."""
+
+    async def get_application(self):
+        self.mock_hass_client = Mock(spec=HomeAssistantClient)
+        self.mock_addon_manager = Mock(spec=AddonManager)
+        self.webui = WebUI(self.mock_hass_client, self.mock_addon_manager)
+        return self.webui.app
+
+    async def test_class_groups_endpoint(self):
+        """GET /api/class-groups returns the ontology-derived grouped menu."""
+        resp = await self.client.request("GET", "/api/class-groups")
+        assert resp.status == 200
+        data = await resp.json()
+        groups = data["groups"]
+
+        # The current AudioSet ontology has seven top-level groups: "Speech"
+        # was folded into "Human sounds" upstream, so the committed mapping
+        # (and this endpoint) reports seven, not the eight historical
+        # AudioSet categories.
+        groups_source = json.loads(
+            Path("models/yamnet_groups.json").read_text(encoding="utf-8")
+        )
+        expected_names = set(groups_source["top_level_groups"])
+        assert {group["name"] for group in groups} == expected_names
+        assert len(groups) == 7
+        assert "Human sounds" in expected_names
+
+        for group in groups:
+            assert group["group_id"]
+            assert group["name"].strip()
+            assert group["classes"], f"{group['name']} has no classes"
+            for cls in group["classes"]:
+                assert cls["display_name"]
+                assert cls["value"] == cls["display_name"].lower()
+
+    async def test_class_groups_reflect_csv_mid_mappings(self):
+        """Round-trip: the grouped menu must partition exactly the YAMNet
+        class map, so no label is hidden from the user."""
+        resp = await self.client.request("GET", "/api/class-groups")
+        groups = (await resp.json())["groups"]
+
+        values = [cls["value"] for group in groups for cls in group["classes"]]
+        assert len(values) == len(set(values)), "a class is listed twice"
+
+        csv_values = _class_map_values()
+
+        assert set(values) == csv_values
+        assert len(csv_values) == 521
 
 
 class TestWebUIStaticAssets(AioHTTPTestCase):

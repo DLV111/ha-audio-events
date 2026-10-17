@@ -70,14 +70,27 @@ def test_mqtt_client_init_without_credentials(mock_mqtt_client):
 
 
 def test_mqtt_client_publish_discovery(mock_mqtt_client):
-    """Test MQTT discovery publishing."""
+    """Test MQTT discovery publishing.
+
+    The two scalar entities are always published (also with an empty include
+    list), so the retained discovery configs exist even before any filter is
+    configured; per-label sensors are added on top of them.
+    """
     config = _config()
     client = MQTTClient(config)
 
-    supported_labels = ["dog", "train"]
-    client.publish_discovery("audio", supported_labels)
-
+    client.publish_discovery("audio", [])
     assert mock_mqtt_client.publish.call_count == 2
+    topics = [call.args[0] for call in mock_mqtt_client.publish.call_args_list]
+    assert "homeassistant/sensor/audio_last_audio_event/config" in topics
+    # Node id == unique_id == "<prefix>_audio_active", so the entity keeps the
+    # id it had before (binary_sensor.audio_audio_active for prefix "audio").
+    assert "homeassistant/binary_sensor/audio_audio_active/config" in topics
+
+    mock_mqtt_client.publish.reset_mock()
+
+    client.publish_discovery("audio", ["dog", "train"])
+    assert mock_mqtt_client.publish.call_count == 4
     for call in mock_mqtt_client.publish.call_args_list:
         assert call.kwargs.get("retain") is True
 

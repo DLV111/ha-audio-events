@@ -10,6 +10,7 @@ import pytest
 from app.config import HomeAssistantConfig
 from app.detection.models import EventMessage
 from app.homeassistant.client import HomeAssistantClient
+from app.homeassistant.entities import build_rest_entity_ids
 
 
 @pytest.fixture
@@ -118,6 +119,52 @@ class TestHomeAssistantClient:
 
         await client.close()
         mock_session.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_init_entities_does_not_post_scalar_entities_via_rest(
+        self,
+        ha_config: HomeAssistantConfig,
+    ) -> None:
+        """init_entities() must not create the scalar entities over REST.
+
+        A REST state POST auto-creates an entity without a registry
+        unique_id, which is what made Home Assistant say the entity
+        "does not have a unique ID". Those two entities are now owned by MQTT
+        discovery, and REST-owned entities are an explicitly declared (empty)
+        set, so init_entities() must issue no state POST at all.
+        """
+        client = HomeAssistantClient(ha_config)
+        mock_session = make_mock_session()
+        client._session = mock_session
+
+        await client.init_entities()
+
+        mock_session.post.assert_not_called()
+        # build_rest_entity_ids is the single declaration point for any
+        # future REST-owned entity; it is empty after the MQTT migration.
+        assert build_rest_entity_ids(ha_config) == set()
+        # The add-on still exposes the ids for reference/debugging.
+        assert client._entity_ids == {
+            "last_audio_event": "sensor.audio_last_audio_event",
+            "audio_active": "binary_sensor.audio_audio_active",
+        }
+        await client.close()
+
+    @pytest.mark.asyncio
+    async def test_init_entities_is_idempotent(
+        self,
+        ha_config: HomeAssistantConfig,
+    ) -> None:
+        """Two calls must not re-post; the cached entity ids short-circuit it."""
+        client = HomeAssistantClient(ha_config)
+        mock_session = make_mock_session()
+        client._session = mock_session
+
+        await client.init_entities()
+        await client.init_entities()
+
+        mock_session.post.assert_not_called()
+        await client.close()
 
     @pytest.mark.asyncio
     async def test_fire_event_disabled_returns_early(

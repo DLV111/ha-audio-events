@@ -11,6 +11,7 @@ import hmac
 import json
 import logging
 import os
+import re
 from pathlib import Path
 
 from aiohttp import web
@@ -78,6 +79,7 @@ class WebUI:
         self.started = asyncio.Event()
         self._class_names = self._load_class_names()
         self._groups = self._load_groups()
+        self._class_groups = self._load_class_groups()
         self.app.router.add_get("/", self.serve_index)
         self.app.router.add_get("/api/cameras", self.get_cameras)
         self.app.router.add_get("/api/microphones", self.get_microphones)
@@ -89,6 +91,7 @@ class WebUI:
         self.app.router.add_post("/api/classifiers", self.set_classifiers)
         self.app.router.add_get("/api/class-map", self.get_class_map)
         self.app.router.add_get("/api/groups", self.get_groups)
+        self.app.router.add_get("/api/class-groups", self.get_class_groups)
         self.app.router.add_get("/static/{path:.*}", self.serve_static)
 
     def _log_bind_notice(self, host: str, port: int) -> None:
@@ -206,6 +209,29 @@ class WebUI:
         .transfer-btn { width: 44px; height: 34px; padding: 0; font-size: 20px; border-radius: 4px; }
         .select-all-btn, .remove-all-btn { font-size: 11px; padding: 3px 6px; }
         .pane-actions { display: flex; gap: 6px; }
+        .group-chips {
+            display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #eee;
+            overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+        }
+        .group-chip {
+            flex: 0 0 auto; padding: 9px 14px; font-size: 14px; font-weight: 600;
+            border-radius: 999px; border: 1px solid #d8e0ea; background: #eef2f7;
+            color: #333; cursor: pointer; white-space: nowrap; line-height: 1;
+        }
+        .group-chip.active { background: #007bff; border-color: #007bff; color: #fff; }
+        @media (max-width: 700px) {
+            body { padding: 10px; }
+            .container { padding: 16px; }
+            /* Stack the two panes: side-by-side transfer panes are unusable
+               on a phone, and the arrows become full-width tap targets. */
+            .picker-body { flex-direction: column; }
+            .pane { max-height: 45vh; border-right: none; border-bottom: 1px solid #eee; }
+            .transfer-controls { flex-direction: row; }
+            .transfer-btn { width: 100%; height: 44px; }
+            .group-header { padding: 12px; font-size: 15px; }
+            .label-item { padding: 10px 12px; font-size: 15px; }
+            .label-item input[type=checkbox] { width: 20px; height: 20px; }
+        }
     </style>
 </head>
 <body>
@@ -244,7 +270,7 @@ class WebUI:
 
         <div class="form-group" style="margin-top: 20px;">
             <h3>Audio Class Filters</h3>
-            <p class="subtitle">Choose which detected sounds are reported. Use the group Select / Clear buttons, search, and the transfer arrows.</p>
+            <p class="subtitle">Choose which detected sounds are reported. Pick an AudioSet category chip to narrow the lists, tick labels, then use the transfer arrows.</p>
             <form id="filters-form">
                 <div id="pickers-container"><div class="loading">Loading filter controls...</div></div>
                 <button type="submit" id="filters-btn">Apply Filters</button>
@@ -258,7 +284,9 @@ class WebUI:
         let microphones = [];
         let currentSource = '';
         let isLoading = true;
-        let includeState = null, excludeState = null, allLabels = [], groupsTree = {};
+        let includeState = null, excludeState = null, allLabels = [], groupsTree = {}, classGroups = [];
+        // Category chip selection per picker: null means "all categories".
+        let activeGroup = { include: null, exclude: null };
 
         function getStoredToken() {
             try { return sessionStorage.getItem('webui_token') || ''; } catch (e) { return ''; }
@@ -397,7 +425,10 @@ class WebUI:
             if (!container) return;
             container.innerHTML = '';
             const grouped = groupByTree(labels);
-            const names = Object.keys(grouped).sort();
+            const selected = activeGroup[prefix];
+            const names = Object.keys(grouped)
+                .filter(function(n) { return !selected || n === selected; })
+                .sort();
             if (names.length === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'label-item';
@@ -413,6 +444,9 @@ class WebUI:
                 nameSpan.textContent = groupName + ' (' + labels2.length + ')';
                 const actions = document.createElement('div'); actions.className = 'group-actions';
                 const btn = document.createElement('button');
+                // type=button: these live inside #filters-form, and a submit
+                // button here would POST the filters and restart the add-on.
+                btn.type = 'button';
                 if (pane === 'available') {
                     btn.textContent = 'Select';
                     btn.addEventListener('click', function(e) {
@@ -487,6 +521,18 @@ class WebUI:
                 TransferPicker.setSearch(stateFor(prefix), e.target.value);
                 renderAllPickers();
             });
+            const chips = document.getElementById(prefix + '-chips');
+            if (chips) {
+                chips.addEventListener('click', function(e) {
+                    const chip = e.target.closest('.group-chip');
+                    if (!chip) return;
+                    activeGroup[prefix] = chip.dataset.group || null;
+                    Array.from(chips.querySelectorAll('.group-chip')).forEach(function(c) {
+                        c.classList.toggle('active', c === chip);
+                    });
+                    renderAllPickers();
+                });
+            }
         }
 
         function buildPickerDOM(prefix, title) {
@@ -504,6 +550,26 @@ class WebUI:
             search.placeholder = 'Search labels or groups...';
             picker.appendChild(search);
 
+            // Category chip bar: the "menu" half of the mobile-friendly
+            // grouped filter UI. Horizontally scrollable so the categories
+            // stay one tap away on a phone instead of a 521-item scroll.
+            const chips = document.createElement('div');
+            chips.className = 'group-chips'; chips.id = prefix + '-chips';
+            chips.setAttribute('role', 'group');
+            chips.setAttribute('aria-label', title + ': filter by category');
+            const allChip = document.createElement('button');
+            allChip.type = 'button'; allChip.className = 'group-chip active';
+            allChip.dataset.group = ''; allChip.textContent = 'All categories';
+            chips.appendChild(allChip);
+            classGroups.forEach(function(group) {
+                const chip = document.createElement('button');
+                chip.type = 'button'; chip.className = 'group-chip';
+                chip.dataset.group = group.name;
+                chip.textContent = group.name + ' (' + (group.classes || []).length + ')';
+                chips.appendChild(chip);
+            });
+            picker.appendChild(chips);
+
             const body = document.createElement('div'); body.className = 'picker-body';
 
             const avail = document.createElement('div'); avail.className = 'pane';
@@ -511,8 +577,10 @@ class WebUI:
             const availTitle = document.createElement('span'); availTitle.textContent = 'Available';
             const availActions = document.createElement('div'); availActions.className = 'pane-actions';
             const selectAll = document.createElement('button'); selectAll.className = 'select-all-btn';
+            selectAll.type = 'button';
             selectAll.id = prefix + '-select-all-btn'; selectAll.textContent = 'Select All';
             const removeAll = document.createElement('button'); removeAll.className = 'remove-all-btn';
+            removeAll.type = 'button';
             removeAll.id = prefix + '-remove-all-btn'; removeAll.textContent = 'Remove All';
             availActions.appendChild(selectAll); availActions.appendChild(removeAll);
             availHeader.appendChild(availTitle); availHeader.appendChild(availActions);
@@ -522,8 +590,10 @@ class WebUI:
 
             const transfer = document.createElement('div'); transfer.className = 'transfer-controls';
             const acceptBtn = document.createElement('button'); acceptBtn.className = 'transfer-btn';
+            acceptBtn.type = 'button';
             acceptBtn.id = prefix + '-accept-btn'; acceptBtn.textContent = '\u2192'; acceptBtn.title = 'Accept selected';
             const removeBtn = document.createElement('button'); removeBtn.className = 'transfer-btn';
+            removeBtn.type = 'button';
             removeBtn.id = prefix + '-remove-btn'; removeBtn.textContent = '\u2190'; removeBtn.title = 'Remove selected';
             transfer.appendChild(acceptBtn); transfer.appendChild(removeBtn);
 
@@ -546,6 +616,11 @@ class WebUI:
                 const groupsResp = await apiFetch('api/groups');
                 const groupsData = await parseApiResponse(groupsResp, 'groups');
                 groupsTree = groupsData.top_level_groups || {};
+                const classGroupsResp = await apiFetch('api/class-groups');
+                if (classGroupsResp.ok) {
+                    const classGroupsData = await parseApiResponse(classGroupsResp, 'class groups');
+                    classGroups = classGroupsData.groups || [];
+                }
                 const mapResp = await apiFetch('api/class-map');
                 const mapData = await parseApiResponse(mapResp, 'class map');
                 allLabels = mapData.classes || [];
@@ -943,9 +1018,61 @@ class WebUI:
             return {}
         return json.loads(path.read_text(encoding="utf-8"))
 
+    def _class_groups_from_tree(self) -> list[dict]:
+        """Derive the grouped menu mapping from the in-memory ontology tree.
+
+        Fallback for when ``models/class_groups.json`` is missing (e.g. an
+        existing install upgrading without the regenerated asset): the same
+        projection ``scripts/generate_class_groups.py`` bakes into that file.
+        """
+        groups: list[dict] = []
+        for name, node in (self._groups.get("top_level_groups") or {}).items():
+            slug = re.sub(r"[^a-z0-9]+", "-", str(name).lower()).strip("-")
+            groups.append(
+                {
+                    "group_id": slug or "unknown",
+                    "name": name,
+                    "classes": [
+                        {"display_name": label, "value": label.lower()}
+                        for label in node.get("allLabels") or []
+                    ],
+                }
+            )
+        return groups
+
+    def _load_class_groups(self) -> list[dict]:
+        """Load the committed grouped class menu (models/class_groups.json)."""
+        path = Path("models/class_groups.json")
+        if not path.exists():
+            _LOGGER.warning(
+                "Class groups JSON not found at %s — run `make generate-class-groups`",
+                path,
+            )
+            return self._class_groups_from_tree()
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            _LOGGER.exception("Error loading class groups JSON")
+            return self._class_groups_from_tree()
+        groups = payload.get("groups")
+        if not groups:
+            return self._class_groups_from_tree()
+        return groups
+
     async def get_class_map(self, request: web.Request) -> web.Response:
         """Return the list of audio class names for filter dropdowns."""
         return web.json_response({"classes": self._class_names})
+
+    async def get_class_groups(self, request: web.Request) -> web.Response:
+        """Return the audio classes grouped by AudioSet top-level category.
+
+        Backs the Web UI's menu-driven filter controls: one entry per group
+        with a human-readable ``name`` and the group's classes, each carrying
+        the lowercased ``value`` the classifier options use. The grouping is
+        derived from the AudioSet ontology (models/class_groups.json), not
+        hand-maintained.
+        """
+        return web.json_response({"groups": self._class_groups})
 
     async def get_groups(self, request: web.Request) -> web.Response:
         """Return the baked AudioSet-ontology groups tree + label_paths."""

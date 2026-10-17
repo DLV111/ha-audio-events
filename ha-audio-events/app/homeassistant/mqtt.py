@@ -10,6 +10,7 @@ from app.detection.models import EventMessage
 from app.homeassistant.discovery import (
     build_label_state_topic,
     build_mqtt_discovery_payload,
+    build_scalar_entity_discovery_payloads,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,7 +48,15 @@ class MQTTClient:
     def publish_discovery(
         self, entity_prefix: str, supported_labels: list[str]
     ) -> None:
-        payloads = build_mqtt_discovery_payload(
+        """Publish discovery for the scalar entities + any per-label sensors.
+
+        The two scalar entities (last event / audio active) are always-on, so
+        they are published even when no include filter is configured; only
+        the per-label sensors depend on ``supported_labels``, since an empty
+        include list means "report every class" and has no per-label sensors.
+        """
+        payloads = build_scalar_entity_discovery_payloads(self.config, entity_prefix)
+        payloads += build_mqtt_discovery_payload(
             self.config, entity_prefix, supported_labels
         )
         for topic, payload, entity_id in payloads:

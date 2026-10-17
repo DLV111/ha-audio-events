@@ -16,13 +16,6 @@ from app.detection.filter import filter_detections
 from app.detection.history import EventHistory
 from app.detection.models import EventMessage
 from app.homeassistant.client import HomeAssistantClient
-from app.homeassistant.entities import (
-    build_attributes,
-    build_entity_ids,
-    build_friendly_names,
-    build_label_friendly_names,
-    build_label_sensor_entity_ids,
-)
 from app.homeassistant.mqtt import MQTTClient
 from app.utils.logging import configure_logging
 from app.webui.server import WebUI
@@ -63,57 +56,38 @@ async def _run_pipeline(config: AppConfig) -> None:
     if ha_client is not None:
         entity_init_task = asyncio.create_task(ha_client.init_entities())
 
-    entity_ids = build_entity_ids(config.homeassistant)
-    label_sensor_ids = build_label_sensor_entity_ids(
-        config.homeassistant, config.classifier.include
-    )
-    friendly_names = build_friendly_names(config.homeassistant)
-    label_friendly_names = build_label_friendly_names(
-        config.homeassistant, config.classifier.include
-    )
     source = AudioStreamSource(config.audio, ha_config=config.homeassistant)
 
-    if mqtt_client is not None and config.classifier.include:
+    if mqtt_client is not None:
+        # Always publish discovery: the two scalar entities (last event /
+        # audio active) are always-on, so they must be discovered even with
+        # an empty include list. Per-label sensors are only built when
+        # classifier.include names labels to watch.
         mqtt_client.publish_discovery(
             config.homeassistant.entity_prefix, config.classifier.include
         )
+    elif ha_client is not None:
+        _LOGGER.warning(
+            "MQTT is disabled, so the Home Assistant entities (last audio "
+            "event / audio active) will not exist: they are created by MQTT "
+            "discovery so that Home Assistant can assign them a unique_id. "
+            "Enable the mqtt option to get them."
+        )
 
     async def _publish_events(events: list[EventMessage]) -> None:
-        """Record events in history and push them to Home Assistant / MQTT."""
+        """Record events in history and push them to Home Assistant / MQTT.
+
+        Entities are owned by MQTT discovery: publishing an event to the
+        firehose topic updates the scalar sensors and the per-label sensors
+        without any REST state POST (which could never assign a unique_id,
+        leaving the entities unmanageable from the Home Assistant UI). The
+        REST client is still used to fire ``audio.detected`` events.
+        """
         for event in events:
             _LOGGER.info("Detected event: %s", format_event_summary(event))
             history.add(event.label, event.confidence, event.state)
             if ha_client is not None:
                 await ha_client.fire_event(event)
-                await ha_client.update_state(
-                    entity_ids["last_audio_event"],
-                    event.label,
-                    build_attributes(
-                        event, friendly_name=friendly_names["last_audio_event"]
-                    ),
-                )
-                await ha_client.update_state(
-                    entity_ids["audio_active"],
-                    "on" if event.state != "ended" else "off",
-                    {
-                        "label": event.label,
-                        "friendly_name": friendly_names["audio_active"],
-                        "device_class": "sound",
-                    },
-                )
-                if event.label in label_sensor_ids:
-                    await ha_client.update_state(
-                        label_sensor_ids[event.label],
-                        "on" if event.state != "ended" else "off",
-                        {
-                            "label": event.label,
-                            "confidence": str(event.confidence),
-                            "friendly_name": label_friendly_names.get(
-                                event.label, event.label
-                            ),
-                            "device_class": "sound",
-                        },
-                    )
             if mqtt_client is not None:
                 mqtt_client.publish(event)
 

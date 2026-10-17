@@ -1,6 +1,6 @@
 name: HA Audio Events
 slug: ha_audio_events
-version: 0.6.1
+version: 0.7.0
 description: Home Assistant add-on for audio event detection using TensorFlow Lite.
 arch:
   - amd64
@@ -43,6 +43,10 @@ options:
   homeassistant:
     enabled: true
     entity_prefix: audio
+  # Home Assistant entities (last audio event, audio active, and the
+  # per-label sensors) are published through MQTT discovery, which is the
+  # only way Home Assistant can attach a registry unique_id. With MQTT
+  # disabled the add-on fires events but creates no entities.
   mqtt:
     enabled: false
     host: localhost

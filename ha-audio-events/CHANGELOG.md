@@ -5,6 +5,17 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-10-13
+### Added
+- **Menu-driven, mobile-friendly audio class filters**: each Include / Exclude picker now has a horizontally scrollable bar of AudioSet category chips that narrows both panes to one top-level category at a time. Backed by a new `GET /api/class-groups` endpoint serving `models/class_groups.json` — the grouped class menu, generated from the AudioSet ontology with `make generate-class-groups` (never hand-maintained), which partitions all 521 YAMNet classes across the 7 groups of the current ontology.
+- **Unique IDs for the two scalar Home Assistant entities**: `sensor.<prefix>_last_audio_event` and `binary_sensor.<prefix>_audio_active` are now created through MQTT discovery (with `unique_id`, device block, and value/attribute templates) instead of REST state POSTs, so Home Assistant no longer reports "does not have a unique ID, therefore its settings cannot be managed from the UI". Because entity ids and unique ids both derive from `homeassistant.entity_prefix`, a second audio stream simply uses its own prefix (e.g. `audio_kitchen`).
+### Changed
+- Entity state is no longer published over the Home Assistant REST API: `HomeAssistantClient.init_entities()` only creates entities explicitly declared by `build_rest_entity_ids()` (empty after this change), and event handling publishes to MQTT only (the REST client still fires the `audio.detected` event). Enable the `mqtt` option to get the entities; the add-on logs a warning when Home Assistant publishing is enabled without MQTT.
+- Scalar entity discovery is published on every MQTT connect, including when `classifier.include` is empty (an empty include list still means "report all classes"). Per-label binary sensors are unchanged — same entity ids, published only for labels named in `classifier.include`.
+- Filter pickers adapt to phones: below 700px the two panes stack vertically and the transfer arrows, group headers and label rows grow to full-width tap targets.
+### Fixed
+- Buttons inside the Audio Class Filters form (category chips, group Select / Clear, transfer arrows, Select All / Remove All) are now `type="button"`, so tapping one no longer submits the form — which previously re-applied the stored filters and restarted the add-on on every click.
+
 ## [0.6.1] - 2026-10-05
 ### Fixed
 - **Audio Class Filters no longer fail with "TransferPicker is not defined"**: the panel loaded its picker module from the root-absolute URL `/static/transfer_picker.js`. Under Home Assistant ingress the panel is served from `/api/hassio_ingress/<token>/`, so the browser requested the asset from Home Assistant core, the request never reached the add-on, the classic `<script>` never executed, and the first `TransferPicker.*` call threw. The reference is now relative (`static/transfer_picker.js`), so it resolves under whatever prefix the panel is mounted at, ingress included.
