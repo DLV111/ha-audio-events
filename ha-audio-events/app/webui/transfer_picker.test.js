@@ -5,7 +5,7 @@
 'use strict';
 
 const assert = require('assert');
-const TransferPicker = require('./transfer_picker.js');
+const TransferPicker = require('./static/transfer_picker.js');
 
 let passed = 0;
 let failed = 0;
@@ -168,7 +168,7 @@ test('UMD wrapper assigns a global TransferPicker in a classic-script context', 
   const fs = require('fs');
   const pathMod = require('path');
   const vm = require('vm');
-  const src = fs.readFileSync(pathMod.join(__dirname, 'transfer_picker.js'), 'utf8');
+  const src = fs.readFileSync(pathMod.join(__dirname, 'static', 'transfer_picker.js'), 'utf8');
 
   // Fake browser global: has globalThis/self/window, but no module or exports.
   const sandbox = {};
