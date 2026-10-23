@@ -1,0 +1,4 @@
+# Graphify generated files
+
+graphify-out/graph.json -diff linguist-generated
+graphify-out/graph.html -diff linguist-generated

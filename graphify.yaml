@@ -1,0 +1,122 @@
+# Graphify configuration for ha-audio-events
+# Defines the data flow for AI-powered audio event detection
+
+sources:
+  - name: "Audio Source"
+    type: "file"
+    path: "ha-audio-events/app/audio/"
+    description: "Audio input sources (WAV, MP3, PCM files, camera proxies)"
+    transformers:
+      - name: "audio_preprocessor"
+        type: "resample"
+        params:
+          sample_rate: 16000
+          channels: 1
+          format: "pcm_s16le"
+      - name: "audio_buffer"
+        type: "circular_buffer"
+        params:
+          buffer_seconds: 3.0
+
+  - name: "Activity Detector"
+    type: "rule"
+    params:
+      rms_threshold: 0.04
+      peak_threshold: 0.1
+      hold_time: 2.0
+
+  - name: "Classifier"
+    type: "model"
+    params:
+      model: "yamnet"
+      model_path: "models/yamnet.tflite"
+      labels_path: "models/yamnet_class_map.csv"
+
+  - name: "Detection Filter"
+    type: "filter"
+    params:
+      include: []
+      exclude: []
+
+  - name: "Event Aggregator"
+    type: "aggregator"
+    params:
+      start_confidence: 0.85
+      end_timeout: 5.0
+
+  - name: "Publishers"
+    type: "publisher"
+    subsystems:
+      - name: "homeassistant"
+        type: "service"
+        params:
+          enabled: true
+          url: "http://supervisor/core"
+      - name: "mqtt"
+        type: "service"
+        params:
+          host: "localhost"
+          port: 1883
+      - name: "webui"
+        type: "service"
+        params:
+          enabled: true
+          host: "0.0.0.0"
+          port: 8099
+
+outputs:
+  - name: "audio_events"
+    type: "list"
+    description: "Finalized audio event records with confidence, state, and model"
+    transformers:
+      - name: "event_formatter"
+        type: "structured"
+        params:
+          fields:
+            - "label": "string"
+            - "confidence": "float"
+            - "state": "enum(started, ongoing, ended)"
+            - "model": "string"
+            - "duration": "float"
+
+  - name: "webui_events"
+    type: "list"
+    description: "Events exposed to the web UI"
+    transformers:
+      - name: "event_summary"
+        type: "summarizer"
+        params:
+          label: "primary"
+          confidence: "secondary"
+
+  - name: "webui_entities"
+    type: "list"
+    description: "Entities updated via Home Assistant API"
+    transformers:
+      - name: "entity_initializer"
+        type: "initializer"
+        params:
+          enabled: true
+
+# Entity lifecycle
+lifecycle:
+  - name: "started"
+    triggers:
+      - "audio_source"
+    actions:
+      - "initialize_entities"
+      - "start_audio_stream"
+
+  - name: "ongoing"
+    triggers:
+      - "activity_detected"
+    actions:
+      - "update_entity_state"
+      - "record_detection"
+
+  - name: "ended"
+    triggers:
+      - "audio_source_closed"
+    actions:
+      - "finalize_event"
+      - "clear_entity_state"

@@ -1,0 +1,7 @@
+.git/
+.venv/
+.graphify/
+.hermes/
+node_modules/
+__pycache__/
+graphify-out/

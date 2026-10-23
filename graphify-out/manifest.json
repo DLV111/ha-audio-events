@@ -1,0 +1,464 @@
+{
+  ".claude/skills/run-ha-audio-fix/driver.py": {
+    "mtime": 1790551053.8991172,
+    "seen": 1790551066.5577404,
+    "ast_hash": "63a59be7d7441bc1cc9a9e5e18ff4b8f",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/__init__.py": {
+    "mtime": 1790551053.9003878,
+    "seen": 1790551066.557746,
+    "ast_hash": "1d7fbc4255f34cdb434153238dfb7c8c",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/addon_mgr.py": {
+    "mtime": 1790551053.9004867,
+    "seen": 1790551066.5577486,
+    "ast_hash": "2bf4ff562983bfc0e30fcd1b2dea8514",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/audio/__init__.py": {
+    "mtime": 1790551053.9004867,
+    "seen": 1790551066.5577497,
+    "ast_hash": "c5bf6a1796e9d1a7b4a4bdbc970551df",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/audio/activity.py": {
+    "mtime": 1790551053.9006107,
+    "seen": 1790551066.557751,
+    "ast_hash": "6d5852abcfc9f56c12f03ef5643c88f5",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/audio/buffer.py": {
+    "mtime": 1790551053.9006107,
+    "seen": 1790551066.5577524,
+    "ast_hash": "0378d91d265a1dd70f15259298ce68c4",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/audio/resample.py": {
+    "mtime": 1790551053.9006107,
+    "seen": 1790551066.5577536,
+    "ast_hash": "6dda103a5715e22375136e0b39b0e1bc",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/audio/stream.py": {
+    "mtime": 1790551053.9006107,
+    "seen": 1790551066.5577545,
+    "ast_hash": "652a695862bac5d8d5de3a36a771f829",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/classifiers/__init__.py": {
+    "mtime": 1790551053.9006107,
+    "seen": 1790551066.557756,
+    "ast_hash": "6e518a5959111591d262cec65f400604",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/classifiers/base.py": {
+    "mtime": 1790551053.9008567,
+    "seen": 1790551066.557757,
+    "ast_hash": "716b7f2648821aa8e9e41194f133a718",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/classifiers/registry.py": {
+    "mtime": 1790551053.9008567,
+    "seen": 1790551066.557758,
+    "ast_hash": "ac016e5f4fe73d890fbed444800b7681",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/classifiers/yamnet.py": {
+    "mtime": 1790551053.9008567,
+    "seen": 1790551066.5577595,
+    "ast_hash": "f28f135c894be1c21e3128666b0ea739",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/config.py": {
+    "mtime": 1790551053.9008567,
+    "seen": 1790551066.5577605,
+    "ast_hash": "e88e20c4cf22ee7d87be89f2b1ce6df8",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/demo.py": {
+    "mtime": 1790551053.9008567,
+    "seen": 1790551066.557762,
+    "ast_hash": "12a092689d61ebe09969e735591b8290",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/detection/__init__.py": {
+    "mtime": 1790551053.9008567,
+    "seen": 1790551066.5577629,
+    "ast_hash": "2ac9e2288247a78bfebe297fdd6b636d",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/detection/aggregate.py": {
+    "mtime": 1790551053.901211,
+    "seen": 1790551066.557764,
+    "ast_hash": "3e74387b183ec257769fdd294f1cc9ab",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/detection/filter.py": {
+    "mtime": 1790551053.901211,
+    "seen": 1790551066.557765,
+    "ast_hash": "966a4f7576f708ee5476e30e7bd9ebec",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/detection/history.py": {
+    "mtime": 1790551053.901211,
+    "seen": 1790551066.5577664,
+    "ast_hash": "766033e8845bfc4600577239f5eb01a5",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/detection/models.py": {
+    "mtime": 1790551053.901211,
+    "seen": 1790551066.5577674,
+    "ast_hash": "2b64ac9fa7c4159223e5aec06e7b1063",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/homeassistant/__init__.py": {
+    "mtime": 1790551053.901211,
+    "seen": 1790551066.5577683,
+    "ast_hash": "b53a07d0ad9e1e74e6bda7824a683ca9",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/homeassistant/client.py": {
+    "mtime": 1790551053.9014368,
+    "seen": 1790551066.5577695,
+    "ast_hash": "31865bf4e296a3e5bc7aa6fc95dd888f",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/homeassistant/discovery.py": {
+    "mtime": 1790551053.9014368,
+    "seen": 1790551066.5577707,
+    "ast_hash": "dead06567e464227054ff7d5f8db6b32",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/homeassistant/entities.py": {
+    "mtime": 1790551053.9014368,
+    "seen": 1790551066.557772,
+    "ast_hash": "ced8c08f05d0d26d64bc07311f1f48ae",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/homeassistant/mqtt.py": {
+    "mtime": 1790551053.9014368,
+    "seen": 1790551066.5577734,
+    "ast_hash": "fe41fec1fff1a03e9ff93a4a8c7ab682",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/main.py": {
+    "mtime": 1790551053.9014368,
+    "seen": 1790551066.5577743,
+    "ast_hash": "3455b991a9e4e0b906f6b3db0e2af696",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/manifest.py": {
+    "mtime": 1790551053.9014368,
+    "seen": 1790551066.5577755,
+    "ast_hash": "f7b14a86a98d57b2d4599d0fac778493",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/utils/__init__.py": {
+    "mtime": 1790551053.9014368,
+    "seen": 1790551066.557777,
+    "ast_hash": "2624b92d86aa0c6f64ca0b6ce5553187",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/utils/logging.py": {
+    "mtime": 1790551053.9018939,
+    "seen": 1790551066.5577781,
+    "ast_hash": "121c4a24ffa629dff49c534518eb5daa",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/versioning.py": {
+    "mtime": 1790551053.9018939,
+    "seen": 1790551066.5577793,
+    "ast_hash": "81ad39f7898991eca12fc2572a95b56b",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/webui/__init__.py": {
+    "mtime": 1790551053.9018939,
+    "seen": 1790551066.5577805,
+    "ast_hash": "f895f76816d88ef47044600809c6f714",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/app/webui/server.py": {
+    "mtime": 1790551053.9020534,
+    "seen": 1790551066.5577817,
+    "ast_hash": "52521b3da7aa3931d507dabc42558675",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/run.sh": {
+    "mtime": 1790551053.9231014,
+    "seen": 1790551066.5577831,
+    "ast_hash": "b34e7eef26ab5cc81f51e522a1246e16",
+    "semantic_hash": ""
+  },
+  "pyproject.toml": {
+    "mtime": 1790551053.9461014,
+    "seen": 1790551066.557784,
+    "ast_hash": "7df6c11b2203ad6d05e4300c46a21888",
+    "semantic_hash": ""
+  },
+  "repository.json": {
+    "mtime": 1790551053.9461014,
+    "seen": 1790551066.557785,
+    "ast_hash": "d2ae48789daf992d635ba437d87d4d02",
+    "semantic_hash": ""
+  },
+  "tests/fixtures/audio/manifest.json": {
+    "mtime": 1790551053.9491014,
+    "seen": 1790551066.5577865,
+    "ast_hash": "b387487f81e9af6e478371adead88930",
+    "semantic_hash": ""
+  },
+  "tests/test_addon_mgr.py": {
+    "mtime": 1790551053.9731014,
+    "seen": 1790551066.5577874,
+    "ast_hash": "d2ef4166eadb224238dcf8606282b97d",
+    "semantic_hash": ""
+  },
+  "tests/test_addon_options.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5577886,
+    "ast_hash": "e1dbe82fdcb9bcd53b42b02c9776112a",
+    "semantic_hash": ""
+  },
+  "tests/test_audio_classifier_integration.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5577898,
+    "ast_hash": "f03c516df8e9c4b7e55cd03bcc47faaf",
+    "semantic_hash": ""
+  },
+  "tests/test_audio_fixtures.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5577908,
+    "ast_hash": "24592993b2b8798adc498b16c1b56b81",
+    "semantic_hash": ""
+  },
+  "tests/test_audio_stream.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.557792,
+    "ast_hash": "0287a8384d8acfd6477ae83a95c2cb12",
+    "semantic_hash": ""
+  },
+  "tests/test_config_defaults.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5577934,
+    "ast_hash": "c44f950c8d8956a3db8ce334215ef474",
+    "semantic_hash": ""
+  },
+  "tests/test_detection.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5577943,
+    "ast_hash": "00883cd4dbcb37c3cc55da2e61e6eeb2",
+    "semantic_hash": ""
+  },
+  "tests/test_event_history.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5577955,
+    "ast_hash": "afafce9981e660452e89e84d590bfa4b",
+    "semantic_hash": ""
+  },
+  "tests/test_hardening.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5577986,
+    "ast_hash": "f943373ceeebd87cb35fbd2162762d03",
+    "semantic_hash": ""
+  },
+  "tests/test_homeassistant.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5577996,
+    "ast_hash": "f8cfc6b04def088acb1cc09aa7b28416",
+    "semantic_hash": ""
+  },
+  "tests/test_homeassistant_client.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.557801,
+    "ast_hash": "4be4e893e2dd1658c0b01073ecddc4d2",
+    "semantic_hash": ""
+  },
+  "tests/test_logging.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.557802,
+    "ast_hash": "75d3feebc6677225fafbc1eddc160491",
+    "semantic_hash": ""
+  },
+  "tests/test_main.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.557803,
+    "ast_hash": "48bbeff163b47e90e67958052d1763e9",
+    "semantic_hash": ""
+  },
+  "tests/test_manifest.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.557804,
+    "ast_hash": "73ab8da14c22382ee19a5b5121ecc6e8",
+    "semantic_hash": ""
+  },
+  "tests/test_mqtt_client.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5578053,
+    "ast_hash": "4cdb48dc0c03238ba6df8888b075dcd1",
+    "semantic_hash": ""
+  },
+  "tests/test_mqtt_discovery.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5578063,
+    "ast_hash": "6fde8572720510fd52a1ccc6c9cd99de",
+    "semantic_hash": ""
+  },
+  "tests/test_no_audio_detection.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5578074,
+    "ast_hash": "79b6f041ef22ffea23555977142fcbc6",
+    "semantic_hash": ""
+  },
+  "tests/test_stream.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5578086,
+    "ast_hash": "ece24a01684add6bbbc9ba8a6d2e1d2d",
+    "semantic_hash": ""
+  },
+  "tests/test_versioning.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5578096,
+    "ast_hash": "9d8a1334bfddbe31ce41b0808f7f785e",
+    "semantic_hash": ""
+  },
+  "tests/test_webui.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.5578108,
+    "ast_hash": "26816f454bbf6a1518e884ad3d22eede",
+    "semantic_hash": ""
+  },
+  "tests/test_yamnet_label_loading.py": {
+    "mtime": 1790551053.9741015,
+    "seen": 1790551066.557812,
+    "ast_hash": "95d2610a78ecee6ba74319ad2d81b6ed",
+    "semantic_hash": ""
+  },
+  ".claude/skills/run-ha-audio-fix/SKILL.md": {
+    "mtime": 1790551053.8989587,
+    "seen": 1790551066.557813,
+    "ast_hash": "b2aaad736f201ed6166a21c55be21e90",
+    "semantic_hash": ""
+  },
+  ".github/workflows/ci.yml": {
+    "mtime": 1790551053.8992832,
+    "seen": 1790551066.5578141,
+    "ast_hash": "c99dc2841fc37effabebe940828c9e2a",
+    "semantic_hash": ""
+  },
+  ".github/workflows/refresh-on-pr.yml": {
+    "mtime": 1790551053.8993647,
+    "seen": 1790551066.5578153,
+    "ast_hash": "aa70e31941d21cccf377297b41924d82",
+    "semantic_hash": ""
+  },
+  ".github/workflows/version-bump.yml": {
+    "mtime": 1790551053.8993647,
+    "seen": 1790551066.5578163,
+    "ast_hash": "99a3ffc01c643742506a122b02e233c5",
+    "semantic_hash": ""
+  },
+  "AGENT_REFRESH.md": {
+    "mtime": 1790551053.8993647,
+    "seen": 1790551066.5578175,
+    "ast_hash": "6c1e74a7bd4c68a4a3380f395c1343ed",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1790551053.8993647,
+    "seen": 1790551066.5578184,
+    "ast_hash": "cf22fdedf3e1b6c06ad48ee745c97e3d",
+    "semantic_hash": ""
+  },
+  "TODO.md": {
+    "mtime": 1790551053.8993647,
+    "seen": 1790551066.5578194,
+    "ast_hash": "61a5928ff19e925916316c6ad8580cb4",
+    "semantic_hash": ""
+  },
+  "agents.md": {
+    "mtime": 1790551053.8993647,
+    "seen": 1790551066.5578206,
+    "ast_hash": "792cf2c6662a08d5767576bb95c65b36",
+    "semantic_hash": ""
+  },
+  "config.yaml": {
+    "mtime": 1790551053.8993647,
+    "seen": 1790551066.5578218,
+    "ast_hash": "6d717f1424521b8210fe682bfa5ecf9e",
+    "semantic_hash": ""
+  },
+  "docs/esphome-audio-source.md": {
+    "mtime": 1790551053.8993647,
+    "seen": 1790551066.5578227,
+    "ast_hash": "cd479573229f087d13d7c05e1df5e4e4",
+    "semantic_hash": ""
+  },
+  "graphify.yaml": {
+    "mtime": 1790551053.8993647,
+    "seen": 1790551066.557824,
+    "ast_hash": "381b83646112bd3a2d05681d0bc0bd1a",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/CHANGELOG.md": {
+    "mtime": 1790551053.8993647,
+    "seen": 1790551066.557825,
+    "ast_hash": "dd21d1d869cd16af40d1ceefa7096f74",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/config.yaml": {
+    "mtime": 1790551053.9020534,
+    "seen": 1790551066.557826,
+    "ast_hash": "f00c353c327f6eee8e7fdf697d3a65f1",
+    "semantic_hash": ""
+  },
+  "ha-audio-events/translations/en.yaml": {
+    "mtime": 1790551053.9231014,
+    "seen": 1790551066.5578272,
+    "ast_hash": "f1c7d8d67fbdbaa92989b3e8229c424e",
+    "semantic_hash": ""
+  },
+  "tests/fixtures/audio/train/README.md": {
+    "mtime": 1790551053.9491014,
+    "seen": 1790551066.5578287,
+    "ast_hash": "1893f8e59c96d5687e888de63b6b46ee",
+    "semantic_hash": ""
+  },
+  "tests/fixtures/audio/dog-barking/audiopapkin-barking-large-and-small-dog-290711.mp3": {
+    "mtime": 1790551053.947168,
+    "seen": 1790551066.5578296,
+    "ast_hash": "b9c936a83d974ec9f865391971b131b0",
+    "semantic_hash": ""
+  },
+  "tests/fixtures/audio/dog-barking/dragon-studio-dog-barking-406629.mp3": {
+    "mtime": 1790551053.9491014,
+    "seen": 1790551066.5578306,
+    "ast_hash": "134c87f50a4317d212443193006a84f2",
+    "semantic_hash": ""
+  },
+  "tests/fixtures/audio/dog-barking/dragon-studio-free-dog-bark-419014.mp3": {
+    "mtime": 1790551053.9491014,
+    "seen": 1790551066.5578318,
+    "ast_hash": "84fde5655d45d4df34e675cc926d465c",
+    "semantic_hash": ""
+  },
+  "tests/fixtures/audio/train/freesound_community-8-freight-train_126s.mp3": {
+    "mtime": 1790551053.9611015,
+    "seen": 1790551066.5578327,
+    "ast_hash": "5aa67098c51cc6fdbbe16c0b760b3f95",
+    "semantic_hash": ""
+  },
+  "tests/fixtures/audio/train/freight_train_01.wav": {
+    "mtime": 1790551053.9611015,
+    "seen": 1790551066.5578337,
+    "ast_hash": "fd6e52cd8faea9867bc6b3f35f38425c",
+    "semantic_hash": ""
+  },
+  "tests/fixtures/audio/train/sspsurvival-train-sleepers-train-wheels-freight-train_95s.mp3": {
+    "mtime": 1790551053.9731014,
+    "seen": 1790551066.557835,
+    "ast_hash": "02662bbaff360919ed59cd93b6970b0b",
+    "semantic_hash": ""
+  }
+}
