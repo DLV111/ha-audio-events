@@ -106,9 +106,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      - name: Install jsdom for picker DOM tests
+        run: npm install --no-save jsdom
+
       - name: Run WebUI JS unit tests
         run: |
           node ha-audio-events/app/webui/transfer_picker.test.js
+
+      - name: Run WebUI picker DOM tests
+        run: |
+          node ha-audio-events/app/webui/picker.test.js
 
       - name: Run make test-container
         timeout-minutes: 5

@@ -5,6 +5,26 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-19
+### Added
+- The Audio Class Filters picker now **filters both panes as you type**: typing in the search box narrows the Available and Accepted lists by class-name substring. Previously the query was stored in state but `filterState()` was never called by the renderer, so the lists never changed.
+- Search and category chips combine (AND): a query only shows matches inside the selected AudioSet category.
+- A live, `aria-live` result count reports how many classes are available/selected under the current search and category filter.
+- Keyboard navigation for both lists: Arrow Up/Down move between rows, Home/End jump, Space/Enter toggle the focused row.
+- Phones get a segmented **Browse / Selected** view, a full-width search box, and touch targets of at least 44px for rows, category chips and buttons.
+### Changed
+- The picker renderer and styles were extracted from the inline code in `server.py` into `app/webui/static/picker.js` and `app/webui/static/picker.css`; the page now only fetches data and mounts the pickers.
+- The byte-identical duplicate `app/webui/transfer_picker.js` was removed. `app/webui/static/transfer_picker.js` is the single source of truth, and the Node test now targets it.
+- Group headers and label rows are siblings in the DOM. Labels no longer sit inside the flex group header, which previously produced a large empty gutter and a header hundreds of pixels tall.
+- Both panes are bounded with their own scroll area, and the desktop layout is a three-column grid (available | transfer | accepted).
+### Fixed
+- Ticking a label no longer collapses its group (checkbox clicks now stop event propagation).
+- The whole label row is a tap target, not just the small checkbox.
+- **Select All / Remove All** act on the currently visible (search + chip filtered) labels instead of silently accepting or clearing hundreds of hidden ones.
+
+### Upgrade note
+The saved configuration format is unchanged: the panel still posts `{include, exclude}` as lowercased string arrays.
+
 ## [0.7.1] - 2026-10-17
 ### Fixed
 - **MQTT-disabled installs keep working**: entity ownership is now config-driven and mutually exclusive. With `mqtt.enabled=false` the two scalar entities (`sensor.<prefix>_last_audio_event`, `binary_sensor.<prefix>_audio_active`) *and* the per-label sensors named in `classifier.include` are created and updated over the Home Assistant REST API again, exactly as before MQTT discovery existed — they are just not manageable from the UI (no registry `unique_id`). This restores the behaviour of the `0.7.0` release, which published entity state through MQTT only and silently left MQTT-disabled installs with entities that never updated.

@@ -142,6 +142,7 @@ class WebUI:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HA Audio Events - Source Picker</title>
+    <link rel="stylesheet" href="static/picker.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -171,66 +172,10 @@ class WebUI:
         .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .loading { text-align: center; padding: 20px; color: #666; }
         .status { padding: 10px; border-radius: 4px; margin-top: 10px; display: none; }
-        .picker { border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px; overflow: hidden; }
-        .picker h3 {
-            margin: 0; padding: 10px 15px; background: #f8f9fa; border-bottom: 1px solid #ddd;
-            display: flex; justify-content: space-between; align-items: center; font-size: 16px;
-        }
-        .picker-counter { font-weight: normal; color: #888; font-size: 13px; }
-        .picker-search {
-            width: calc(100% - 30px); margin: 10px 15px; padding: 8px;
-            border: 1px solid #ddd; border-radius: 4px; font-size: 14px;
-        }
-        .picker-body { display: flex; gap: 0; min-height: 320px; }
-        .pane { flex: 1; min-height: 250px; overflow-y: auto; border-right: 1px solid #eee; }
-        .pane:last-child { border-right: none; }
-        .pane-header {
-            padding: 8px 12px; background: #f0f0f0; font-weight: 600; position: sticky; top: 0;
-            z-index: 1; display: flex; justify-content: space-between; align-items: center;
-        }
-        .pane-list { padding: 0; }
-        .group-header {
-            padding: 6px 12px; cursor: pointer; background: #e8e8e8; border-bottom: 1px solid #ddd;
-            display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 14px;
-        }
-        .group-header:hover { background: #d8d8d8; }
-        .group-header.collapsed .group-labels { display: none; }
-        .group-actions button { font-size: 11px; padding: 2px 8px; margin-left: 6px; }
-        .label-item {
-            padding: 3px 20px; cursor: pointer; display: flex; align-items: center;
-            font-size: 13px; border-bottom: 1px solid #f0f0f0;
-        }
-        .label-item:hover { background: #f0f8ff; }
-        .label-item input[type=checkbox] { margin-right: 8px; cursor: pointer; }
-        .transfer-controls {
-            display: flex; flex-direction: column; gap: 6px; padding: 10px;
-            align-items: center; justify-content: center;
-        }
-        .transfer-btn { width: 44px; height: 34px; padding: 0; font-size: 20px; border-radius: 4px; }
-        .select-all-btn, .remove-all-btn { font-size: 11px; padding: 3px 6px; }
-        .pane-actions { display: flex; gap: 6px; }
-        .group-chips {
-            display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #eee;
-            overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin;
-        }
-        .group-chip {
-            flex: 0 0 auto; padding: 9px 14px; font-size: 14px; font-weight: 600;
-            border-radius: 999px; border: 1px solid #d8e0ea; background: #eef2f7;
-            color: #333; cursor: pointer; white-space: nowrap; line-height: 1;
-        }
-        .group-chip.active { background: #007bff; border-color: #007bff; color: #fff; }
+        /* Audio Class Filters picker styles live in static/picker.css. */
         @media (max-width: 700px) {
             body { padding: 10px; }
             .container { padding: 16px; }
-            /* Stack the two panes: side-by-side transfer panes are unusable
-               on a phone, and the arrows become full-width tap targets. */
-            .picker-body { flex-direction: column; }
-            .pane { max-height: 45vh; border-right: none; border-bottom: 1px solid #eee; }
-            .transfer-controls { flex-direction: row; }
-            .transfer-btn { width: 100%; height: 44px; }
-            .group-header { padding: 12px; font-size: 15px; }
-            .label-item { padding: 10px 12px; font-size: 15px; }
-            .label-item input[type=checkbox] { width: 20px; height: 20px; }
         }
     </style>
 </head>
@@ -279,14 +224,13 @@ class WebUI:
     </div>
 
     <script src="static/transfer_picker.js"></script>
+    <script src="static/picker.js"></script>
     <script>
         let cameras = [];
         let microphones = [];
         let currentSource = '';
         let isLoading = true;
-        let includeState = null, excludeState = null, allLabels = [], groupsTree = {}, classGroups = [];
-        // Category chip selection per picker: null means "all categories".
-        let activeGroup = { include: null, exclude: null };
+        let includePicker = null, excludePicker = null, allLabels = [], groupsTree = {}, classGroups = [];
 
         function getStoredToken() {
             try { return sessionStorage.getItem('webui_token') || ''; } catch (e) { return ''; }
@@ -379,236 +323,11 @@ class WebUI:
         }
 
         // ================= Picker logic =================
+        //
+        // Rendering/interaction lives in static/picker.js (PickerUI); pure
+        // state logic lives in static/transfer_picker.js (TransferPicker).
+        // This page only fetches data and mounts the two pickers.
 
-        function displayLookup() {
-            const m = {};
-            allLabels.forEach(function(l) { m[l.toLowerCase()] = l; });
-            return m;
-        }
-
-        function acceptedDisplay(state) {
-            const m = displayLookup();
-            return TransferPicker.getAcceptedValues(state).map(function(v) { return m[v] || v; });
-        }
-
-        function availableLabels(state) {
-            const set = {};
-            TransferPicker.getAcceptedValues(state).forEach(function(v) { set[v.toLowerCase()] = true; });
-            return allLabels.filter(function(l) { return !set[l.toLowerCase()]; });
-        }
-
-        // Group a flat list of display names by top-level group (subgroups flattened).
-        function groupByTree(labels) {
-            const set = {};
-            labels.forEach(function(l) { set[l.toLowerCase()] = true; });
-            const result = {};
-            Object.keys(groupsTree).forEach(function(top) {
-                const all = (groupsTree[top].allLabels || []);
-                const bucket = [];
-                all.forEach(function(l) { if (set[l.toLowerCase()]) bucket.push(l); });
-                if (bucket.length > 0) result[top] = bucket;
-            });
-            return result;
-        }
-
-        function createLabelRow(labelName) {
-            const item = document.createElement('div'); item.className = 'label-item';
-            const cb = document.createElement('input'); cb.type = 'checkbox';
-            cb.dataset.label = labelName;
-            const span = document.createElement('span'); span.textContent = labelName;
-            item.appendChild(cb); item.appendChild(span);
-            return item;
-        }
-
-        function renderPane(prefix, pane, labels, state) {
-            const container = document.getElementById(prefix + '-' + pane);
-            if (!container) return;
-            container.innerHTML = '';
-            const grouped = groupByTree(labels);
-            const selected = activeGroup[prefix];
-            const names = Object.keys(grouped)
-                .filter(function(n) { return !selected || n === selected; })
-                .sort();
-            if (names.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'label-item';
-                empty.textContent = pane === 'accepted' ? 'Nothing accepted' : 'No matching labels';
-                empty.style.color = '#999';
-                container.appendChild(empty);
-                return;
-            }
-            names.forEach(function(groupName) {
-                const labels2 = grouped[groupName];
-                const header = document.createElement('div'); header.className = 'group-header';
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = groupName + ' (' + labels2.length + ')';
-                const actions = document.createElement('div'); actions.className = 'group-actions';
-                const btn = document.createElement('button');
-                // type=button: these live inside #filters-form, and a submit
-                // button here would POST the filters and restart the add-on.
-                btn.type = 'button';
-                if (pane === 'available') {
-                    btn.textContent = 'Select';
-                    btn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        TransferPicker.accept(state, labels2);
-                        renderAllPickers();
-                    });
-                } else {
-                    btn.textContent = 'Clear';
-                    btn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        TransferPicker.remove(state, labels2);
-                        renderAllPickers();
-                    });
-                }
-                actions.appendChild(btn);
-                header.appendChild(nameSpan);
-                header.appendChild(actions);
-                header.addEventListener('click', function() { header.classList.toggle('collapsed'); });
-                const labelsDiv = document.createElement('div'); labelsDiv.className = 'group-labels';
-                labels2.forEach(function(l) { labelsDiv.appendChild(createLabelRow(l)); });
-                header.appendChild(labelsDiv);
-                container.appendChild(header);
-            });
-        }
-
-        function renderPicker(prefix, state) {
-            renderPane(prefix, 'available', availableLabels(state), state);
-            renderPane(prefix, 'accepted', acceptedDisplay(state), state);
-            const counter = document.getElementById(prefix + '-counter');
-            if (counter) counter.textContent = TransferPicker.getCounter(state);
-        }
-
-        function renderAllPickers() {
-            if (includeState) renderPicker('include', includeState);
-            if (excludeState) renderPicker('exclude', excludeState);
-        }
-
-        function stateFor(prefix) {
-            return prefix === 'include' ? includeState : excludeState;
-        }
-
-        function readChecked(container) {
-            return Array.from(container.querySelectorAll('input[type=checkbox]:checked'))
-                .map(function(cb) { return cb.dataset.label; });
-        }
-
-        function wirePicker(prefix) {
-            const acceptBtn = document.getElementById(prefix + '-accept-btn');
-            acceptBtn.addEventListener('click', function() {
-                const labels = readChecked(document.getElementById(prefix + '-available'));
-                if (labels.length === 0) return;
-                TransferPicker.accept(stateFor(prefix), labels);
-                renderAllPickers();
-            });
-            const removeBtn = document.getElementById(prefix + '-remove-btn');
-            removeBtn.addEventListener('click', function() {
-                const labels = readChecked(document.getElementById(prefix + '-accepted'));
-                if (labels.length === 0) return;
-                TransferPicker.remove(stateFor(prefix), labels);
-                renderAllPickers();
-            });
-            document.getElementById(prefix + '-select-all-btn').addEventListener('click', function() {
-                TransferPicker.selectAll(stateFor(prefix));
-                renderAllPickers();
-            });
-            document.getElementById(prefix + '-remove-all-btn').addEventListener('click', function() {
-                TransferPicker.removeAll(stateFor(prefix));
-                renderAllPickers();
-            });
-            document.getElementById(prefix + '-search').addEventListener('input', function(e) {
-                TransferPicker.setSearch(stateFor(prefix), e.target.value);
-                renderAllPickers();
-            });
-            const chips = document.getElementById(prefix + '-chips');
-            if (chips) {
-                chips.addEventListener('click', function(e) {
-                    const chip = e.target.closest('.group-chip');
-                    if (!chip) return;
-                    activeGroup[prefix] = chip.dataset.group || null;
-                    Array.from(chips.querySelectorAll('.group-chip')).forEach(function(c) {
-                        c.classList.toggle('active', c === chip);
-                    });
-                    renderAllPickers();
-                });
-            }
-        }
-
-        function buildPickerDOM(prefix, title) {
-            const container = document.getElementById('pickers-container');
-            const picker = document.createElement('div'); picker.className = 'picker';
-            const h3 = document.createElement('h3');
-            const titleSpan = document.createElement('span'); titleSpan.textContent = title;
-            const counter = document.createElement('span'); counter.className = 'picker-counter';
-            counter.id = prefix + '-counter'; counter.textContent = '0/' + allLabels.length + ' values accepted';
-            h3.appendChild(titleSpan); h3.appendChild(counter);
-            picker.appendChild(h3);
-
-            const search = document.createElement('input');
-            search.type = 'text'; search.className = 'picker-search'; search.id = prefix + '-search';
-            search.placeholder = 'Search labels or groups...';
-            picker.appendChild(search);
-
-            // Category chip bar: the "menu" half of the mobile-friendly
-            // grouped filter UI. Horizontally scrollable so the categories
-            // stay one tap away on a phone instead of a 521-item scroll.
-            const chips = document.createElement('div');
-            chips.className = 'group-chips'; chips.id = prefix + '-chips';
-            chips.setAttribute('role', 'group');
-            chips.setAttribute('aria-label', title + ': filter by category');
-            const allChip = document.createElement('button');
-            allChip.type = 'button'; allChip.className = 'group-chip active';
-            allChip.dataset.group = ''; allChip.textContent = 'All categories';
-            chips.appendChild(allChip);
-            classGroups.forEach(function(group) {
-                const chip = document.createElement('button');
-                chip.type = 'button'; chip.className = 'group-chip';
-                chip.dataset.group = group.name;
-                chip.textContent = group.name + ' (' + (group.classes || []).length + ')';
-                chips.appendChild(chip);
-            });
-            picker.appendChild(chips);
-
-            const body = document.createElement('div'); body.className = 'picker-body';
-
-            const avail = document.createElement('div'); avail.className = 'pane';
-            const availHeader = document.createElement('div'); availHeader.className = 'pane-header';
-            const availTitle = document.createElement('span'); availTitle.textContent = 'Available';
-            const availActions = document.createElement('div'); availActions.className = 'pane-actions';
-            const selectAll = document.createElement('button'); selectAll.className = 'select-all-btn';
-            selectAll.type = 'button';
-            selectAll.id = prefix + '-select-all-btn'; selectAll.textContent = 'Select All';
-            const removeAll = document.createElement('button'); removeAll.className = 'remove-all-btn';
-            removeAll.type = 'button';
-            removeAll.id = prefix + '-remove-all-btn'; removeAll.textContent = 'Remove All';
-            availActions.appendChild(selectAll); availActions.appendChild(removeAll);
-            availHeader.appendChild(availTitle); availHeader.appendChild(availActions);
-            const availList = document.createElement('div'); availList.className = 'pane-list';
-            availList.id = prefix + '-available';
-            avail.appendChild(availHeader); avail.appendChild(availList);
-
-            const transfer = document.createElement('div'); transfer.className = 'transfer-controls';
-            const acceptBtn = document.createElement('button'); acceptBtn.className = 'transfer-btn';
-            acceptBtn.type = 'button';
-            acceptBtn.id = prefix + '-accept-btn'; acceptBtn.textContent = '\u2192'; acceptBtn.title = 'Accept selected';
-            const removeBtn = document.createElement('button'); removeBtn.className = 'transfer-btn';
-            removeBtn.type = 'button';
-            removeBtn.id = prefix + '-remove-btn'; removeBtn.textContent = '\u2190'; removeBtn.title = 'Remove selected';
-            transfer.appendChild(acceptBtn); transfer.appendChild(removeBtn);
-
-            const acc = document.createElement('div'); acc.className = 'pane';
-            const accHeader = document.createElement('div'); accHeader.className = 'pane-header';
-            const accTitle = document.createElement('span'); accTitle.textContent = 'Accepted';
-            accHeader.appendChild(accTitle);
-            const accList = document.createElement('div'); accList.className = 'pane-list';
-            accList.id = prefix + '-accepted';
-            acc.appendChild(accHeader); acc.appendChild(accList);
-
-            body.appendChild(avail); body.appendChild(transfer); body.appendChild(acc);
-            picker.appendChild(body);
-            container.appendChild(picker);
-        }
 
         async function loadFilters() {
             const container = document.getElementById('pickers-container');
@@ -630,13 +349,24 @@ class WebUI:
                 if (filtersResp.ok) current = await parseApiResponse(filtersResp, 'classifier filters');
 
                 container.innerHTML = '';
-                includeState = TransferPicker.createState(allLabels, groupsTree, current.include || []);
-                excludeState = TransferPicker.createState(allLabels, groupsTree, current.exclude || []);
-                buildPickerDOM('include', 'Include (empty = report all classes)');
-                buildPickerDOM('exclude', 'Exclude');
-                renderAllPickers();
-                wirePicker('include');
-                wirePicker('exclude');
+                includePicker = PickerUI.createPicker({
+                    prefix: 'include',
+                    title: 'Include (empty = report all classes)',
+                    allLabels: allLabels,
+                    groupsTree: groupsTree,
+                    classGroups: classGroups,
+                    accepted: current.include || []
+                });
+                excludePicker = PickerUI.createPicker({
+                    prefix: 'exclude',
+                    title: 'Exclude',
+                    allLabels: allLabels,
+                    groupsTree: groupsTree,
+                    classGroups: classGroups,
+                    accepted: current.exclude || []
+                });
+                container.appendChild(includePicker.element);
+                container.appendChild(excludePicker.element);
             } catch (error) {
                 container.innerHTML = '';
                 const div = document.createElement('div'); div.className = 'error';
@@ -651,8 +381,8 @@ class WebUI:
             const originalText = btn.textContent;
             btn.disabled = true; btn.textContent = 'Applying...';
             try {
-                const include = TransferPicker.getAcceptedValues(includeState);
-                const exclude = TransferPicker.getAcceptedValues(excludeState);
+                const include = includePicker ? includePicker.getAcceptedValues() : [];
+                const exclude = excludePicker ? excludePicker.getAcceptedValues() : [];
                 const response = await apiFetch('api/classifiers', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ include: include, exclude: exclude })
