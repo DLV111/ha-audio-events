@@ -71,6 +71,11 @@ configuration:
       description: >-
         After sound drops below the thresholds, keep analysing for this
         long so fading sounds are still classified.
+    silence_timeout:
+      name: Silence timeout (seconds)
+      description: >-
+        Set the audio event to silence after this much time below the
+        activity thresholds. Defaults to 5 seconds.
 
   classifier:
     name: Classification filters

@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import sys
+from datetime import UTC, datetime
 
 from app.addon_mgr import AddonManager
 from app.audio.activity import ActivityDetector
@@ -61,6 +62,7 @@ async def _run_pipeline(config: AppConfig) -> None:
     label_friendly_names = build_label_friendly_names(
         config.homeassistant, config.classifier.include
     )
+    silence_started_at: datetime | None = None
     ha_client = (
         HomeAssistantClient(
             config.homeassistant,
@@ -130,7 +132,11 @@ async def _run_pipeline(config: AppConfig) -> None:
                     )
                     await ha_client.update_state(
                         entity_ids["audio_active"],
-                        "on" if event.state != "ended" else "off",
+                        (
+                            "on"
+                            if event.state != "ended" and event.label != "silence"
+                            else "off"
+                        ),
                         {
                             "label": event.label,
                             "friendly_name": friendly_names["audio_active"],
@@ -140,7 +146,11 @@ async def _run_pipeline(config: AppConfig) -> None:
                     if event.label in label_sensor_ids:
                         await ha_client.update_state(
                             label_sensor_ids[event.label],
-                            "on" if event.state != "ended" else "off",
+                            (
+                                "on"
+                                if event.state != "ended" and event.label != "silence"
+                                else "off"
+                            ),
                             {
                                 "label": event.label,
                                 "confidence": str(event.confidence),
@@ -161,15 +171,67 @@ async def _run_pipeline(config: AppConfig) -> None:
         """
         try:
             await _publish_events(aggregator.flush())
+            if silence_started_at is not None:
+                now = datetime.now(UTC)
+                await _publish_events(
+                    [
+                        EventMessage(
+                            event_type="audio.detected",
+                            label="silence",
+                            confidence=1.0,
+                            duration=(now - silence_started_at).total_seconds(),
+                            state="ended",
+                            model="activity-detector",
+                        )
+                    ]
+                )
         except Exception:
             _LOGGER.exception("Failed to flush active events on shutdown")
 
     async def _detect() -> None:
+        nonlocal silence_started_at
         try:
             async for chunk in source.stream():
                 buffer.append(chunk)
                 window = buffer.get_window(config.buffer_seconds)
-                if not detector.should_analyze(window):
+                now = datetime.now(UTC)
+                should_analyze = detector.should_analyze(window, now)
+                if (
+                    not detector.currently_active
+                    and silence_started_at is None
+                    and detector.silence_timed_out(now)
+                ):
+                    await _publish_events(aggregator.flush())
+                    silence_started_at = now
+                    await _publish_events(
+                        [
+                            EventMessage(
+                                event_type="audio.detected",
+                                label="silence",
+                                confidence=1.0,
+                                duration=0.0,
+                                state="started",
+                                model="activity-detector",
+                            )
+                        ]
+                    )
+
+                if silence_started_at is not None and detector.currently_active:
+                    await _publish_events(
+                        [
+                            EventMessage(
+                                event_type="audio.detected",
+                                label="silence",
+                                confidence=1.0,
+                                duration=(now - silence_started_at).total_seconds(),
+                                state="ended",
+                                model="activity-detector",
+                            )
+                        ]
+                    )
+                    silence_started_at = None
+
+                if not should_analyze or silence_started_at is not None:
                     continue
 
                 detections = await classifier.classify(window)

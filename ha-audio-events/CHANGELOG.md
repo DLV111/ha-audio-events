@@ -5,6 +5,11 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-10-26
+### Added
+- A real `silence` event is emitted after 5 seconds without activity by default.
+- The timeout is tunable with `activity.silence_timeout`; sound immediately ends the silence event.
+
 ## [0.8.0] - 2026-10-19
 ### Added
 - The Audio Class Filters picker now **filters both panes as you type**: typing in the search box narrows the Available and Accepted lists by class-name substring. Previously the query was stored in state but `filterState()` was never called by the renderer, so the lists never changed.

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 import numpy as np
 from app.audio.activity import ActivityConfig, ActivityDetector
 from app.audio.buffer import CircularAudioBuffer
@@ -23,6 +25,20 @@ def test_activity_detector_thresholds() -> None:
     assert not detector.should_analyze(audio)
     loud_audio = np.array([0.3, 0.3, 0.3], dtype=np.float32)
     assert detector.should_analyze(loud_audio)
+
+
+def test_activity_detector_reports_configured_silence_timeout() -> None:
+    start = datetime(2026, 10, 26, tzinfo=UTC)
+    config = ActivityConfig(silence_timeout=5.0)
+    detector = ActivityDetector(config)
+    quiet_audio = np.zeros(3, dtype=np.float32)
+
+    assert not detector.should_analyze(quiet_audio, start)
+    assert not detector.silence_timed_out(start + timedelta(seconds=4.9))
+    assert detector.silence_timed_out(start + timedelta(seconds=5.0))
+
+    assert detector.should_analyze(np.ones(3, dtype=np.float32), start)
+    assert not detector.silence_timed_out(start + timedelta(seconds=10))
 
 
 def test_filter_detections_respects_include_exclude() -> None:
