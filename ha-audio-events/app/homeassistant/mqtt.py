@@ -107,7 +107,7 @@ class MQTTClient:
             self.client.publish(topic, payload, retain=True)
 
     def publish(self, event: EventMessage) -> None:
-        is_on = event.state != "ended"
+        is_on = event.state != "ended" and event.label != "silence"
         payload = json.dumps(
             {
                 "label": event.label,

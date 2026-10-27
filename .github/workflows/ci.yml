@@ -59,10 +59,12 @@ jobs:
             echo "Skipping PR title validation (non-PR context)"
             exit 0
           fi
-          # Check if title contains required keywords
-          if ! echo "$PR_TITLE" | grep -qiE "^(fix|feat|docs|style|refactor|test|chore|perf|ci|build)"; then
-            echo "ERROR: PR title must start with one of: fix, feat, docs, style, refactor, test, chore, perf, ci, build"
-            echo "Example: fix: audio source detection issue"
+          # Require a recognised Conventional Commit type followed by either
+          # a colon or whitespace, while accepting both common title styles.
+          if ! echo "$PR_TITLE" | grep -qiE "^(fix|feat|docs|style|refactor|test|chore|perf|ci|build)(:|[[:space:]])"; then
+            echo "ERROR: PR title must start with a commit type and ':' or whitespace"
+            echo "Allowed types: fix, feat, docs, style, refactor, test, chore, perf, ci, build"
+            echo "Examples: 'fix: audio source issue' or 'fix audio source issue'"
             exit 1
           fi
           # Log success message

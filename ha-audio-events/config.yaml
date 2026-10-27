@@ -1,6 +1,6 @@
 name: HA Audio Events
 slug: ha_audio_events
-version: 0.8.0
+version: 0.9.0
 description: Home Assistant add-on for audio event detection using TensorFlow Lite.
 arch:
   - amd64
@@ -25,6 +25,7 @@ options:
     rms_threshold: 0.04
     peak_threshold: 0.1
     hold_time: 2.0
+    silence_timeout: 5.0
   classifier:
     threshold: 0.8
     max_results: 5
@@ -78,6 +79,7 @@ schema:
     rms_threshold: float
     peak_threshold: float
     hold_time: float
+    silence_timeout: float
   classifier:
     threshold: float
     max_results: int

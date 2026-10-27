@@ -22,6 +22,7 @@ class ActivityConfig:
     rms_threshold: float = 0.04
     peak_threshold: float = 0.1
     hold_time: float = 2.0
+    silence_timeout: float = 5.0
 
 
 @dataclass(frozen=True)
@@ -192,6 +193,7 @@ def load_config(path: Path | str | None = None) -> AppConfig:
             rms_threshold=float(activity.get("rms_threshold", 0.04)),
             peak_threshold=float(activity.get("peak_threshold", 0.1)),
             hold_time=float(activity.get("hold_time", 2.0)),
+            silence_timeout=float(activity.get("silence_timeout", 5.0)),
         ),
         classifier=ClassifierConfig(
             threshold=float(classifier.get("threshold", 0.8)),
