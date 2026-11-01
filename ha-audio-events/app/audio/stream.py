@@ -83,7 +83,7 @@ def build_rtsp_url(
 
     url = f"rtsp://{effective_user}@{hostpart}"
     token = base64.b64encode(
-        f"{effective_user}:{effective_pass}".encode("utf-8")
+        f"{effective_user}:{effective_pass}".encode()
     ).decode("ascii")
     headers = f"Authorization: Basic {token}"
     log_url = f"rtsp://***@{hostpart}"
