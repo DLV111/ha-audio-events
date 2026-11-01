@@ -52,11 +52,16 @@ def test_event_aggregator_starts_and_ends() -> None:
     events = aggregator.update([])
     assert any(event.state == "ended" for event in events)
 
+
 def test_filter_detections_respects_hide_silence() -> None:
-    detections = [Detection(label="Train", confidence=0.9, timestamp=None, model="yamnet"),
-                  Detection(label="Dog", confidence=0.85, timestamp=None, model="yamnet"),
-                  Detection(label="Silence", confidence=0.8, timestamp=None, model="yamnet")]
-    config = ClassifierConfig(threshold=0.8, max_results=5, include=[], exclude=[], hide_silence=True)
+    detections = [
+        Detection(label="Train", confidence=0.9, timestamp=None, model="yamnet"),
+        Detection(label="Dog", confidence=0.85, timestamp=None, model="yamnet"),
+        Detection(label="Silence", confidence=0.8, timestamp=None, model="yamnet"),
+    ]
+    config = ClassifierConfig(
+        threshold=0.8, max_results=5, include=[], exclude=[], hide_silence=True
+    )
     filtered = filter_detections(detections, config)
     assert len(filtered) == 2
     labels = [d.label for d in filtered]
@@ -64,10 +69,15 @@ def test_filter_detections_respects_hide_silence() -> None:
     assert "Dog" in labels
     assert "Silence" not in labels
 
+
 def test_filter_detections_hide_silence_false() -> None:
-    detections = [Detection(label="Train", confidence=0.9, timestamp=None, model="yamnet"),
-                  Detection(label="Silence", confidence=0.8, timestamp=None, model="yamnet")]
-    config = ClassifierConfig(threshold=0.8, max_results=5, include=[], exclude=[], hide_silence=False)
+    detections = [
+        Detection(label="Train", confidence=0.9, timestamp=None, model="yamnet"),
+        Detection(label="Silence", confidence=0.8, timestamp=None, model="yamnet"),
+    ]
+    config = ClassifierConfig(
+        threshold=0.8, max_results=5, include=[], exclude=[], hide_silence=False
+    )
     filtered = filter_detections(detections, config)
     assert len(filtered) == 2
     labels = [d.label for d in filtered]
