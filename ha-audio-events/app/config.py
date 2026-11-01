@@ -15,6 +15,8 @@ class AudioSourceConfig:
     channels: int = 1
     format: str = "pcm_s16le"
     source_path: str | None = None
+    rtsp_username: str = ""
+    rtsp_password: str = ""
 
 
 @dataclass(frozen=True)
@@ -175,6 +177,16 @@ def load_config(path: Path | str | None = None) -> AppConfig:
                 _clean_str(raw_audio.get("source_path"))
                 if isinstance(raw_audio, dict)
                 else None
+            ),
+            rtsp_username=(
+                _clean_str(raw_audio.get("rtsp_username")) or ""
+                if isinstance(raw_audio, dict)
+                else ""
+            ),
+            rtsp_password=(
+                _clean_str(raw_audio.get("rtsp_password")) or ""
+                if isinstance(raw_audio, dict)
+                else ""
             ),
         )
 

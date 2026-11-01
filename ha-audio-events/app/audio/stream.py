@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import logging
 import os
 import shutil
@@ -17,6 +18,76 @@ from app.audio.resample import ensure_mono, pcm_s16le_to_float32
 from app.config import AudioSourceConfig, HomeAssistantConfig, normalize_ha_url
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def mask_rtsp_url(url: str) -> str:
+    """Return ``url`` with any embedded ``user:password@`` masked.
+
+    Handles both the legacy inline form (``rtsp://user:pass@host/path``) and
+    the new separate-credential form (``rtsp://user@host/path``).  Passwords
+    are replaced with ``***``; the username is preserved so logs stay
+    useful for debugging auth failures.
+    """
+    if not url or "://" not in url:
+        return url
+    scheme, _, rest = url.partition("://")
+    if "@" not in rest:
+        return url
+    userinfo, _, hostpart = rest.rpartition("@")
+    if ":" in userinfo:
+        user, _, _password = userinfo.partition(":")
+        return f"{scheme}://{user}:***@{hostpart}"
+    return f"{scheme}://{userinfo}@{hostpart}"
+
+
+def build_rtsp_url(
+    source_path: str, username: str, password: str
+) -> tuple[str, str | None, str]:
+    """Resolve the effective RTSP URL and ffmpeg auth headers.
+
+    Returns ``(url, headers, log_url)``:
+
+    * ``url`` is what ffmpeg actually reads (never contains the password).
+    * ``headers`` is an ffmpeg ``-headers`` value carrying a Basic Auth
+      ``Authorization`` header, or ``None`` when no auth is needed.
+    * ``log_url`` is a display-safe URL for logging (password masked).
+
+    Back-compat: if ``source_path`` already embeds ``user:password@`` we keep
+    it untouched and only mask the password in the log line.
+    """
+    if not source_path.startswith("rtsp://"):
+        return source_path, None, source_path
+
+    has_inline_auth = False
+    userinfo: str | None = None
+    hostpart = source_path[len("rtsp://"):]
+    if "@" in hostpart:
+        userinfo, _, hostpart = hostpart.partition("@")
+        if ":" in userinfo:
+            has_inline_auth = True
+
+    if not username and not has_inline_auth:
+        return source_path, None, source_path
+
+    inline_user: str | None = None
+    inline_pass: str = ""
+    if has_inline_auth and userinfo:
+        inline_user, _, inline_pass = userinfo.partition(":")
+
+    effective_user = username or inline_user
+    effective_pass = password if password != "" else inline_pass
+
+    if not effective_user:
+        # No username anywhere: nothing to authenticate with.
+        return source_path, None, source_path
+
+    url = f"rtsp://{effective_user}@{hostpart}"
+    token = base64.b64encode(
+        f"{effective_user}:{effective_pass}".encode("utf-8")
+    ).decode("ascii")
+    headers = f"Authorization: Basic {token}"
+    log_url = f"rtsp://***@{hostpart}"
+    return url, headers, log_url
 
 
 class NoAudioStreamError(RuntimeError):
@@ -72,8 +143,15 @@ class AudioStreamSource:
                 return
 
             if source.startswith(("rtsp://", "http://", "https://", "rtmp://")):
-                _LOGGER.info("Streaming audio from network URL via ffmpeg: %s", source)
-                async for chunk in self._stream_ffmpeg(source):
+                if source.startswith("rtsp://"):
+                    source, headers, log_url = build_rtsp_url(
+                        source, self.config.rtsp_username, self.config.rtsp_password
+                    )
+                else:
+                    log_url = source
+                    headers = None
+                _LOGGER.info("Streaming audio from network URL via ffmpeg: %s", log_url)
+                async for chunk in self._stream_ffmpeg(source, headers=headers):
                     yield chunk
                 return
 

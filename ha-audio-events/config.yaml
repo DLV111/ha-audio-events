@@ -21,6 +21,8 @@ options:
     channels: 1
     format: pcm_s16le
     source_path: ""
+    rtsp_username: ""
+    rtsp_password: ""
   activity:
     rms_threshold: 0.04
     peak_threshold: 0.1
@@ -68,6 +70,8 @@ schema:
     channels: list(1)
     format: list(pcm_s16le)
     source_path: str?
+    rtsp_username: str?
+    rtsp_password: str?
   activity:
     rms_threshold: float
     peak_threshold: float

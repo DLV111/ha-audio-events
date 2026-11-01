@@ -49,6 +49,17 @@ configuration:
         such as "rtsp://user:pass@192.168.1.50:554/stream", or a file path
         inside the add-on such as "/config/sounds/test.wav". Leave empty to
         capture from the host microphone/PulseAudio instead.
+    rtsp_username:
+      name: RTSP username
+      description: >-
+        Optional username for RTSP authentication (e.g. camera feeds that
+        require Basic Auth). The password is kept separately and never
+        shown in the UI.
+    rtsp_password:
+      name: RTSP password
+      description: >-
+        Optional password paired with the RTSP username. This value is kept
+        private and masked in logs and the web UI.
 
   activity:
     name: Activity detection (CPU saver)
