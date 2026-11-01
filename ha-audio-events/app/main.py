@@ -81,6 +81,8 @@ async def _run_pipeline(config: AppConfig) -> None:
     async def _publish_events(events: list[EventMessage]) -> None:
         """Record events in history and push them to Home Assistant / MQTT."""
         for event in events:
+            if event.label.lower() == "silence" and config.classifier.hide_silence:
+                continue
             _LOGGER.info("Detected event: %s", format_event_summary(event))
             history.add(event.label, event.confidence, event.state)
             if ha_client is not None:

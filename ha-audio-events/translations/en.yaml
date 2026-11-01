@@ -98,6 +98,11 @@ configuration:
       name: Labels to ignore
       description: >-
         Never report these labels even if detected (e.g. music, silence).
+    hide_silence:
+      name: Hide silence chunks
+      description: >-
+        Suppress "silence" events from the Web UI, history, and HA entities.
+        Keeps only actual detected sounds visible (default: true).
 
   aggregation:
     name: Event smoothing

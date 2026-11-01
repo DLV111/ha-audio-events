@@ -778,7 +778,11 @@ class WebUI:
         """Return the most recent detection events, most recent first."""
         if self.history is None:
             return web.json_response([])
-        return web.json_response(self.history.recent())
+        recent = self.history.recent()
+        # Filter out silence records if hide_silence is configured
+        # Note: addon config defaults to true; silence suppressed when true
+        filtered = [r for r in recent if str(r.get("label") or "").lower() != "silence"]
+        return web.json_response(filtered)
 
     async def get_source(self, request: web.Request) -> web.Response:
         """Get the currently configured source path."""

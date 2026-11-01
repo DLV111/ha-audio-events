@@ -28,6 +28,7 @@ options:
   classifier:
     threshold: 0.8
     max_results: 5
+    hide_silence: true
     include:
       - train
       - dog
@@ -75,6 +76,7 @@ schema:
   classifier:
     threshold: float
     max_results: int
+    hide_silence: bool
     include:
       - str
     exclude:
