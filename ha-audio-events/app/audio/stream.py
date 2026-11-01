@@ -60,7 +60,7 @@ def build_rtsp_url(
 
     has_inline_auth = False
     userinfo: str | None = None
-    hostpart = source_path[len("rtsp://"):]
+    hostpart = source_path[len("rtsp://") :]
     if "@" in hostpart:
         userinfo, _, hostpart = hostpart.partition("@")
         if ":" in userinfo:
@@ -82,9 +82,9 @@ def build_rtsp_url(
         return source_path, None, source_path
 
     url = f"rtsp://{effective_user}@{hostpart}"
-    token = base64.b64encode(
-        f"{effective_user}:{effective_pass}".encode()
-    ).decode("ascii")
+    token = base64.b64encode(f"{effective_user}:{effective_pass}".encode()).decode(
+        "ascii"
+    )
     headers = f"Authorization: Basic {token}"
     log_url = f"rtsp://***@{hostpart}"
     return url, headers, log_url
