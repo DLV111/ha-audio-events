@@ -96,6 +96,17 @@ def _clean_str(value: Any) -> str | None:
     return text or None
 
 
+def _non_negative_float(value: Any, default: float) -> float:
+    """Clamp user-provided durations to sane non-negative values.
+
+    Silence and hold timing are configuration timers; negative numbers are not
+    meaningful and can invert the detector state machine into an immediate
+    silence condition.
+    """
+    result = float(value if value is not None else default)
+    return max(0.0, result)
+
+
 def _load_yaml(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         return yaml.safe_load(handle) or {}
@@ -192,8 +203,10 @@ def load_config(path: Path | str | None = None) -> AppConfig:
         activity=ActivityConfig(
             rms_threshold=float(activity.get("rms_threshold", 0.04)),
             peak_threshold=float(activity.get("peak_threshold", 0.1)),
-            hold_time=float(activity.get("hold_time", 2.0)),
-            silence_timeout=float(activity.get("silence_timeout", 5.0)),
+            hold_time=_non_negative_float(activity.get("hold_time", 2.0), 2.0),
+            silence_timeout=_non_negative_float(
+                activity.get("silence_timeout", 5.0), 5.0
+            ),
         ),
         classifier=ClassifierConfig(
             threshold=float(classifier.get("threshold", 0.8)),

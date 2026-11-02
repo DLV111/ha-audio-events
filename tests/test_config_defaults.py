@@ -3,7 +3,7 @@ not just for exercising code paths."""
 
 from __future__ import annotations
 
-from app.config import HomeAssistantConfig
+from app.config import HomeAssistantConfig, load_config
 
 
 def test_homeassistant_default_url_uses_correct_supervisor_proxy_path() -> None:
@@ -21,3 +21,27 @@ def test_homeassistant_default_url_uses_correct_supervisor_proxy_path() -> None:
     assert config.url == "http://supervisor/core"
     assert not config.url.endswith("/api")
     assert "homeassistant" not in config.url.split("/")[-1]
+
+
+def test_load_config_clamps_negative_activity_timings(tmp_path) -> None:
+    """Activity timing values should never accept invalid negatives: the
+    silence timeout and hold time are user-facing timers and a negative value
+    would invert the detector's quiet-state logic instead of producing a sane
+    timeout.
+    """
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+activity:
+  rms_threshold: 0.04
+  peak_threshold: 0.1
+  hold_time: -5
+  silence_timeout: -2
+""".strip(),
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.activity.hold_time == 0.0
+    assert config.activity.silence_timeout == 0.0
