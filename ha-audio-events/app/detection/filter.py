@@ -13,6 +13,8 @@ def filter_detections(
 
     for detection in detections:
         label = detection.label.lower()
+        if config.hide_silence and label == "silence":
+            continue
         if detection.confidence < config.threshold:
             continue
         if include and not any(item in label for item in include):

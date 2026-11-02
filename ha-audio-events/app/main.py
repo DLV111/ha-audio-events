@@ -118,6 +118,8 @@ async def _run_pipeline(config: AppConfig) -> None:
         """
         rest_owns_entities = mqtt_client is None
         for event in events:
+            if event.label.lower() == "silence" and config.classifier.hide_silence:
+                continue
             _LOGGER.info("Detected event: %s", format_event_summary(event))
             history.add(event.label, event.confidence, event.state)
             if ha_client is not None:

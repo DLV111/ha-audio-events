@@ -35,6 +35,7 @@ class EventHistory:
         )
 
     def recent(self) -> list[dict[str, str | float]]:
+        """Return the most recent detection events, most recent first."""
         return [
             {
                 "label": event.label,
