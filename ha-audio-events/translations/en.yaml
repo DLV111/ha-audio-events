@@ -71,6 +71,11 @@ configuration:
       description: >-
         After sound drops below the thresholds, keep analysing for this
         long so fading sounds are still classified.
+    silence_timeout:
+      name: Silence timeout (seconds)
+      description: >-
+        Set the audio event to silence after this much time below the
+        activity thresholds. Defaults to 5 seconds.
 
   classifier:
     name: Classification filters
@@ -98,6 +103,11 @@ configuration:
       name: Labels to ignore
       description: >-
         Never report these labels even if detected (e.g. music, silence).
+    hide_silence:
+      name: Hide silence chunks
+      description: >-
+        Suppress "silence" events from the Web UI, history, and HA entities.
+        Keeps only actual detected sounds visible (default: true).
 
   aggregation:
     name: Event smoothing

@@ -12,6 +12,8 @@ from app.config import ActivityConfig
 class ActivityDetector:
     config: ActivityConfig
     _last_activity: datetime | None = None
+    _quiet_since: datetime | None = None
+    _currently_active: bool = False
 
     def compute_rms(self, audio: np.ndarray) -> float:
         if audio.size == 0:
@@ -28,10 +30,14 @@ class ActivityDetector:
         rms = self.compute_rms(audio)
         peak = self.compute_peak(audio)
         active = rms >= self.config.rms_threshold or peak >= self.config.peak_threshold
+        self._currently_active = active
         if active:
             self._last_activity = now
+            self._quiet_since = None
             return True
 
+        if self._quiet_since is None:
+            self._quiet_since = now
         if self._last_activity is None:
             return False
 
@@ -40,3 +46,13 @@ class ActivityDetector:
 
         self._last_activity = None
         return False
+
+    @property
+    def currently_active(self) -> bool:
+        return self._currently_active
+
+    def silence_timed_out(self, now: datetime | None = None) -> bool:
+        if self._quiet_since is None:
+            return False
+        now = now or datetime.now(UTC)
+        return now - self._quiet_since >= timedelta(seconds=self.config.silence_timeout)

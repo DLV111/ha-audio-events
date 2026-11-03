@@ -10,6 +10,7 @@ import pytest
 from app.config import HomeAssistantConfig
 from app.detection.models import EventMessage
 from app.homeassistant.client import HomeAssistantClient
+from app.homeassistant.entities import build_rest_entity_ids
 
 
 @pytest.fixture
@@ -118,6 +119,87 @@ class TestHomeAssistantClient:
 
         await client.close()
         mock_session.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_init_entities_posts_nothing_when_mqtt_owns_entities(
+        self,
+        ha_config: HomeAssistantConfig,
+    ) -> None:
+        """With MQTT enabled, init_entities() must not create entities over REST.
+
+        A REST state POST auto-creates an entity without a registry
+        unique_id, which is what made Home Assistant say the entity
+        "does not have a unique ID". With MQTT enabled those entities are
+        owned by MQTT discovery and the REST-owned set is explicitly empty,
+        so init_entities() must issue no state POST at all.
+        """
+        client = HomeAssistantClient(ha_config, mqtt_enabled=True)
+        mock_session = make_mock_session()
+        client._session = mock_session
+
+        await client.init_entities()
+
+        mock_session.post.assert_not_called()
+        # build_rest_entity_ids is the single declaration point for
+        # REST-owned entities; MQTT owns everything, so it is empty.
+        assert build_rest_entity_ids(ha_config, mqtt_enabled=True) == set()
+        # The add-on still exposes the ids for reference/debugging.
+        assert client._entity_ids == {
+            "last_audio_event": "sensor.audio_last_audio_event",
+            "audio_active": "binary_sensor.audio_audio_active",
+        }
+        await client.close()
+
+    @pytest.mark.asyncio
+    async def test_init_entities_creates_rest_owned_entities_without_mqtt(
+        self,
+        ha_config: HomeAssistantConfig,
+        mock_response_200: AsyncMock,
+    ) -> None:
+        """Without MQTT, REST is the only way the entities can exist.
+
+        Regression: the MQTT migration left mqtt.enabled=false installs with
+        no entities at all. init_entities() must create the two scalar
+        entities plus one binary sensor per classifier.include label, and
+        those ids are the same ones the REST state POSTs then keep updated.
+        """
+        client = HomeAssistantClient(ha_config, mqtt_enabled=False, labels=["dog"])
+        mock_session = make_mock_session(mock_response_200)
+        client._session = mock_session
+
+        await client.init_entities()
+
+        posted = [call.args[0] for call in mock_session.post.call_args_list]
+        assert sorted(posted) == [
+            "http://localhost:8123/api/states/binary_sensor.audio_audio_active",
+            "http://localhost:8123/api/states/binary_sensor.audio_dog",
+            "http://localhost:8123/api/states/sensor.audio_last_audio_event",
+        ]
+        assert mock_session.post.call_args.kwargs["json"]["state"] == "off"
+        assert build_rest_entity_ids(ha_config, False, ["dog"]) == {
+            "sensor.audio_last_audio_event",
+            "binary_sensor.audio_audio_active",
+            "binary_sensor.audio_dog",
+        }
+        await client.close()
+
+    @pytest.mark.asyncio
+    async def test_init_entities_is_idempotent(
+        self,
+        ha_config: HomeAssistantConfig,
+        mock_response_200: AsyncMock,
+    ) -> None:
+        """Two calls must not re-post; the cached entity ids short-circuit it."""
+        client = HomeAssistantClient(ha_config, mqtt_enabled=False)
+        mock_session = make_mock_session(mock_response_200)
+        client._session = mock_session
+
+        await client.init_entities()
+        first_calls = mock_session.post.call_count
+        await client.init_entities()
+
+        assert mock_session.post.call_count == first_calls == 2
+        await client.close()
 
     @pytest.mark.asyncio
     async def test_fire_event_disabled_returns_early(

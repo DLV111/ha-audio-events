@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import sys
+from datetime import UTC, datetime
 
 from app.addon_mgr import AddonManager
 from app.audio.activity import ActivityDetector
@@ -47,9 +48,27 @@ async def _run_pipeline(config: AppConfig) -> None:
     classifier = build_classifier(config)
     aggregator = EventAggregator(config.aggregation)
     history = EventHistory()
-    mqtt_client = MQTTClient(config.mqtt) if config.mqtt.enabled else None
+    # Entity ownership is mutually exclusive and config-driven: with MQTT
+    # enabled the entities are created by MQTT discovery (registry unique_id,
+    # manageable from the HA UI), otherwise the REST API owns them (they
+    # exist and update, but HA cannot manage them). See build_rest_entity_ids.
+    mqtt_enabled = config.mqtt.enabled
+    mqtt_client = MQTTClient(config.mqtt) if mqtt_enabled else None
+    entity_ids = build_entity_ids(config.homeassistant)
+    label_sensor_ids = build_label_sensor_entity_ids(
+        config.homeassistant, config.classifier.include
+    )
+    friendly_names = build_friendly_names(config.homeassistant)
+    label_friendly_names = build_label_friendly_names(
+        config.homeassistant, config.classifier.include
+    )
+    silence_started_at: datetime | None = None
     ha_client = (
-        HomeAssistantClient(config.homeassistant)
+        HomeAssistantClient(
+            config.homeassistant,
+            mqtt_enabled=mqtt_enabled,
+            labels=config.classifier.include,
+        )
         if config.homeassistant.enabled
         else None
     )
@@ -63,57 +82,86 @@ async def _run_pipeline(config: AppConfig) -> None:
     if ha_client is not None:
         entity_init_task = asyncio.create_task(ha_client.init_entities())
 
-    entity_ids = build_entity_ids(config.homeassistant)
-    label_sensor_ids = build_label_sensor_entity_ids(
-        config.homeassistant, config.classifier.include
-    )
-    friendly_names = build_friendly_names(config.homeassistant)
-    label_friendly_names = build_label_friendly_names(
-        config.homeassistant, config.classifier.include
-    )
     source = AudioStreamSource(config.audio, ha_config=config.homeassistant)
 
-    if mqtt_client is not None and config.classifier.include:
+    if mqtt_client is not None:
+        # Always publish discovery: the two scalar entities (last event /
+        # audio active) are always-on, so they must be discovered even with
+        # an empty include list. Per-label sensors are only built when
+        # classifier.include names labels to watch.
         mqtt_client.publish_discovery(
             config.homeassistant.entity_prefix, config.classifier.include
         )
+    elif ha_client is not None:
+        _LOGGER.warning(
+            "MQTT is disabled, so Home Assistant cannot assign the entities a "
+            "unique_id and they will not be manageable from the Home Assistant "
+            "UI. They still work: %s and %s (plus one binary_sensor per label "
+            "named in classifier.include, e.g. %s) are created and updated "
+            "over the REST API instead. Enable the mqtt option to get "
+            "UI-manageable entities.",
+            entity_ids["last_audio_event"],
+            entity_ids["audio_active"],
+            f"binary_sensor.{config.homeassistant.entity_prefix}_<label>",
+        )
 
     async def _publish_events(events: list[EventMessage]) -> None:
-        """Record events in history and push them to Home Assistant / MQTT."""
+        """Record events in history and push them to Home Assistant / MQTT.
+
+        The REST client always fires the ``audio.detected`` event. Entity
+        state has exactly one owner: when MQTT is enabled it is published to
+        the firehose topic (updating the discovered scalar and per-label
+        sensors without any REST state POST, which could never assign a
+        unique_id); when MQTT is disabled the REST path pushes the same state
+        as before this feature, so the entities keep updating on installs
+        that never enabled MQTT.
+        """
+        rest_owns_entities = mqtt_client is None
         for event in events:
+            if event.label.lower() == "silence" and config.classifier.hide_silence:
+                continue
             _LOGGER.info("Detected event: %s", format_event_summary(event))
             history.add(event.label, event.confidence, event.state)
             if ha_client is not None:
                 await ha_client.fire_event(event)
-                await ha_client.update_state(
-                    entity_ids["last_audio_event"],
-                    event.label,
-                    build_attributes(
-                        event, friendly_name=friendly_names["last_audio_event"]
-                    ),
-                )
-                await ha_client.update_state(
-                    entity_ids["audio_active"],
-                    "on" if event.state != "ended" else "off",
-                    {
-                        "label": event.label,
-                        "friendly_name": friendly_names["audio_active"],
-                        "device_class": "sound",
-                    },
-                )
-                if event.label in label_sensor_ids:
+                if rest_owns_entities:
                     await ha_client.update_state(
-                        label_sensor_ids[event.label],
-                        "on" if event.state != "ended" else "off",
+                        entity_ids["last_audio_event"],
+                        event.label,
+                        build_attributes(
+                            event, friendly_name=friendly_names["last_audio_event"]
+                        ),
+                    )
+                    await ha_client.update_state(
+                        entity_ids["audio_active"],
+                        (
+                            "on"
+                            if event.state != "ended" and event.label != "silence"
+                            else "off"
+                        ),
                         {
                             "label": event.label,
-                            "confidence": str(event.confidence),
-                            "friendly_name": label_friendly_names.get(
-                                event.label, event.label
-                            ),
+                            "friendly_name": friendly_names["audio_active"],
                             "device_class": "sound",
                         },
                     )
+                    if event.label in label_sensor_ids:
+                        await ha_client.update_state(
+                            label_sensor_ids[event.label],
+                            (
+                                "on"
+                                if event.state != "ended" and event.label != "silence"
+                                else "off"
+                            ),
+                            {
+                                "label": event.label,
+                                "confidence": str(event.confidence),
+                                "friendly_name": label_friendly_names.get(
+                                    event.label, event.label
+                                ),
+                                "device_class": "sound",
+                            },
+                        )
             if mqtt_client is not None:
                 mqtt_client.publish(event)
 
@@ -125,15 +173,67 @@ async def _run_pipeline(config: AppConfig) -> None:
         """
         try:
             await _publish_events(aggregator.flush())
+            if silence_started_at is not None:
+                now = datetime.now(UTC)
+                await _publish_events(
+                    [
+                        EventMessage(
+                            event_type="audio.detected",
+                            label="silence",
+                            confidence=1.0,
+                            duration=(now - silence_started_at).total_seconds(),
+                            state="ended",
+                            model="activity-detector",
+                        )
+                    ]
+                )
         except Exception:
             _LOGGER.exception("Failed to flush active events on shutdown")
 
     async def _detect() -> None:
+        nonlocal silence_started_at
         try:
             async for chunk in source.stream():
                 buffer.append(chunk)
                 window = buffer.get_window(config.buffer_seconds)
-                if not detector.should_analyze(window):
+                now = datetime.now(UTC)
+                should_analyze = detector.should_analyze(window, now)
+                if (
+                    not detector.currently_active
+                    and silence_started_at is None
+                    and detector.silence_timed_out(now)
+                ):
+                    await _publish_events(aggregator.flush())
+                    silence_started_at = now
+                    await _publish_events(
+                        [
+                            EventMessage(
+                                event_type="audio.detected",
+                                label="silence",
+                                confidence=1.0,
+                                duration=0.0,
+                                state="started",
+                                model="activity-detector",
+                            )
+                        ]
+                    )
+
+                if silence_started_at is not None and detector.currently_active:
+                    await _publish_events(
+                        [
+                            EventMessage(
+                                event_type="audio.detected",
+                                label="silence",
+                                confidence=1.0,
+                                duration=(now - silence_started_at).total_seconds(),
+                                state="ended",
+                                model="activity-detector",
+                            )
+                        ]
+                    )
+                    silence_started_at = None
+
+                if not should_analyze or silence_started_at is not None:
                     continue
 
                 detections = await classifier.classify(window)
@@ -150,7 +250,11 @@ async def _run_pipeline(config: AppConfig) -> None:
         # The webui needs to query Home Assistant (to list camera entities)
         # regardless of whether homeassistant.enabled is set for event
         # publishing, so give it its own client if one wasn't already created.
-        webui_ha_client = ha_client or HomeAssistantClient(config.homeassistant)
+        webui_ha_client = ha_client or HomeAssistantClient(
+            config.homeassistant,
+            mqtt_enabled=mqtt_enabled,
+            labels=config.classifier.include,
+        )
         # init_entities() is idempotent; when the panel has its own client
         # (homeassistant publishing disabled) still initialise its entities,
         # but in the background -- never block the Web UI on Supervisor I/O.

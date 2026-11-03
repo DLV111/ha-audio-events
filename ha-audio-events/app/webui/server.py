@@ -8,8 +8,10 @@ from __future__ import annotations
 import asyncio
 import csv
 import hmac
+import json
 import logging
 import os
+import re
 from pathlib import Path
 
 from aiohttp import web
@@ -23,6 +25,13 @@ _LOGGER = logging.getLogger(__name__)
 # Typed application-storage key for the optional shared API token.
 # Empty string means "no token configured" (open access / HA ingress).
 _AUTH_TOKEN_KEY = web.AppKey("webui_auth_token", str)
+
+# Static assets live beside this module (app/webui/static). Resolve them from
+# __file__ rather than a CWD-relative "app/webui/static" path: the add-on runs
+# with CWD=/app (== ha-audio-events/), but the test suite and local runs start
+# from the repo root, where "app/webui/static" does not exist -- so a
+# CWD-relative path silently 404s the picker module.
+_STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
 @web.middleware
@@ -69,6 +78,8 @@ class WebUI:
         # without probing the port.
         self.started = asyncio.Event()
         self._class_names = self._load_class_names()
+        self._groups = self._load_groups()
+        self._class_groups = self._load_class_groups()
         self.app.router.add_get("/", self.serve_index)
         self.app.router.add_get("/api/cameras", self.get_cameras)
         self.app.router.add_get("/api/microphones", self.get_microphones)
@@ -79,6 +90,9 @@ class WebUI:
         self.app.router.add_get("/api/classifiers", self.get_classifiers)
         self.app.router.add_post("/api/classifiers", self.set_classifiers)
         self.app.router.add_get("/api/class-map", self.get_class_map)
+        self.app.router.add_get("/api/groups", self.get_groups)
+        self.app.router.add_get("/api/class-groups", self.get_class_groups)
+        self.app.router.add_get("/static/{path:.*}", self.serve_static)
 
     def _log_bind_notice(self, host: str, port: int) -> None:
         """Warn appropriately about an unauthenticated non-loopback bind."""
@@ -128,115 +142,46 @@ class WebUI:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HA Audio Events - Source Picker</title>
+    <link rel="stylesheet" href="static/picker.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+            max-width: 960px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;
         }
         .container {
-            background: white;
-            border-radius: 8px;
-            padding: 30px;
+            background: white; border-radius: 8px; padding: 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #555;
-        }
+        h1 { color: #333; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; }
         select, input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-            box-sizing: border-box;
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;
+            font-size: 16px; box-sizing: border-box;
         }
         button {
-            background: #007bff;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
+            background: #007bff; color: white; padding: 12px 24px; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 600;
             transition: background-color 0.2s;
         }
-        button:hover {
-            background: #0056b3;
-        }
-        .filter-controls {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-        }
-        .filter-row {
-            margin-bottom: 15px;
-        }
-        .filter-row:last-child {
-            margin-bottom: 0;
-        }
-        .filter-controls label {
-            font-style: italic;
-            display: block;
-            margin-bottom: 3px;
-            font-weight: 400;
-            color: #666;
-        }
-        .filter-controls select {
-            height: 110px;
-        }
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .message {
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-        .status {
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
-            display: none;
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .message { padding: 12px; border-radius: 4px; margin-bottom: 20px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loading { text-align: center; padding: 20px; color: #666; }
+        .status { padding: 10px; border-radius: 4px; margin-top: 10px; display: none; }
+        /* Audio Class Filters picker styles live in static/picker.css. */
+        @media (max-width: 700px) {
+            body { padding: 10px; }
+            .container { padding: 16px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎤🎵 HA Audio Events</h1>
+        <h1>HA Audio Events</h1>
         <p class="subtitle">Configure your audio source from Home Assistant entities</p>
 
         <div id="message-container"></div>
@@ -248,24 +193,14 @@ class WebUI:
                     <option value="">Loading cameras...</option>
                 </select>
             </div>
-
             <div class="form-group">
                 <label for="custom-source">Or enter custom RTSP/URL</label>
-                <input 
-                    type="text" 
-                    id="custom-source" 
-                    placeholder="rtsp://192.168.1.100/stream or http://..."
-                    style="display: none;"
-                >
+                <input type="text" id="custom-source" placeholder="rtsp://[IP_ADDRESS]/stream or http://..." style="display: none;">
             </div>
-
             <div class="form-group">
                 <label>Current Source Path</label>
-                <div id="current-source" style="padding: 10px; background: #f8f9fa; border-radius: 4px; min-height: 20px;">
-                    Loading...
-                </div>
+                <div id="current-source" style="padding: 10px; background: #f8f9fa; border-radius: 4px; min-height: 20px;">Loading...</div>
             </div>
-
             <button type="submit" id="submit-btn" disabled>Apply Source</button>
         </form>
 
@@ -280,51 +215,36 @@ class WebUI:
 
         <div class="form-group" style="margin-top: 20px;">
             <h3>Audio Class Filters</h3>
-            <p class="subtitle">Choose which detected sounds are reported (from the YAMNet label list).</p>
+            <p class="subtitle">Choose which detected sounds are reported. Pick an AudioSet category chip to narrow the lists, tick labels, then use the transfer arrows.</p>
             <form id="filters-form">
-                <div class="filter-row">
-                    <label for="include-select">Include (empty = report all classes)</label>
-                    <select id="include-select" multiple></select>
-                </div>
-                <div class="filter-row">
-                    <label for="exclude-select">Exclude</label>
-                    <select id="exclude-select" multiple></select>
-                </div>
+                <div id="pickers-container"><div class="loading">Loading filter controls...</div></div>
                 <button type="submit" id="filters-btn">Apply Filters</button>
             </form>
         </div>
     </div>
 
+    <script src="static/transfer_picker.js"></script>
+    <script src="static/picker.js"></script>
     <script>
         let cameras = [];
         let microphones = [];
         let currentSource = '';
         let isLoading = true;
+        let includePicker = null, excludePicker = null, allLabels = [], groupsTree = {}, classGroups = [];
 
-        // When the panel is protected by a webui auth token (standalone
-        // deployments), prompt once, remember it for this browser, and send
-        // it on every API call.
         function getStoredToken() {
-            try {
-                return sessionStorage.getItem('webui_token') || '';
-            } catch (e) {
-                return '';
-            }
+            try { return sessionStorage.getItem('webui_token') || ''; } catch (e) { return ''; }
         }
 
         async function apiFetch(url, opts = {}) {
             const headers = Object.assign({}, opts.headers || {});
             const token = getStoredToken();
-            if (token) {
-                headers['X-WebUI-Token'] = token;
-            }
+            if (token) { headers['X-WebUI-Token'] = token; }
             const response = await fetch(url, Object.assign({}, opts, { headers: headers }));
             if (response.status === 401) {
                 const entered = prompt('This Web UI is protected. Enter the auth token:');
                 if (entered !== null && entered !== '') {
-                    try {
-                        sessionStorage.setItem('webui_token', entered);
-                    } catch (e) { /* storage unavailable */ }
+                    try { sessionStorage.setItem('webui_token', entered); } catch (e) {}
                     return apiFetch(url, opts);
                 }
                 throw new Error('Unauthorized');
@@ -332,62 +252,33 @@ class WebUI:
             return response;
         }
 
-        // Parse a panel API response defensively. When the add-on is stopped
-        // or mid-restart, the ingress proxy answers with its own HTML/plain
-        // error page -- calling .json() on that produced cryptic errors like
-        // "Unexpected non-whitespace character after JSON".
         async function parseApiResponse(response, what) {
             const contentType = response.headers.get('content-type') || '';
             const bodyText = await response.text();
             if (!contentType.includes('application/json')) {
                 const snippet = bodyText.trim().slice(0, 100);
-                throw new Error(
-                    'The add-on does not appear to be running' +
-                    (snippet ? ` (proxy said: "${snippet}")` : '') +
-                    ' - start it from Settings > Add-ons and reload.'
-                );
+                throw new Error('The add-on does not appear to be running' + (snippet ? ' (proxy said: "' + snippet + '")' : '') + ' - start it from Settings > Add-ons and reload.');
             }
-            try {
-                return JSON.parse(bodyText);
-            } catch (e) {
-                throw new Error(`Received malformed data for ${what}`);
-            }
+            try { return JSON.parse(bodyText); } catch (e) { throw new Error('Received malformed data for ' + what); }
         }
 
-        // Load initial data
         async function loadData() {
             try {
-                // Load cameras
                 const camerasResponse = await apiFetch('api/cameras');
-                if (!camerasResponse.ok) {
-                    throw new Error(`Failed to load cameras (HTTP ${camerasResponse.status})`);
-                }
+                if (!camerasResponse.ok) throw new Error('Failed to load cameras (HTTP ' + camerasResponse.status + ')');
                 cameras = await parseApiResponse(camerasResponse, 'cameras');
-
-                // Load microphones (voice satellites) -- best-effort, don't
-                // fail the whole page if this one endpoint has an issue
                 try {
                     const micResponse = await apiFetch('api/microphones');
-                    if (micResponse.ok) {
-                        microphones = await parseApiResponse(micResponse, 'microphones');
-                    }
-                } catch (micError) {
-                    console.warn('Failed to load microphones:', micError);
-                }
-
-                // Load current source
+                    if (micResponse.ok) microphones = await parseApiResponse(micResponse, 'microphones');
+                } catch (micError) { console.warn('Failed to load microphones:', micError); }
                 const sourceResponse = await apiFetch('api/source');
-                if (sourceResponse.ok) {
-                    const data = await parseApiResponse(sourceResponse, 'current source');
-                    currentSource = data.source || '';
-                }
-
+                if (sourceResponse.ok) { const data = await parseApiResponse(sourceResponse, 'current source'); currentSource = data.source || ''; }
                 populateCameraSelect();
                 updateCurrentSourceDisplay();
                 isLoading = false;
                 updateSubmitButton();
             } catch (error) {
-                showMessage(`Error loading data: ${error.message}`, 'error');
+                showMessage('Error loading data: ' + error.message, 'error');
                 isLoading = false;
                 updateSubmitButton();
             }
@@ -396,41 +287,27 @@ class WebUI:
         function populateCameraSelect() {
             const select = document.getElementById('source-select');
             select.innerHTML = '';
-
-            if (cameras.length === 0 && microphones.length === 0) {
-                select.innerHTML = '<option value="">No entities found</option>';
-            }
-
+            if (cameras.length === 0 && microphones.length === 0) { select.innerHTML = '<option value="">No entities found</option>'; }
             if (cameras.length > 0) {
-                const cameraGroup = document.createElement('optgroup');
-                cameraGroup.label = 'Cameras';
-                cameras.forEach(camera => {
-                    const option = document.createElement('option');
-                    option.value = camera.entity_id;
-                    option.textContent = `${camera.friendly_name} (${camera.entity_id})`;
+                const cameraGroup = document.createElement('optgroup'); cameraGroup.label = 'Cameras';
+                cameras.forEach(function(camera) {
+                    const option = document.createElement('option'); option.value = camera.entity_id;
+                    option.textContent = camera.friendly_name + ' (' + camera.entity_id + ')';
                     cameraGroup.appendChild(option);
                 });
                 select.appendChild(cameraGroup);
             }
-
             if (microphones.length > 0) {
-                const micGroup = document.createElement('optgroup');
-                micGroup.label = 'Voice Satellites (not yet supported as a capture source)';
-                microphones.forEach(mic => {
-                    const option = document.createElement('option');
-                    option.value = mic.entity_id;
-                    option.textContent = `${mic.friendly_name} (${mic.entity_id})`;
-                    option.disabled = true;
+                const micGroup = document.createElement('optgroup'); micGroup.label = 'Voice Satellites (not yet supported as a capture source)';
+                microphones.forEach(function(mic) {
+                    const option = document.createElement('option'); option.value = mic.entity_id;
+                    option.textContent = mic.friendly_name + ' (' + mic.entity_id + ')'; option.disabled = true;
                     micGroup.appendChild(option);
                 });
                 select.appendChild(micGroup);
             }
-
-            // Add custom URL option
-            const customOption = document.createElement('option');
-            customOption.value = '__custom__';
-            customOption.textContent = '--- Enter custom RTSP/URL ---';
-            select.appendChild(customOption);
+            const customOption = document.createElement('option'); customOption.value = '__custom__';
+            customOption.textContent = '--- Enter custom RTSP/URL ---'; select.appendChild(customOption);
         }
 
         function maskUrlForDisplay(url) {
@@ -453,89 +330,92 @@ class WebUI:
                 display.textContent = 'No source configured';
                 display.style.color = '#6c757d';
             }
+
         }
 
-        let allClasses = [];
+        function updateSubmitButton() {
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = isLoading;
+            submitBtn.textContent = isLoading ? 'Loading...' : 'Apply Source';
+        }
 
-        // Load YAMNet class names and current include/exclude selections,
-        // then populate both multi-select dropdowns.
+        // ================= Picker logic =================
+        //
+        // Rendering/interaction lives in static/picker.js (PickerUI); pure
+        // state logic lives in static/transfer_picker.js (TransferPicker).
+        // This page only fetches data and mounts the two pickers.
+
+
         async function loadFilters() {
+            const container = document.getElementById('pickers-container');
             try {
-                const mapResponse = await apiFetch('api/class-map');
-                if (mapResponse.ok) {
-                    const data = await parseApiResponse(mapResponse, 'class map');
-                    allClasses = data.classes || [];
+                const groupsResp = await apiFetch('api/groups');
+                const groupsData = await parseApiResponse(groupsResp, 'groups');
+                groupsTree = groupsData.top_level_groups || {};
+                const classGroupsResp = await apiFetch('api/class-groups');
+                if (classGroupsResp.ok) {
+                    const classGroupsData = await parseApiResponse(classGroupsResp, 'class groups');
+                    classGroups = classGroupsData.groups || [];
                 }
+                const mapResp = await apiFetch('api/class-map');
+                const mapData = await parseApiResponse(mapResp, 'class map');
+                allLabels = mapData.classes || [];
 
                 let current = { include: [], exclude: [] };
-                const filtersResponse = await apiFetch('api/classifiers');
-                if (filtersResponse.ok) {
-                    current = await parseApiResponse(filtersResponse, 'classifier filters');
-                }
+                const filtersResp = await apiFetch('api/classifiers');
+                if (filtersResp.ok) current = await parseApiResponse(filtersResp, 'classifier filters');
 
-                populateClassSelect(current.include || [], current.exclude || []);
+                container.innerHTML = '';
+                includePicker = PickerUI.createPicker({
+                    prefix: 'include',
+                    title: 'Include (empty = report all classes)',
+                    allLabels: allLabels,
+                    groupsTree: groupsTree,
+                    classGroups: classGroups,
+                    accepted: current.include || []
+                });
+                excludePicker = PickerUI.createPicker({
+                    prefix: 'exclude',
+                    title: 'Exclude',
+                    allLabels: allLabels,
+                    groupsTree: groupsTree,
+                    classGroups: classGroups,
+                    accepted: current.exclude || []
+                });
+                container.appendChild(includePicker.element);
+                container.appendChild(excludePicker.element);
             } catch (error) {
-                console.warn('Failed to load classifier filters:', error);
+                container.innerHTML = '';
+                const div = document.createElement('div'); div.className = 'error';
+                div.textContent = 'Could not load filter controls: ' + error.message;
+                container.appendChild(div);
             }
-        }
-
-        function populateClassSelect(includeSelected, excludeSelected) {
-            const includeSel = document.getElementById('include-select');
-            const excludeSel = document.getElementById('exclude-select');
-
-            includeSel.innerHTML = '';
-            excludeSel.innerHTML = '';
-
-            allClasses.forEach(name => {
-                const value = name.toLowerCase();
-
-                const incOpt = document.createElement('option');
-                incOpt.value = value;
-                incOpt.textContent = name;
-                if (includeSelected.includes(value)) { incOpt.selected = true; }
-                includeSel.appendChild(incOpt);
-
-                const excOpt = document.createElement('option');
-                excOpt.value = value;
-                excOpt.textContent = name;
-                if (excludeSelected.includes(value)) { excOpt.selected = true; }
-                excludeSel.appendChild(excOpt);
-            });
         }
 
         async function applyFilters(e) {
             e.preventDefault();
-
             const btn = document.getElementById('filters-btn');
             const originalText = btn.textContent;
-            btn.disabled = true;
-            btn.textContent = 'Applying...';
-
+            btn.disabled = true; btn.textContent = 'Applying...';
             try {
-                const include = Array.from(document.getElementById('include-select').selectedOptions)
-                    .map(o => o.value);
-                const exclude = Array.from(document.getElementById('exclude-select').selectedOptions)
-                    .map(o => o.value);
-
+                const include = includePicker ? includePicker.getAcceptedValues() : [];
+                const exclude = excludePicker ? excludePicker.getAcceptedValues() : [];
                 const response = await apiFetch('api/classifiers', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ include: include, exclude: exclude })
                 });
-
                 if (response.ok) {
                     await parseApiResponse(response, 'apply filters result');
                     showMessage('Audio class filters updated!', 'success');
                     showStatus('Filters applied. The add-on is restarting to apply changes.', 'success');
                 } else {
-                    const error = await parseApiResponse(response, 'error details');
-                    showMessage(`Error: ${error.error || 'Failed to update filters'}`, 'error');
+                    const err = await parseApiResponse(response, 'error details');
+                    showMessage('Error: ' + (err.error || 'Failed to update filters'), 'error');
                 }
             } catch (error) {
-                showMessage(`${error.message}`, 'error');
+                showMessage(error.message, 'error');
             } finally {
-                btn.disabled = false;
-                btn.textContent = originalText;
+                btn.disabled = false; btn.textContent = originalText;
             }
         }
 
@@ -557,14 +437,14 @@ class WebUI:
                 const strong = document.createElement('strong');
                 strong.textContent = d.label;
                 const detail = document.createElement('span');
-                detail.style.color = '#888;';
+                detail.style.color = '#888';
                 const confidencePct = Math.round((d.confidence || 0) * 100);
                 detail.textContent = ` (${d.state}, ${confidencePct}%)`;
                 left.appendChild(strong);
                 left.appendChild(detail);
 
                 const right = document.createElement('span');
-                right.style.color = '#888;';
+                right.style.color = '#888';
                 right.textContent = new Date(d.timestamp).toLocaleTimeString();
 
                 row.appendChild(left);
@@ -587,28 +467,11 @@ class WebUI:
             }
         }
 
-        function updateSubmitButton() {
-            const submitBtn = document.getElementById('submit-btn');
-            submitBtn.disabled = isLoading;
-            submitBtn.textContent = isLoading ? 'Loading...' : 'Apply Source';
-        }
-
         function showMessage(message, type) {
             const container = document.getElementById('message-container');
-            const div = document.createElement('div');
-            div.className = `message ${type}`;
-            div.textContent = message;
-            container.innerHTML = '';
-            container.appendChild(div);
-
-            // Auto-hide success messages after 5 seconds
-            if (type === 'success') {
-                setTimeout(() => {
-                    if (div.parentNode) {
-                        div.parentNode.removeChild(div);
-                    }
-                }, 5000);
-            }
+            const div = document.createElement('div'); div.className = 'message ' + type;
+            div.textContent = message; container.innerHTML = ''; container.appendChild(div);
+            if (type === 'success') { setTimeout(function() { if (div.parentNode) div.parentNode.removeChild(div); }, 5000); }
         }
 
         function showStatus(message, type) {
@@ -627,7 +490,7 @@ class WebUI:
         function getSelectedSource() {
             const select = document.getElementById('source-select');
             const customInput = document.getElementById('custom-source');
-            
+
             if (select.value === '__custom__') {
                 return customInput.value.trim();
             }
@@ -649,7 +512,7 @@ class WebUI:
         // Form submission
         document.getElementById('source-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const source = getSelectedSource();
             if (!source) {
                 showMessage('Please select or enter a source', 'error');
@@ -789,7 +652,11 @@ class WebUI:
         """Return the most recent detection events, most recent first."""
         if self.history is None:
             return web.json_response([])
-        return web.json_response(self.history.recent())
+        recent = self.history.recent()
+        # Filter out silence records if hide_silence is configured
+        # Note: addon config defaults to true; silence suppressed when true
+        filtered = [r for r in recent if str(r.get("label") or "").lower() != "silence"]
+        return web.json_response(filtered)
 
     async def get_source(self, request: web.Request) -> web.Response:
         """Get the currently configured source path."""
@@ -892,9 +759,84 @@ class WebUI:
             _LOGGER.exception("Error loading class map CSV")
         return classes
 
+    def _load_groups(self) -> dict:
+        """Load the baked AudioSet-ontology groups tree (yamnet_groups.json)."""
+        path = Path("models/yamnet_groups.json")
+        if not path.exists():
+            _LOGGER.warning(
+                "Groups JSON not found at %s — run `make update-yamnet-groups`", path
+            )
+            return {}
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def _class_groups_from_tree(self) -> list[dict]:
+        """Derive the grouped menu mapping from the in-memory ontology tree.
+
+        Fallback for when ``models/class_groups.json`` is missing (e.g. an
+        existing install upgrading without the regenerated asset): the same
+        projection ``scripts/generate_class_groups.py`` bakes into that file.
+        """
+        groups: list[dict] = []
+        for name, node in (self._groups.get("top_level_groups") or {}).items():
+            slug = re.sub(r"[^a-z0-9]+", "-", str(name).lower()).strip("-")
+            groups.append(
+                {
+                    "group_id": slug or "unknown",
+                    "name": name,
+                    "classes": [
+                        {"display_name": label, "value": label.lower()}
+                        for label in node.get("allLabels") or []
+                    ],
+                }
+            )
+        return groups
+
+    def _load_class_groups(self) -> list[dict]:
+        """Load the committed grouped class menu (models/class_groups.json)."""
+        path = Path("models/class_groups.json")
+        if not path.exists():
+            _LOGGER.warning(
+                "Class groups JSON not found at %s — run `make generate-class-groups`",
+                path,
+            )
+            return self._class_groups_from_tree()
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            _LOGGER.exception("Error loading class groups JSON")
+            return self._class_groups_from_tree()
+        groups = payload.get("groups")
+        if not groups:
+            return self._class_groups_from_tree()
+        return groups
+
     async def get_class_map(self, request: web.Request) -> web.Response:
         """Return the list of audio class names for filter dropdowns."""
         return web.json_response({"classes": self._class_names})
+
+    async def get_class_groups(self, request: web.Request) -> web.Response:
+        """Return the audio classes grouped by AudioSet top-level category.
+
+        Backs the Web UI's menu-driven filter controls: one entry per group
+        with a human-readable ``name`` and the group's classes, each carrying
+        the lowercased ``value`` the classifier options use. The grouping is
+        derived from the AudioSet ontology (models/class_groups.json), not
+        hand-maintained.
+        """
+        return web.json_response({"groups": self._class_groups})
+
+    async def get_groups(self, request: web.Request) -> web.Response:
+        """Return the baked AudioSet-ontology groups tree + label_paths."""
+        return web.json_response(self._groups)
+
+    async def serve_static(self, request: web.Request) -> web.Response:
+        """Serve static assets (e.g. the JS picker module) from the webui dir."""
+        # Contain the requested path inside _STATIC_DIR so a crafted
+        # "../../..." can never escape into the rest of the image.
+        path = (_STATIC_DIR / request.match_info["path"]).resolve()
+        if not path.is_relative_to(_STATIC_DIR) or not path.is_file():
+            return web.Response(status=404)
+        return web.FileResponse(path)  # type: ignore[return-value]
 
     async def get_classifiers(self, request: web.Request) -> web.Response:
         """Get current include/exclude filter lists."""

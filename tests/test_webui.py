@@ -5,7 +5,10 @@ Tests the camera discovery and source configuration endpoints.
 
 from __future__ import annotations
 
+import csv
+import json
 import logging
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 from aiohttp.test_utils import AioHTTPTestCase
@@ -564,19 +567,266 @@ class TestWebUIFilterMarkup(AioHTTPTestCase):
         resp = await self.client.request("GET", "/")
         assert resp.status == 200
         html = await resp.text()
-        # Form + multi-selects rendered server-side
-        assert 'id="filters-form"' in html
-        assert 'id="include-select"' in html
-        assert 'id="exclude-select"' in html
+        # Picker container is the static mount point; panes/transfers are built
+        # by PickerUI at runtime.
+        assert 'id="pickers-container"' in html
         assert "<h3>Audio Class Filters</h3>" in html
+
+        # The renderer exposes the stable ids the page and operators rely on.
+        js_resp = await self.client.request("GET", "/static/picker.js")
+        assert js_resp.status == 200
+        js = await js_resp.text()
+        for suffix in (
+            "-accept-btn",
+            "-remove-btn",
+            "-select-all-btn",
+            "-remove-all-btn",
+            "-search",
+        ):
+            assert suffix in js, f"picker.js is missing the {suffix} id"
+        assert "buildPane('available'" in js
+        assert "buildPane('accepted'" in js
+        assert "PickerUI.createPicker" in js
 
     async def test_index_wires_filter_javascript(self):
         resp = await self.client.request("GET", "/")
         html = await resp.text()
-        # JS fetches both endpoints and populates/submits via DOM APIs
-        # (textContent-style construction, no innerHTML interpolation of
-        # class names -- same XSS posture as the detections panel).
+        # Loads the groups tree (ontology) and class map for the picker
+        assert "'api/groups'" in html
         assert "'api/class-map'" in html
         assert "'api/classifiers'" in html
-        assert "populateClassSelect" in html
+        # Both picker modules are loaded as static assets. The references must
+        # be RELATIVE: under Home Assistant ingress the panel is served from a
+        # non-root prefix (/api/hassio_ingress/<token>/), so a root-absolute
+        # "/static/..." URL is resolved against Home Assistant core, 404s, and
+        # the picker dies with "TransferPicker is not defined".
+        assert 'src="static/transfer_picker.js"' in html
+        assert 'src="static/picker.js"' in html
+        assert 'href="static/picker.css"' in html
+        assert 'src="/static/' not in html
+        assert 'href="/static/' not in html
+        # The page fetches data and mounts the pickers; the renderer is static.
+        assert "PickerUI.createPicker" in html
+        assert "loadFilters" in html
         assert "applyFilters" in html
+
+        js_resp = await self.client.request("GET", "/static/picker.js")
+        js = await js_resp.text()
+        # The render path must actually consume the pure filter logic.
+        assert "TransferPicker.filterState" in js
+
+    async def test_grouped_filter_controls_replace_flat_selects(self):
+        """The 521-label flat multi-selects are gone, replaced by a
+        category-chip menu over per-category checkbox lists."""
+        resp = await self.client.request("GET", "/")
+        assert resp.status == 200
+        html = await resp.text()
+
+        # No flat multi-select (or its old ids) may remain.
+        assert "<select multiple" not in html
+        assert "include-select" not in html
+        assert "exclude-select" not in html
+        assert ".filter-controls select" not in html
+
+        # Both controls are built from the grouped menu instead: a
+        # horizontally scrollable chip bar per picker...
+        css_resp = await self.client.request("GET", "/static/picker.css")
+        assert css_resp.status == 200
+        css = await css_resp.text()
+        assert ".group-chips {" in css
+        assert "overflow-x: auto" in css
+        assert ".group-chip" in css
+
+        js_resp = await self.client.request("GET", "/static/picker.js")
+        js = await js_resp.text()
+        assert "group-chips" in js
+        assert "All categories" in js
+        assert "'-chips'" in js or "-chips" in js
+        # ...driven by the ontology-derived grouped class list.
+        assert "classGroups" in js
+        assert "activeGroup" in js
+        # ...and the per-category checkbox lists still group the labels.
+        assert "group-header" in js
+        assert "createLabelRow" in js
+        # Buttons inside #filters-form must not submit it (that would POST the
+        # filters and restart the add-on on every category/label click).
+        assert "chip.type = 'button'" in js
+        assert "acceptBtn.type = 'button'" in js
+
+    async def test_picker_is_mobile_friendly(self):
+        """Narrow screens use a segmented Browse / Selected view, a full-width
+        search and >= 44px tap targets instead of squeezing two side-by-side
+        panes onto a phone."""
+        css_resp = await self.client.request("GET", "/static/picker.css")
+        assert css_resp.status == 200
+        css = await css_resp.text()
+        assert "@media (max-width: 700px)" in css
+        assert "grid-template-columns: minmax(0, 1fr);" in css
+        assert 'data-view="browse"' in css
+        assert 'data-view="selected"' in css
+        assert "min-height: 44px" in css
+
+    async def test_index_does_not_embed_picker_implementation(self):
+        """The picker's renderer/CSS were extracted out of the HTML page.
+
+        Regression guard for the card requirement: server.py keeps only page
+        wiring; the picker implementation lives in static assets it serves.
+        """
+        resp = await self.client.request("GET", "/")
+        html = await resp.text()
+        assert "buildPickerDOM" not in html
+        assert "wirePicker" not in html
+        assert "renderAllPickers" not in html
+        assert ".group-chips {" not in html
+        assert ".label-item {" not in html
+        # The page must load the extracted assets instead.
+        assert 'src="static/picker.js"' in html
+        assert 'href="static/picker.css"' in html
+
+
+def _class_map_values() -> set[str]:
+    """Lowercased YAMNet display names, read from the committed class map."""
+    with Path("models/yamnet_class_map.csv").open(
+        encoding="utf-8", newline=""
+    ) as handle:
+        return {
+            (row["display_name"] or "").strip().lower()
+            for row in csv.DictReader(handle)
+            if (row["display_name"] or "").strip()
+        }
+
+
+class TestWebUIClassGroups(AioHTTPTestCase):
+    """GET /api/class-groups backs the menu-driven filter controls: the
+    classes grouped by AudioSet top-level category, derived from the
+    committed ontology mapping rather than hand-maintained."""
+
+    async def get_application(self):
+        self.mock_hass_client = Mock(spec=HomeAssistantClient)
+        self.mock_addon_manager = Mock(spec=AddonManager)
+        self.webui = WebUI(self.mock_hass_client, self.mock_addon_manager)
+        return self.webui.app
+
+    async def test_class_groups_endpoint(self):
+        """GET /api/class-groups returns the ontology-derived grouped menu."""
+        resp = await self.client.request("GET", "/api/class-groups")
+        assert resp.status == 200
+        data = await resp.json()
+        groups = data["groups"]
+
+        # The current AudioSet ontology has seven top-level groups: "Speech"
+        # was folded into "Human sounds" upstream, so the committed mapping
+        # (and this endpoint) reports seven, not the eight historical
+        # AudioSet categories.
+        groups_source = json.loads(
+            Path("models/yamnet_groups.json").read_text(encoding="utf-8")
+        )
+        expected_names = set(groups_source["top_level_groups"])
+        assert {group["name"] for group in groups} == expected_names
+        assert len(groups) == 7
+        assert "Human sounds" in expected_names
+
+        for group in groups:
+            assert group["group_id"]
+            assert group["name"].strip()
+            assert group["classes"], f"{group['name']} has no classes"
+            for cls in group["classes"]:
+                assert cls["display_name"]
+                assert cls["value"] == cls["display_name"].lower()
+
+    async def test_class_groups_reflect_csv_mid_mappings(self):
+        """Round-trip: the grouped menu must partition exactly the YAMNet
+        class map, so no label is hidden from the user."""
+        resp = await self.client.request("GET", "/api/class-groups")
+        groups = (await resp.json())["groups"]
+
+        values = [cls["value"] for group in groups for cls in group["classes"]]
+        assert len(values) == len(set(values)), "a class is listed twice"
+
+        csv_values = _class_map_values()
+
+        assert set(values) == csv_values
+        assert len(csv_values) == 521
+
+
+class TestWebUIStaticAssets(AioHTTPTestCase):
+    """Regression: the picker module must actually be fetched and executed by
+    the browser. A 404 here (or a root-absolute URL that only resolves at the
+    domain root) leaves ``TransferPicker`` undefined and the Audio Class
+    Filters card shows "TransferPicker is not defined"."""
+
+    async def get_application(self):
+        self.webui = WebUI(Mock(spec=HomeAssistantClient), Mock(spec=AddonManager))
+        return self.webui.app
+
+    async def test_transfer_picker_module_is_served(self):
+        """GET /static/transfer_picker.js serves the UMD source from any CWD.
+
+        The add-on runs with CWD=/app, but pytest runs from the repo root where
+        app/webui/static does not exist -- the route must resolve the static dir
+        from the module location, not the process working directory.
+        """
+        resp = await self.client.request("GET", "/static/transfer_picker.js")
+        assert resp.status == 200
+        body = await resp.text()
+        assert "TransferPicker = factory()" in body
+        assert "javascript" in resp.headers.get("Content-Type", "")
+
+    async def test_unknown_static_asset_returns_404(self):
+        resp = await self.client.request("GET", "/static/does-not-exist.js")
+        assert resp.status == 404
+
+    async def test_static_route_cannot_escape_static_dir(self):
+        """A crafted path must not be able to read files outside static/."""
+        resp = await self.client.request("GET", "/static/%2e%2e/%2e%2e/config.yaml")
+        assert resp.status == 404
+
+    async def test_picker_reference_resolves_under_a_non_root_mount(self):
+        """Under HA ingress the panel lives at /api/hassio_ingress/<token>/.
+
+        Every asset the page loads must be referenced relatively so it resolves
+        under that prefix instead of the domain root.
+        """
+        resp = await self.client.request("GET", "/")
+        html = await resp.text()
+        assert 'src="static/transfer_picker.js"' in html
+        assert 'src="static/picker.js"' in html
+        assert 'href="static/picker.css"' in html
+        # No root-absolute asset references anywhere in the panel.
+        assert 'src="/' not in html
+        assert 'href="/' not in html
+
+    async def test_served_picker_matches_node_tested_source(self):
+        """The served assets must be byte-identical to the modules the Node
+        tests exercise; otherwise the browser runs untested code."""
+        from pathlib import Path
+
+        static_dir = (
+            Path(__file__).resolve().parents[1]
+            / "ha-audio-events"
+            / "app"
+            / "webui"
+            / "static"
+        )
+        for name in ("transfer_picker.js", "picker.js"):
+            resp = await self.client.request("GET", f"/static/{name}")
+            assert resp.status == 200
+            assert (await resp.text()) == (static_dir / name).read_text(
+                encoding="utf-8"
+            ), f"{name} served a different file than the one under test"
+
+    async def test_picker_css_and_renderer_are_served(self):
+        """The extracted picker stylesheet and renderer must be reachable."""
+        css_resp = await self.client.request("GET", "/static/picker.css")
+        assert css_resp.status == 200
+        assert "text/css" in css_resp.headers.get("Content-Type", "")
+        assert ".picker-body" in await css_resp.text()
+
+        js_resp = await self.client.request("GET", "/static/picker.js")
+        assert js_resp.status == 200
+        assert "javascript" in js_resp.headers.get("Content-Type", "")
+        body = await js_resp.text()
+        assert "PickerUI" in body
+        # The render path consumes the pure filter logic (the original bug was
+        # that filterState existed but was never called).
+        assert "filterState(state)" in body

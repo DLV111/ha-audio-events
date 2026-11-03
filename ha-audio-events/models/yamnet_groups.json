@@ -1,0 +1,3505 @@
+{
+  "generated_from": "https://raw.githubusercontent.com/audioset/ontology/master/ontology.json",
+  "class_map": "models/yamnet_class_map.csv",
+  "top_level_groups": {
+    "Sounds of things": {
+      "labels": [
+        "Alarm",
+        "Bell",
+        "Engine",
+        "Explosion",
+        "Glass",
+        "Liquid",
+        "Mechanisms",
+        "Tools",
+        "Vehicle",
+        "Wood"
+      ],
+      "allLabels": [
+        "Accelerating, revving, vroom",
+        "Air brake",
+        "Air conditioning",
+        "Air horn, truck horn",
+        "Aircraft",
+        "Aircraft engine",
+        "Alarm",
+        "Alarm clock",
+        "Ambulance (siren)",
+        "Arrow",
+        "Artillery fire",
+        "Basketball bounce",
+        "Bathtub (filling or washing)",
+        "Bell",
+        "Bicycle",
+        "Bicycle bell",
+        "Blender",
+        "Boat, Water vehicle",
+        "Boiling",
+        "Boom",
+        "Burst, pop",
+        "Bus",
+        "Busy signal",
+        "Buzzer",
+        "Camera",
+        "Cap gun",
+        "Car",
+        "Car alarm",
+        "Car passing by",
+        "Cash register",
+        "Chainsaw",
+        "Change ringing (campanology)",
+        "Chime",
+        "Chink, clink",
+        "Chop",
+        "Chopping (food)",
+        "Chorus effect",
+        "Church bell",
+        "Civil defense siren",
+        "Clock",
+        "Coin (dropping)",
+        "Computer keyboard",
+        "Cowbell",
+        "Cupboard open or close",
+        "Cutlery, silverware",
+        "Dental drill, dentist's drill",
+        "Dial tone",
+        "Ding-dong",
+        "Dishes, pots, and pans",
+        "Door",
+        "Doorbell",
+        "Drawer open or close",
+        "Drill",
+        "Drip",
+        "Effects unit",
+        "Electric shaver, electric razor",
+        "Electric toothbrush",
+        "Electronic tuner",
+        "Emergency vehicle",
+        "Engine",
+        "Engine knocking",
+        "Engine starting",
+        "Eruption",
+        "Explosion",
+        "Filing (rasp)",
+        "Fill (with liquid)",
+        "Fire alarm",
+        "Fire engine, fire truck (siren)",
+        "Firecracker",
+        "Fireworks",
+        "Fixed-wing aircraft, airplane",
+        "Foghorn",
+        "Frying (food)",
+        "Fusillade",
+        "Gears",
+        "Glass",
+        "Gunshot, gunfire",
+        "Gush",
+        "Hair dryer",
+        "Hammer",
+        "Heavy engine (low frequency)",
+        "Helicopter",
+        "Ice cream truck, ice cream van",
+        "Idling",
+        "Jackhammer",
+        "Jet engine",
+        "Jingle bell",
+        "Keys jangling",
+        "Lawn mower",
+        "Light engine (high frequency)",
+        "Liquid",
+        "Machine gun",
+        "Mechanical fan",
+        "Mechanisms",
+        "Medium engine (mid frequency)",
+        "Microwave oven",
+        "Motor vehicle (road)",
+        "Motorboat, speedboat",
+        "Motorcycle",
+        "Police car (siren)",
+        "Pour",
+        "Power tool",
+        "Power windows, electric windows",
+        "Printer",
+        "Propeller, airscrew",
+        "Pulleys",
+        "Pump (liquid)",
+        "Race car, auto racing",
+        "Rail transport",
+        "Railroad car, train wagon",
+        "Ratchet, pawl",
+        "Reversing beeps",
+        "Ringtone",
+        "Rowboat, canoe, kayak",
+        "Sailboat, sailing ship",
+        "Sanding",
+        "Sawing",
+        "Scissors",
+        "Sewing machine",
+        "Shatter",
+        "Ship",
+        "Shuffling cards",
+        "Single-lens reflex camera",
+        "Sink (filling or washing)",
+        "Siren",
+        "Skateboard",
+        "Skidding",
+        "Slam",
+        "Sliding door",
+        "Slosh",
+        "Smoke detector, smoke alarm",
+        "Sonar",
+        "Splash, splatter",
+        "Splinter",
+        "Spray",
+        "Steam whistle",
+        "Stir",
+        "Subway, metro, underground",
+        "Telephone",
+        "Telephone bell ringing",
+        "Telephone dialing, DTMF",
+        "Tick-tock",
+        "Tire squeal",
+        "Toilet flush",
+        "Tools",
+        "Toot",
+        "Toothbrush",
+        "Traffic noise, roadway noise",
+        "Train",
+        "Train horn",
+        "Train wheels squealing",
+        "Train whistle",
+        "Trickle, dribble",
+        "Truck",
+        "Tuning fork",
+        "Typewriter",
+        "Typing",
+        "Vacuum cleaner",
+        "Vehicle",
+        "Vehicle horn, car horn, honking",
+        "Water tap, faucet",
+        "Whistle",
+        "Wind chime",
+        "Wind noise (microphone)",
+        "Wood",
+        "Writing",
+        "Zipper (clothing)"
+      ],
+      "subgroups": {
+        "Engine": {
+          "labels": [
+            "Accelerating, revving, vroom",
+            "Engine knocking",
+            "Engine starting",
+            "Heavy engine (low frequency)",
+            "Idling",
+            "Jet engine",
+            "Light engine (high frequency)",
+            "Medium engine (mid frequency)"
+          ],
+          "allLabels": [
+            "Accelerating, revving, vroom",
+            "Chainsaw",
+            "Engine knocking",
+            "Engine starting",
+            "Heavy engine (low frequency)",
+            "Idling",
+            "Jet engine",
+            "Lawn mower",
+            "Light engine (high frequency)",
+            "Medium engine (mid frequency)"
+          ],
+          "subgroups": {
+            "Light engine (high frequency)": {
+              "labels": [
+                "Chainsaw",
+                "Lawn mower"
+              ],
+              "allLabels": [
+                "Chainsaw",
+                "Lawn mower"
+              ],
+              "subgroups": {},
+              "count": 2
+            }
+          },
+          "count": 10
+        },
+        "Vehicle": {
+          "labels": [
+            "Aircraft",
+            "Boat, Water vehicle",
+            "Motor vehicle (road)",
+            "Rail transport"
+          ],
+          "allLabels": [
+            "Air brake",
+            "Aircraft",
+            "Aircraft engine",
+            "Bicycle",
+            "Boat, Water vehicle",
+            "Bus",
+            "Car",
+            "Car passing by",
+            "Emergency vehicle",
+            "Fixed-wing aircraft, airplane",
+            "Helicopter",
+            "Ice cream truck, ice cream van",
+            "Motor vehicle (road)",
+            "Motorboat, speedboat",
+            "Motorcycle",
+            "Power windows, electric windows",
+            "Propeller, airscrew",
+            "Race car, auto racing",
+            "Rail transport",
+            "Railroad car, train wagon",
+            "Reversing beeps",
+            "Rowboat, canoe, kayak",
+            "Sailboat, sailing ship",
+            "Ship",
+            "Skateboard",
+            "Skidding",
+            "Subway, metro, underground",
+            "Tire squeal",
+            "Traffic noise, roadway noise",
+            "Train",
+            "Train horn",
+            "Train wheels squealing",
+            "Train whistle",
+            "Truck"
+          ],
+          "subgroups": {
+            "Motor vehicle (road)": {
+              "labels": [
+                "Bus",
+                "Car",
+                "Emergency vehicle",
+                "Motorcycle",
+                "Traffic noise, roadway noise",
+                "Truck"
+              ],
+              "allLabels": [
+                "Air brake",
+                "Bus",
+                "Car",
+                "Car passing by",
+                "Emergency vehicle",
+                "Ice cream truck, ice cream van",
+                "Motorcycle",
+                "Power windows, electric windows",
+                "Race car, auto racing",
+                "Reversing beeps",
+                "Skidding",
+                "Tire squeal",
+                "Traffic noise, roadway noise",
+                "Truck"
+              ],
+              "subgroups": {
+                "Truck": {
+                  "labels": [
+                    "Air brake",
+                    "Ice cream truck, ice cream van",
+                    "Reversing beeps"
+                  ],
+                  "allLabels": [
+                    "Air brake",
+                    "Ice cream truck, ice cream van",
+                    "Reversing beeps"
+                  ],
+                  "subgroups": {},
+                  "count": 3
+                },
+                "Car": {
+                  "labels": [
+                    "Car passing by",
+                    "Power windows, electric windows",
+                    "Race car, auto racing",
+                    "Skidding",
+                    "Tire squeal"
+                  ],
+                  "allLabels": [
+                    "Car passing by",
+                    "Power windows, electric windows",
+                    "Race car, auto racing",
+                    "Skidding",
+                    "Tire squeal"
+                  ],
+                  "subgroups": {},
+                  "count": 5
+                }
+              },
+              "count": 14
+            },
+            "Aircraft": {
+              "labels": [
+                "Aircraft engine",
+                "Fixed-wing aircraft, airplane",
+                "Helicopter"
+              ],
+              "allLabels": [
+                "Aircraft engine",
+                "Fixed-wing aircraft, airplane",
+                "Helicopter",
+                "Propeller, airscrew"
+              ],
+              "subgroups": {
+                "Aircraft engine": {
+                  "labels": [
+                    "Propeller, airscrew"
+                  ],
+                  "allLabels": [
+                    "Propeller, airscrew"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                }
+              },
+              "count": 4
+            },
+            "Non-motorized land vehicle": {
+              "labels": [
+                "Bicycle",
+                "Skateboard"
+              ],
+              "allLabels": [
+                "Bicycle",
+                "Skateboard"
+              ],
+              "subgroups": {},
+              "count": 2
+            },
+            "Boat, Water vehicle": {
+              "labels": [
+                "Motorboat, speedboat",
+                "Rowboat, canoe, kayak",
+                "Sailboat, sailing ship",
+                "Ship"
+              ],
+              "allLabels": [
+                "Motorboat, speedboat",
+                "Rowboat, canoe, kayak",
+                "Sailboat, sailing ship",
+                "Ship"
+              ],
+              "subgroups": {},
+              "count": 4
+            },
+            "Rail transport": {
+              "labels": [
+                "Railroad car, train wagon",
+                "Subway, metro, underground",
+                "Train",
+                "Train wheels squealing"
+              ],
+              "allLabels": [
+                "Railroad car, train wagon",
+                "Subway, metro, underground",
+                "Train",
+                "Train horn",
+                "Train wheels squealing",
+                "Train whistle"
+              ],
+              "subgroups": {
+                "Train": {
+                  "labels": [
+                    "Train horn",
+                    "Train whistle"
+                  ],
+                  "allLabels": [
+                    "Train horn",
+                    "Train whistle"
+                  ],
+                  "subgroups": {},
+                  "count": 2
+                }
+              },
+              "count": 6
+            }
+          },
+          "count": 34
+        },
+        "Mechanisms": {
+          "labels": [
+            "Air conditioning",
+            "Camera",
+            "Cash register",
+            "Clock",
+            "Gears",
+            "Mechanical fan",
+            "Printer",
+            "Pulleys",
+            "Ratchet, pawl",
+            "Sewing machine"
+          ],
+          "allLabels": [
+            "Air conditioning",
+            "Camera",
+            "Cash register",
+            "Clock",
+            "Gears",
+            "Mechanical fan",
+            "Printer",
+            "Pulleys",
+            "Ratchet, pawl",
+            "Sewing machine",
+            "Single-lens reflex camera",
+            "Tick-tock"
+          ],
+          "subgroups": {
+            "Camera": {
+              "labels": [
+                "Single-lens reflex camera"
+              ],
+              "allLabels": [
+                "Single-lens reflex camera"
+              ],
+              "subgroups": {},
+              "count": 1
+            },
+            "Clock": {
+              "labels": [
+                "Tick-tock"
+              ],
+              "allLabels": [
+                "Tick-tock"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 12
+        },
+        "Alarm": {
+          "labels": [
+            "Air horn, truck horn",
+            "Alarm clock",
+            "Bicycle bell",
+            "Buzzer",
+            "Car alarm",
+            "Doorbell",
+            "Fire alarm",
+            "Foghorn",
+            "Siren",
+            "Smoke detector, smoke alarm",
+            "Telephone",
+            "Vehicle horn, car horn, honking",
+            "Whistle"
+          ],
+          "allLabels": [
+            "Air horn, truck horn",
+            "Alarm clock",
+            "Ambulance (siren)",
+            "Bicycle bell",
+            "Busy signal",
+            "Buzzer",
+            "Car alarm",
+            "Civil defense siren",
+            "Dial tone",
+            "Ding-dong",
+            "Doorbell",
+            "Fire alarm",
+            "Fire engine, fire truck (siren)",
+            "Foghorn",
+            "Police car (siren)",
+            "Ringtone",
+            "Siren",
+            "Smoke detector, smoke alarm",
+            "Steam whistle",
+            "Telephone",
+            "Telephone bell ringing",
+            "Telephone dialing, DTMF",
+            "Toot",
+            "Vehicle horn, car horn, honking",
+            "Whistle"
+          ],
+          "subgroups": {
+            "Siren": {
+              "labels": [
+                "Ambulance (siren)",
+                "Civil defense siren",
+                "Fire engine, fire truck (siren)",
+                "Police car (siren)"
+              ],
+              "allLabels": [
+                "Ambulance (siren)",
+                "Civil defense siren",
+                "Fire engine, fire truck (siren)",
+                "Police car (siren)"
+              ],
+              "subgroups": {},
+              "count": 4
+            },
+            "Telephone": {
+              "labels": [
+                "Busy signal",
+                "Dial tone",
+                "Ringtone",
+                "Telephone bell ringing",
+                "Telephone dialing, DTMF"
+              ],
+              "allLabels": [
+                "Busy signal",
+                "Dial tone",
+                "Ringtone",
+                "Telephone bell ringing",
+                "Telephone dialing, DTMF"
+              ],
+              "subgroups": {},
+              "count": 5
+            },
+            "Doorbell": {
+              "labels": [
+                "Ding-dong"
+              ],
+              "allLabels": [
+                "Ding-dong"
+              ],
+              "subgroups": {},
+              "count": 1
+            },
+            "Whistle": {
+              "labels": [
+                "Steam whistle"
+              ],
+              "allLabels": [
+                "Steam whistle"
+              ],
+              "subgroups": {},
+              "count": 1
+            },
+            "Vehicle horn, car horn, honking": {
+              "labels": [
+                "Toot"
+              ],
+              "allLabels": [
+                "Toot"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 25
+        },
+        "Miscellaneous sources": {
+          "labels": [
+            "Arrow",
+            "Sonar"
+          ],
+          "allLabels": [
+            "Arrow",
+            "Chorus effect",
+            "Effects unit",
+            "Electronic tuner",
+            "Sonar",
+            "Wind noise (microphone)"
+          ],
+          "subgroups": {
+            "Sound equipment": {
+              "labels": [
+                "Effects unit",
+                "Electronic tuner"
+              ],
+              "allLabels": [
+                "Chorus effect",
+                "Effects unit",
+                "Electronic tuner",
+                "Wind noise (microphone)"
+              ],
+              "subgroups": {
+                "Effects unit": {
+                  "labels": [
+                    "Chorus effect"
+                  ],
+                  "allLabels": [
+                    "Chorus effect"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                },
+                "Microphone": {
+                  "labels": [
+                    "Wind noise (microphone)"
+                  ],
+                  "allLabels": [
+                    "Wind noise (microphone)"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                }
+              },
+              "count": 4
+            }
+          },
+          "count": 6
+        },
+        "Explosion": {
+          "labels": [
+            "Boom",
+            "Burst, pop",
+            "Eruption",
+            "Fireworks",
+            "Gunshot, gunfire"
+          ],
+          "allLabels": [
+            "Artillery fire",
+            "Boom",
+            "Burst, pop",
+            "Cap gun",
+            "Eruption",
+            "Firecracker",
+            "Fireworks",
+            "Fusillade",
+            "Gunshot, gunfire",
+            "Machine gun"
+          ],
+          "subgroups": {
+            "Gunshot, gunfire": {
+              "labels": [
+                "Artillery fire",
+                "Cap gun",
+                "Fusillade",
+                "Machine gun"
+              ],
+              "allLabels": [
+                "Artillery fire",
+                "Cap gun",
+                "Fusillade",
+                "Machine gun"
+              ],
+              "subgroups": {},
+              "count": 4
+            },
+            "Fireworks": {
+              "labels": [
+                "Firecracker"
+              ],
+              "allLabels": [
+                "Firecracker"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 10
+        },
+        "Specific impact sounds": {
+          "labels": [
+            "Basketball bounce"
+          ],
+          "allLabels": [
+            "Basketball bounce"
+          ],
+          "subgroups": {},
+          "count": 1
+        },
+        "Domestic sounds, home sounds": {
+          "labels": [
+            "Bathtub (filling or washing)",
+            "Blender",
+            "Chopping (food)",
+            "Coin (dropping)",
+            "Cupboard open or close",
+            "Cutlery, silverware",
+            "Dishes, pots, and pans",
+            "Door",
+            "Drawer open or close",
+            "Electric shaver, electric razor",
+            "Frying (food)",
+            "Hair dryer",
+            "Keys jangling",
+            "Microwave oven",
+            "Scissors",
+            "Shuffling cards",
+            "Sink (filling or washing)",
+            "Toilet flush",
+            "Toothbrush",
+            "Typing",
+            "Vacuum cleaner",
+            "Water tap, faucet",
+            "Writing",
+            "Zipper (clothing)"
+          ],
+          "allLabels": [
+            "Bathtub (filling or washing)",
+            "Blender",
+            "Chopping (food)",
+            "Coin (dropping)",
+            "Computer keyboard",
+            "Cupboard open or close",
+            "Cutlery, silverware",
+            "Dishes, pots, and pans",
+            "Door",
+            "Drawer open or close",
+            "Electric shaver, electric razor",
+            "Electric toothbrush",
+            "Frying (food)",
+            "Hair dryer",
+            "Keys jangling",
+            "Microwave oven",
+            "Scissors",
+            "Shuffling cards",
+            "Sink (filling or washing)",
+            "Slam",
+            "Sliding door",
+            "Toilet flush",
+            "Toothbrush",
+            "Typewriter",
+            "Typing",
+            "Vacuum cleaner",
+            "Water tap, faucet",
+            "Writing",
+            "Zipper (clothing)"
+          ],
+          "subgroups": {
+            "Typing": {
+              "labels": [
+                "Computer keyboard",
+                "Typewriter"
+              ],
+              "allLabels": [
+                "Computer keyboard",
+                "Typewriter"
+              ],
+              "subgroups": {},
+              "count": 2
+            },
+            "Toothbrush": {
+              "labels": [
+                "Electric toothbrush"
+              ],
+              "allLabels": [
+                "Electric toothbrush"
+              ],
+              "subgroups": {},
+              "count": 1
+            },
+            "Door": {
+              "labels": [
+                "Slam",
+                "Sliding door"
+              ],
+              "allLabels": [
+                "Slam",
+                "Sliding door"
+              ],
+              "subgroups": {},
+              "count": 2
+            }
+          },
+          "count": 29
+        },
+        "Liquid": {
+          "labels": [
+            "Boiling",
+            "Drip",
+            "Fill (with liquid)",
+            "Pour",
+            "Pump (liquid)",
+            "Splash, splatter",
+            "Spray",
+            "Stir"
+          ],
+          "allLabels": [
+            "Boiling",
+            "Drip",
+            "Fill (with liquid)",
+            "Gush",
+            "Pour",
+            "Pump (liquid)",
+            "Slosh",
+            "Splash, splatter",
+            "Spray",
+            "Stir",
+            "Trickle, dribble"
+          ],
+          "subgroups": {
+            "Pour": {
+              "labels": [
+                "Gush",
+                "Trickle, dribble"
+              ],
+              "allLabels": [
+                "Gush",
+                "Trickle, dribble"
+              ],
+              "subgroups": {},
+              "count": 2
+            },
+            "Splash, splatter": {
+              "labels": [
+                "Slosh"
+              ],
+              "allLabels": [
+                "Slosh"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 11
+        },
+        "Bell": {
+          "labels": [
+            "Change ringing (campanology)",
+            "Chime",
+            "Church bell",
+            "Cowbell",
+            "Jingle bell",
+            "Tuning fork"
+          ],
+          "allLabels": [
+            "Change ringing (campanology)",
+            "Chime",
+            "Church bell",
+            "Cowbell",
+            "Jingle bell",
+            "Tuning fork",
+            "Wind chime"
+          ],
+          "subgroups": {
+            "Chime": {
+              "labels": [
+                "Wind chime"
+              ],
+              "allLabels": [
+                "Wind chime"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 7
+        },
+        "Glass": {
+          "labels": [
+            "Chink, clink",
+            "Shatter"
+          ],
+          "allLabels": [
+            "Chink, clink",
+            "Shatter"
+          ],
+          "subgroups": {},
+          "count": 2
+        },
+        "Wood": {
+          "labels": [
+            "Chop",
+            "Splinter"
+          ],
+          "allLabels": [
+            "Chop",
+            "Splinter"
+          ],
+          "subgroups": {},
+          "count": 2
+        },
+        "Tools": {
+          "labels": [
+            "Filing (rasp)",
+            "Hammer",
+            "Jackhammer",
+            "Power tool",
+            "Sanding",
+            "Sawing"
+          ],
+          "allLabels": [
+            "Dental drill, dentist's drill",
+            "Drill",
+            "Filing (rasp)",
+            "Hammer",
+            "Jackhammer",
+            "Power tool",
+            "Sanding",
+            "Sawing"
+          ],
+          "subgroups": {
+            "Power tool": {
+              "labels": [
+                "Drill"
+              ],
+              "allLabels": [
+                "Dental drill, dentist's drill",
+                "Drill"
+              ],
+              "subgroups": {
+                "Drill": {
+                  "labels": [
+                    "Dental drill, dentist's drill"
+                  ],
+                  "allLabels": [
+                    "Dental drill, dentist's drill"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                }
+              },
+              "count": 2
+            }
+          },
+          "count": 8
+        }
+      },
+      "count": 167
+    },
+    "Music": {
+      "labels": [
+        "Music",
+        "Musical instrument"
+      ],
+      "allLabels": [
+        "A capella",
+        "Accordion",
+        "Acoustic guitar",
+        "Afrobeat",
+        "Ambient music",
+        "Angry music",
+        "Background music",
+        "Bagpipes",
+        "Banjo",
+        "Bass drum",
+        "Bass guitar",
+        "Beatboxing",
+        "Bluegrass",
+        "Blues",
+        "Bowed string instrument",
+        "Brass instrument",
+        "Carnatic music",
+        "Cello",
+        "Chant",
+        "Choir",
+        "Christian music",
+        "Christmas music",
+        "Clarinet",
+        "Classical music",
+        "Country",
+        "Cymbal",
+        "Dance music",
+        "Didgeridoo",
+        "Disco",
+        "Double bass",
+        "Drum",
+        "Drum and bass",
+        "Drum kit",
+        "Drum machine",
+        "Drum roll",
+        "Dubstep",
+        "Electric guitar",
+        "Electric piano",
+        "Electronic dance music",
+        "Electronic music",
+        "Electronic organ",
+        "Electronica",
+        "Exciting music",
+        "Flamenco",
+        "Flute",
+        "Folk music",
+        "French horn",
+        "Funk",
+        "Glockenspiel",
+        "Gong",
+        "Gospel music",
+        "Grunge",
+        "Guitar",
+        "Hammond organ",
+        "Happy music",
+        "Harmonica",
+        "Harp",
+        "Harpsichord",
+        "Heavy metal",
+        "Hi-hat",
+        "Hip hop music",
+        "House music",
+        "Independent music",
+        "Jazz",
+        "Jingle (music)",
+        "Keyboard (musical)",
+        "Lullaby",
+        "Mallet percussion",
+        "Mandolin",
+        "Mantra",
+        "Maraca",
+        "Marimba, xylophone",
+        "Middle Eastern music",
+        "Music",
+        "Music for children",
+        "Music of Africa",
+        "Music of Asia",
+        "Music of Bollywood",
+        "Music of Latin America",
+        "Musical instrument",
+        "New-age music",
+        "Opera",
+        "Orchestra",
+        "Organ",
+        "Percussion",
+        "Piano",
+        "Pizzicato",
+        "Plucked string instrument",
+        "Pop music",
+        "Progressive rock",
+        "Psychedelic rock",
+        "Punk rock",
+        "Rattle (instrument)",
+        "Reggae",
+        "Rhythm and blues",
+        "Rimshot",
+        "Rock and roll",
+        "Rock music",
+        "Sad music",
+        "Salsa music",
+        "Sampler",
+        "Saxophone",
+        "Scary music",
+        "Scratching (performance technique)",
+        "Shofar",
+        "Singing bowl",
+        "Sitar",
+        "Ska",
+        "Snare drum",
+        "Song",
+        "Soul music",
+        "Soundtrack music",
+        "Steel guitar, slide guitar",
+        "Steelpan",
+        "String section",
+        "Strum",
+        "Swing music",
+        "Synthesizer",
+        "Tabla",
+        "Tambourine",
+        "Tapping (guitar technique)",
+        "Techno",
+        "Tender music",
+        "Theme music",
+        "Theremin",
+        "Timpani",
+        "Traditional music",
+        "Trance music",
+        "Trombone",
+        "Trumpet",
+        "Tubular bells",
+        "Ukulele",
+        "Vibraphone",
+        "Video game music",
+        "Violin, fiddle",
+        "Vocal music",
+        "Wedding music",
+        "Wind instrument, woodwind instrument",
+        "Wood block",
+        "Zither"
+      ],
+      "subgroups": {
+        "Music genre": {
+          "labels": [
+            "Blues",
+            "Christian music",
+            "Classical music",
+            "Country",
+            "Disco",
+            "Electronic music",
+            "Folk music",
+            "Funk",
+            "Hip hop music",
+            "Independent music",
+            "Jazz",
+            "Middle Eastern music",
+            "Music for children",
+            "Music of Africa",
+            "Music of Asia",
+            "Music of Latin America",
+            "New-age music",
+            "Pop music",
+            "Reggae",
+            "Rhythm and blues",
+            "Rock music",
+            "Ska",
+            "Soul music",
+            "Traditional music",
+            "Vocal music"
+          ],
+          "allLabels": [
+            "A capella",
+            "Afrobeat",
+            "Ambient music",
+            "Beatboxing",
+            "Bluegrass",
+            "Blues",
+            "Carnatic music",
+            "Chant",
+            "Christian music",
+            "Classical music",
+            "Country",
+            "Disco",
+            "Drum and bass",
+            "Dubstep",
+            "Electronic dance music",
+            "Electronic music",
+            "Electronica",
+            "Flamenco",
+            "Folk music",
+            "Funk",
+            "Gospel music",
+            "Grunge",
+            "Heavy metal",
+            "Hip hop music",
+            "House music",
+            "Independent music",
+            "Jazz",
+            "Mantra",
+            "Middle Eastern music",
+            "Music for children",
+            "Music of Africa",
+            "Music of Asia",
+            "Music of Bollywood",
+            "Music of Latin America",
+            "New-age music",
+            "Opera",
+            "Pop music",
+            "Progressive rock",
+            "Psychedelic rock",
+            "Punk rock",
+            "Reggae",
+            "Rhythm and blues",
+            "Rock and roll",
+            "Rock music",
+            "Salsa music",
+            "Ska",
+            "Soul music",
+            "Swing music",
+            "Techno",
+            "Traditional music",
+            "Trance music",
+            "Vocal music"
+          ],
+          "subgroups": {
+            "Vocal music": {
+              "labels": [
+                "A capella",
+                "Beatboxing",
+                "Chant"
+              ],
+              "allLabels": [
+                "A capella",
+                "Beatboxing",
+                "Chant",
+                "Mantra"
+              ],
+              "subgroups": {
+                "Chant": {
+                  "labels": [
+                    "Mantra"
+                  ],
+                  "allLabels": [
+                    "Mantra"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                }
+              },
+              "count": 4
+            },
+            "Music of Africa": {
+              "labels": [
+                "Afrobeat"
+              ],
+              "allLabels": [
+                "Afrobeat"
+              ],
+              "subgroups": {},
+              "count": 1
+            },
+            "Electronic music": {
+              "labels": [
+                "Ambient music",
+                "Drum and bass",
+                "Dubstep",
+                "Electronic dance music",
+                "Electronica",
+                "House music",
+                "Techno",
+                "Trance music"
+              ],
+              "allLabels": [
+                "Ambient music",
+                "Drum and bass",
+                "Dubstep",
+                "Electronic dance music",
+                "Electronica",
+                "House music",
+                "Techno",
+                "Trance music"
+              ],
+              "subgroups": {},
+              "count": 8
+            },
+            "Country": {
+              "labels": [
+                "Bluegrass",
+                "Swing music"
+              ],
+              "allLabels": [
+                "Bluegrass",
+                "Swing music"
+              ],
+              "subgroups": {},
+              "count": 2
+            },
+            "Music of Asia": {
+              "labels": [
+                "Carnatic music",
+                "Music of Bollywood"
+              ],
+              "allLabels": [
+                "Carnatic music",
+                "Music of Bollywood"
+              ],
+              "subgroups": {},
+              "count": 2
+            },
+            "Music of Latin America": {
+              "labels": [
+                "Flamenco",
+                "Salsa music"
+              ],
+              "allLabels": [
+                "Flamenco",
+                "Salsa music"
+              ],
+              "subgroups": {},
+              "count": 2
+            },
+            "Christian music": {
+              "labels": [
+                "Gospel music"
+              ],
+              "allLabels": [
+                "Gospel music"
+              ],
+              "subgroups": {},
+              "count": 1
+            },
+            "Rock music": {
+              "labels": [
+                "Grunge",
+                "Heavy metal",
+                "Progressive rock",
+                "Psychedelic rock",
+                "Punk rock",
+                "Rock and roll"
+              ],
+              "allLabels": [
+                "Grunge",
+                "Heavy metal",
+                "Progressive rock",
+                "Psychedelic rock",
+                "Punk rock",
+                "Rock and roll"
+              ],
+              "subgroups": {},
+              "count": 6
+            },
+            "Classical music": {
+              "labels": [
+                "Opera"
+              ],
+              "allLabels": [
+                "Opera"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 52
+        },
+        "Musical instrument": {
+          "labels": [
+            "Accordion",
+            "Bagpipes",
+            "Bowed string instrument",
+            "Brass instrument",
+            "Choir",
+            "Didgeridoo",
+            "Harmonica",
+            "Harp",
+            "Keyboard (musical)",
+            "Orchestra",
+            "Percussion",
+            "Plucked string instrument",
+            "Scratching (performance technique)",
+            "Shofar",
+            "Singing bowl",
+            "Theremin",
+            "Wind instrument, woodwind instrument"
+          ],
+          "allLabels": [
+            "Accordion",
+            "Acoustic guitar",
+            "Bagpipes",
+            "Banjo",
+            "Bass drum",
+            "Bass guitar",
+            "Bowed string instrument",
+            "Brass instrument",
+            "Cello",
+            "Choir",
+            "Clarinet",
+            "Cymbal",
+            "Didgeridoo",
+            "Double bass",
+            "Drum",
+            "Drum kit",
+            "Drum machine",
+            "Drum roll",
+            "Electric guitar",
+            "Electric piano",
+            "Electronic organ",
+            "Flute",
+            "French horn",
+            "Glockenspiel",
+            "Gong",
+            "Guitar",
+            "Hammond organ",
+            "Harmonica",
+            "Harp",
+            "Harpsichord",
+            "Hi-hat",
+            "Keyboard (musical)",
+            "Mallet percussion",
+            "Mandolin",
+            "Maraca",
+            "Marimba, xylophone",
+            "Orchestra",
+            "Organ",
+            "Percussion",
+            "Piano",
+            "Pizzicato",
+            "Plucked string instrument",
+            "Rattle (instrument)",
+            "Rimshot",
+            "Sampler",
+            "Saxophone",
+            "Scratching (performance technique)",
+            "Shofar",
+            "Singing bowl",
+            "Sitar",
+            "Snare drum",
+            "Steel guitar, slide guitar",
+            "Steelpan",
+            "String section",
+            "Strum",
+            "Synthesizer",
+            "Tabla",
+            "Tambourine",
+            "Tapping (guitar technique)",
+            "Theremin",
+            "Timpani",
+            "Trombone",
+            "Trumpet",
+            "Tubular bells",
+            "Ukulele",
+            "Vibraphone",
+            "Violin, fiddle",
+            "Wind instrument, woodwind instrument",
+            "Wood block",
+            "Zither"
+          ],
+          "subgroups": {
+            "Plucked string instrument": {
+              "labels": [
+                "Banjo",
+                "Guitar",
+                "Mandolin",
+                "Sitar",
+                "Ukulele",
+                "Zither"
+              ],
+              "allLabels": [
+                "Acoustic guitar",
+                "Banjo",
+                "Bass guitar",
+                "Electric guitar",
+                "Guitar",
+                "Mandolin",
+                "Sitar",
+                "Steel guitar, slide guitar",
+                "Strum",
+                "Tapping (guitar technique)",
+                "Ukulele",
+                "Zither"
+              ],
+              "subgroups": {
+                "Guitar": {
+                  "labels": [
+                    "Acoustic guitar",
+                    "Bass guitar",
+                    "Electric guitar",
+                    "Steel guitar, slide guitar",
+                    "Strum",
+                    "Tapping (guitar technique)"
+                  ],
+                  "allLabels": [
+                    "Acoustic guitar",
+                    "Bass guitar",
+                    "Electric guitar",
+                    "Steel guitar, slide guitar",
+                    "Strum",
+                    "Tapping (guitar technique)"
+                  ],
+                  "subgroups": {},
+                  "count": 6
+                }
+              },
+              "count": 12
+            },
+            "Percussion": {
+              "labels": [
+                "Cymbal",
+                "Drum",
+                "Drum kit",
+                "Gong",
+                "Mallet percussion",
+                "Rattle (instrument)",
+                "Tambourine",
+                "Tubular bells",
+                "Wood block"
+              ],
+              "allLabels": [
+                "Bass drum",
+                "Cymbal",
+                "Drum",
+                "Drum kit",
+                "Drum machine",
+                "Drum roll",
+                "Glockenspiel",
+                "Gong",
+                "Hi-hat",
+                "Mallet percussion",
+                "Maraca",
+                "Marimba, xylophone",
+                "Rattle (instrument)",
+                "Rimshot",
+                "Snare drum",
+                "Steelpan",
+                "Tabla",
+                "Tambourine",
+                "Timpani",
+                "Tubular bells",
+                "Vibraphone",
+                "Wood block"
+              ],
+              "subgroups": {
+                "Drum": {
+                  "labels": [
+                    "Bass drum",
+                    "Snare drum",
+                    "Tabla",
+                    "Timpani"
+                  ],
+                  "allLabels": [
+                    "Bass drum",
+                    "Drum roll",
+                    "Rimshot",
+                    "Snare drum",
+                    "Tabla",
+                    "Timpani"
+                  ],
+                  "subgroups": {
+                    "Snare drum": {
+                      "labels": [
+                        "Drum roll",
+                        "Rimshot"
+                      ],
+                      "allLabels": [
+                        "Drum roll",
+                        "Rimshot"
+                      ],
+                      "subgroups": {},
+                      "count": 2
+                    }
+                  },
+                  "count": 6
+                },
+                "Drum kit": {
+                  "labels": [
+                    "Drum machine"
+                  ],
+                  "allLabels": [
+                    "Drum machine"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                },
+                "Mallet percussion": {
+                  "labels": [
+                    "Glockenspiel",
+                    "Marimba, xylophone",
+                    "Steelpan",
+                    "Vibraphone"
+                  ],
+                  "allLabels": [
+                    "Glockenspiel",
+                    "Marimba, xylophone",
+                    "Steelpan",
+                    "Vibraphone"
+                  ],
+                  "subgroups": {},
+                  "count": 4
+                },
+                "Cymbal": {
+                  "labels": [
+                    "Hi-hat"
+                  ],
+                  "allLabels": [
+                    "Hi-hat"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                },
+                "Rattle (instrument)": {
+                  "labels": [
+                    "Maraca"
+                  ],
+                  "allLabels": [
+                    "Maraca"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                }
+              },
+              "count": 22
+            },
+            "Bowed string instrument": {
+              "labels": [
+                "Cello",
+                "Double bass",
+                "String section",
+                "Violin, fiddle"
+              ],
+              "allLabels": [
+                "Cello",
+                "Double bass",
+                "Pizzicato",
+                "String section",
+                "Violin, fiddle"
+              ],
+              "subgroups": {
+                "Violin, fiddle": {
+                  "labels": [
+                    "Pizzicato"
+                  ],
+                  "allLabels": [
+                    "Pizzicato"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                }
+              },
+              "count": 5
+            },
+            "Wind instrument, woodwind instrument": {
+              "labels": [
+                "Clarinet",
+                "Flute",
+                "Saxophone"
+              ],
+              "allLabels": [
+                "Clarinet",
+                "Flute",
+                "Saxophone"
+              ],
+              "subgroups": {},
+              "count": 3
+            },
+            "Keyboard (musical)": {
+              "labels": [
+                "Harpsichord",
+                "Organ",
+                "Piano",
+                "Synthesizer"
+              ],
+              "allLabels": [
+                "Electric piano",
+                "Electronic organ",
+                "Hammond organ",
+                "Harpsichord",
+                "Organ",
+                "Piano",
+                "Sampler",
+                "Synthesizer"
+              ],
+              "subgroups": {
+                "Piano": {
+                  "labels": [
+                    "Electric piano"
+                  ],
+                  "allLabels": [
+                    "Electric piano"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                },
+                "Organ": {
+                  "labels": [
+                    "Electronic organ",
+                    "Hammond organ"
+                  ],
+                  "allLabels": [
+                    "Electronic organ",
+                    "Hammond organ"
+                  ],
+                  "subgroups": {},
+                  "count": 2
+                },
+                "Synthesizer": {
+                  "labels": [
+                    "Sampler"
+                  ],
+                  "allLabels": [
+                    "Sampler"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                }
+              },
+              "count": 8
+            },
+            "Brass instrument": {
+              "labels": [
+                "French horn",
+                "Trombone",
+                "Trumpet"
+              ],
+              "allLabels": [
+                "French horn",
+                "Trombone",
+                "Trumpet"
+              ],
+              "subgroups": {},
+              "count": 3
+            }
+          },
+          "count": 70
+        },
+        "Music mood": {
+          "labels": [
+            "Angry music",
+            "Exciting music",
+            "Happy music",
+            "Sad music",
+            "Scary music",
+            "Tender music"
+          ],
+          "allLabels": [
+            "Angry music",
+            "Exciting music",
+            "Happy music",
+            "Sad music",
+            "Scary music",
+            "Tender music"
+          ],
+          "subgroups": {},
+          "count": 6
+        },
+        "Music role": {
+          "labels": [
+            "Background music",
+            "Christmas music",
+            "Dance music",
+            "Jingle (music)",
+            "Lullaby",
+            "Soundtrack music",
+            "Theme music",
+            "Video game music",
+            "Wedding music"
+          ],
+          "allLabels": [
+            "Background music",
+            "Christmas music",
+            "Dance music",
+            "Jingle (music)",
+            "Lullaby",
+            "Soundtrack music",
+            "Theme music",
+            "Video game music",
+            "Wedding music"
+          ],
+          "subgroups": {},
+          "count": 9
+        },
+        "Musical concepts": {
+          "labels": [
+            "Song"
+          ],
+          "allLabels": [
+            "Song"
+          ],
+          "subgroups": {},
+          "count": 1
+        }
+      },
+      "count": 140
+    },
+    "Human sounds": {
+      "labels": [
+        "Hands",
+        "Heart sounds, heartbeat",
+        "Whistling"
+      ],
+      "allLabels": [
+        "Applause",
+        "Babbling",
+        "Baby cry, infant cry",
+        "Baby laughter",
+        "Bellow",
+        "Belly laugh",
+        "Biting",
+        "Breathing",
+        "Burping, eructation",
+        "Chatter",
+        "Cheering",
+        "Chewing, mastication",
+        "Child singing",
+        "Child speech, kid speaking",
+        "Children playing",
+        "Children shouting",
+        "Chuckle, chortle",
+        "Clapping",
+        "Conversation",
+        "Cough",
+        "Crowd",
+        "Crying, sobbing",
+        "Fart",
+        "Finger snapping",
+        "Gargling",
+        "Gasp",
+        "Giggle",
+        "Groan",
+        "Grunt",
+        "Hands",
+        "Heart murmur",
+        "Heart sounds, heartbeat",
+        "Hiccup",
+        "Humming",
+        "Laughter",
+        "Narration, monologue",
+        "Pant",
+        "Rapping",
+        "Run",
+        "Screaming",
+        "Shout",
+        "Shuffle",
+        "Sigh",
+        "Singing",
+        "Sneeze",
+        "Snicker",
+        "Sniff",
+        "Snoring",
+        "Snort",
+        "Speech",
+        "Speech synthesizer",
+        "Stomach rumble",
+        "Synthetic singing",
+        "Throat clearing",
+        "Wail, moan",
+        "Walk, footsteps",
+        "Wheeze",
+        "Whimper",
+        "Whispering",
+        "Whistling",
+        "Whoop",
+        "Yell",
+        "Yodeling"
+      ],
+      "subgroups": {
+        "Human group actions": {
+          "labels": [
+            "Applause",
+            "Chatter",
+            "Cheering",
+            "Children playing",
+            "Children shouting",
+            "Clapping",
+            "Crowd"
+          ],
+          "allLabels": [
+            "Applause",
+            "Chatter",
+            "Cheering",
+            "Children playing",
+            "Children shouting",
+            "Clapping",
+            "Crowd"
+          ],
+          "subgroups": {},
+          "count": 7
+        },
+        "Human voice": {
+          "labels": [
+            "Crying, sobbing",
+            "Groan",
+            "Grunt",
+            "Humming",
+            "Laughter",
+            "Screaming",
+            "Shout",
+            "Sigh",
+            "Singing",
+            "Speech",
+            "Wail, moan",
+            "Whispering"
+          ],
+          "allLabels": [
+            "Babbling",
+            "Baby cry, infant cry",
+            "Baby laughter",
+            "Bellow",
+            "Belly laugh",
+            "Child singing",
+            "Child speech, kid speaking",
+            "Chuckle, chortle",
+            "Conversation",
+            "Crying, sobbing",
+            "Giggle",
+            "Groan",
+            "Grunt",
+            "Humming",
+            "Laughter",
+            "Narration, monologue",
+            "Rapping",
+            "Screaming",
+            "Shout",
+            "Sigh",
+            "Singing",
+            "Snicker",
+            "Speech",
+            "Speech synthesizer",
+            "Synthetic singing",
+            "Wail, moan",
+            "Whimper",
+            "Whispering",
+            "Whoop",
+            "Yell",
+            "Yodeling"
+          ],
+          "subgroups": {
+            "Speech": {
+              "labels": [
+                "Babbling",
+                "Child speech, kid speaking",
+                "Conversation",
+                "Narration, monologue",
+                "Speech synthesizer"
+              ],
+              "allLabels": [
+                "Babbling",
+                "Child speech, kid speaking",
+                "Conversation",
+                "Narration, monologue",
+                "Speech synthesizer"
+              ],
+              "subgroups": {},
+              "count": 5
+            },
+            "Crying, sobbing": {
+              "labels": [
+                "Baby cry, infant cry",
+                "Whimper"
+              ],
+              "allLabels": [
+                "Baby cry, infant cry",
+                "Whimper"
+              ],
+              "subgroups": {},
+              "count": 2
+            },
+            "Laughter": {
+              "labels": [
+                "Baby laughter",
+                "Belly laugh",
+                "Chuckle, chortle",
+                "Giggle",
+                "Snicker"
+              ],
+              "allLabels": [
+                "Baby laughter",
+                "Belly laugh",
+                "Chuckle, chortle",
+                "Giggle",
+                "Snicker"
+              ],
+              "subgroups": {},
+              "count": 5
+            },
+            "Shout": {
+              "labels": [
+                "Bellow",
+                "Whoop",
+                "Yell"
+              ],
+              "allLabels": [
+                "Bellow",
+                "Whoop",
+                "Yell"
+              ],
+              "subgroups": {},
+              "count": 3
+            },
+            "Singing": {
+              "labels": [
+                "Child singing",
+                "Rapping",
+                "Synthetic singing",
+                "Yodeling"
+              ],
+              "allLabels": [
+                "Child singing",
+                "Rapping",
+                "Synthetic singing",
+                "Yodeling"
+              ],
+              "subgroups": {},
+              "count": 4
+            }
+          },
+          "count": 31
+        },
+        "Digestive": {
+          "labels": [
+            "Biting",
+            "Burping, eructation",
+            "Chewing, mastication",
+            "Fart",
+            "Gargling",
+            "Hiccup",
+            "Stomach rumble"
+          ],
+          "allLabels": [
+            "Biting",
+            "Burping, eructation",
+            "Chewing, mastication",
+            "Fart",
+            "Gargling",
+            "Hiccup",
+            "Stomach rumble"
+          ],
+          "subgroups": {},
+          "count": 7
+        },
+        "Respiratory sounds": {
+          "labels": [
+            "Breathing",
+            "Cough",
+            "Sneeze",
+            "Sniff"
+          ],
+          "allLabels": [
+            "Breathing",
+            "Cough",
+            "Gasp",
+            "Pant",
+            "Sneeze",
+            "Sniff",
+            "Snoring",
+            "Snort",
+            "Throat clearing",
+            "Wheeze"
+          ],
+          "subgroups": {
+            "Breathing": {
+              "labels": [
+                "Gasp",
+                "Pant",
+                "Snoring",
+                "Snort",
+                "Wheeze"
+              ],
+              "allLabels": [
+                "Gasp",
+                "Pant",
+                "Snoring",
+                "Snort",
+                "Wheeze"
+              ],
+              "subgroups": {},
+              "count": 5
+            },
+            "Cough": {
+              "labels": [
+                "Throat clearing"
+              ],
+              "allLabels": [
+                "Throat clearing"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 10
+        },
+        "Hands": {
+          "labels": [
+            "Finger snapping"
+          ],
+          "allLabels": [
+            "Finger snapping"
+          ],
+          "subgroups": {},
+          "count": 1
+        },
+        "Heart sounds, heartbeat": {
+          "labels": [
+            "Heart murmur"
+          ],
+          "allLabels": [
+            "Heart murmur"
+          ],
+          "subgroups": {},
+          "count": 1
+        },
+        "Human locomotion": {
+          "labels": [
+            "Run",
+            "Shuffle",
+            "Walk, footsteps"
+          ],
+          "allLabels": [
+            "Run",
+            "Shuffle",
+            "Walk, footsteps"
+          ],
+          "subgroups": {},
+          "count": 3
+        }
+      },
+      "count": 63
+    },
+    "Animal": {
+      "labels": [
+        "Animal",
+        "Domestic animals, pets",
+        "Livestock, farm animals, working animals",
+        "Wild animals"
+      ],
+      "allLabels": [
+        "Animal",
+        "Bark",
+        "Bee, wasp, etc.",
+        "Bird",
+        "Bird flight, flapping wings",
+        "Bird vocalization, bird call, bird song",
+        "Bleat",
+        "Bow-wow",
+        "Canidae, dogs, wolves",
+        "Cat",
+        "Caterwaul",
+        "Cattle, bovinae",
+        "Caw",
+        "Chicken, rooster",
+        "Cluck",
+        "Coo",
+        "Cricket",
+        "Croak",
+        "Crow",
+        "Crowing, cock-a-doodle-doo",
+        "Dog",
+        "Domestic animals, pets",
+        "Duck",
+        "Fly, housefly",
+        "Fowl",
+        "Frog",
+        "Goat",
+        "Gobble",
+        "Goose",
+        "Growling",
+        "Honk",
+        "Hoot",
+        "Horse",
+        "Howl",
+        "Insect",
+        "Livestock, farm animals, working animals",
+        "Meow",
+        "Moo",
+        "Mosquito",
+        "Mouse",
+        "Neigh, whinny",
+        "Oink",
+        "Owl",
+        "Patter",
+        "Pig",
+        "Pigeon, dove",
+        "Purr",
+        "Quack",
+        "Roar",
+        "Roaring cats (lions, tigers)",
+        "Rodents, rats, mice",
+        "Sheep",
+        "Snake",
+        "Squawk",
+        "Turkey",
+        "Whale vocalization",
+        "Whimper (dog)",
+        "Wild animals",
+        "Yip"
+      ],
+      "subgroups": {
+        "Domestic animals, pets": {
+          "labels": [
+            "Cat",
+            "Dog"
+          ],
+          "allLabels": [
+            "Bark",
+            "Bow-wow",
+            "Cat",
+            "Caterwaul",
+            "Dog",
+            "Meow",
+            "Purr",
+            "Whimper (dog)",
+            "Yip"
+          ],
+          "subgroups": {
+            "Dog": {
+              "labels": [
+                "Bark",
+                "Bow-wow",
+                "Whimper (dog)",
+                "Yip"
+              ],
+              "allLabels": [
+                "Bark",
+                "Bow-wow",
+                "Whimper (dog)",
+                "Yip"
+              ],
+              "subgroups": {},
+              "count": 4
+            },
+            "Cat": {
+              "labels": [
+                "Caterwaul",
+                "Meow",
+                "Purr"
+              ],
+              "allLabels": [
+                "Caterwaul",
+                "Meow",
+                "Purr"
+              ],
+              "subgroups": {},
+              "count": 3
+            }
+          },
+          "count": 9
+        },
+        "Wild animals": {
+          "labels": [
+            "Bird",
+            "Canidae, dogs, wolves",
+            "Frog",
+            "Insect",
+            "Roaring cats (lions, tigers)",
+            "Rodents, rats, mice",
+            "Snake",
+            "Whale vocalization"
+          ],
+          "allLabels": [
+            "Bee, wasp, etc.",
+            "Bird",
+            "Bird flight, flapping wings",
+            "Bird vocalization, bird call, bird song",
+            "Canidae, dogs, wolves",
+            "Caw",
+            "Coo",
+            "Cricket",
+            "Croak",
+            "Crow",
+            "Fly, housefly",
+            "Frog",
+            "Growling",
+            "Hoot",
+            "Howl",
+            "Insect",
+            "Mosquito",
+            "Mouse",
+            "Owl",
+            "Patter",
+            "Pigeon, dove",
+            "Roar",
+            "Roaring cats (lions, tigers)",
+            "Rodents, rats, mice",
+            "Snake",
+            "Squawk",
+            "Whale vocalization"
+          ],
+          "subgroups": {
+            "Insect": {
+              "labels": [
+                "Bee, wasp, etc.",
+                "Cricket",
+                "Fly, housefly",
+                "Mosquito"
+              ],
+              "allLabels": [
+                "Bee, wasp, etc.",
+                "Cricket",
+                "Fly, housefly",
+                "Mosquito"
+              ],
+              "subgroups": {},
+              "count": 4
+            },
+            "Bird": {
+              "labels": [
+                "Bird flight, flapping wings",
+                "Bird vocalization, bird call, bird song",
+                "Crow",
+                "Owl",
+                "Pigeon, dove"
+              ],
+              "allLabels": [
+                "Bird flight, flapping wings",
+                "Bird vocalization, bird call, bird song",
+                "Caw",
+                "Coo",
+                "Crow",
+                "Hoot",
+                "Owl",
+                "Pigeon, dove",
+                "Squawk"
+              ],
+              "subgroups": {
+                "Crow": {
+                  "labels": [
+                    "Caw"
+                  ],
+                  "allLabels": [
+                    "Caw"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                },
+                "Pigeon, dove": {
+                  "labels": [
+                    "Coo"
+                  ],
+                  "allLabels": [
+                    "Coo"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                },
+                "Owl": {
+                  "labels": [
+                    "Hoot"
+                  ],
+                  "allLabels": [
+                    "Hoot"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                },
+                "Bird vocalization, bird call, bird song": {
+                  "labels": [
+                    "Squawk"
+                  ],
+                  "allLabels": [
+                    "Squawk"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                }
+              },
+              "count": 9
+            },
+            "Frog": {
+              "labels": [
+                "Croak"
+              ],
+              "allLabels": [
+                "Croak"
+              ],
+              "subgroups": {},
+              "count": 1
+            },
+            "Canidae, dogs, wolves": {
+              "labels": [
+                "Growling",
+                "Howl"
+              ],
+              "allLabels": [
+                "Growling",
+                "Howl"
+              ],
+              "subgroups": {},
+              "count": 2
+            },
+            "Rodents, rats, mice": {
+              "labels": [
+                "Mouse",
+                "Patter"
+              ],
+              "allLabels": [
+                "Mouse",
+                "Patter"
+              ],
+              "subgroups": {},
+              "count": 2
+            },
+            "Roaring cats (lions, tigers)": {
+              "labels": [
+                "Roar"
+              ],
+              "allLabels": [
+                "Roar"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 27
+        },
+        "Livestock, farm animals, working animals": {
+          "labels": [
+            "Cattle, bovinae",
+            "Fowl",
+            "Goat",
+            "Horse",
+            "Pig",
+            "Sheep"
+          ],
+          "allLabels": [
+            "Bleat",
+            "Cattle, bovinae",
+            "Chicken, rooster",
+            "Cluck",
+            "Crowing, cock-a-doodle-doo",
+            "Duck",
+            "Fowl",
+            "Goat",
+            "Gobble",
+            "Goose",
+            "Honk",
+            "Horse",
+            "Moo",
+            "Neigh, whinny",
+            "Oink",
+            "Pig",
+            "Quack",
+            "Sheep",
+            "Turkey"
+          ],
+          "subgroups": {
+            "Sheep": {
+              "labels": [
+                "Bleat"
+              ],
+              "allLabels": [
+                "Bleat"
+              ],
+              "subgroups": {},
+              "count": 1
+            },
+            "Fowl": {
+              "labels": [
+                "Chicken, rooster",
+                "Duck",
+                "Goose",
+                "Turkey"
+              ],
+              "allLabels": [
+                "Chicken, rooster",
+                "Cluck",
+                "Crowing, cock-a-doodle-doo",
+                "Duck",
+                "Gobble",
+                "Goose",
+                "Honk",
+                "Quack",
+                "Turkey"
+              ],
+              "subgroups": {
+                "Chicken, rooster": {
+                  "labels": [
+                    "Cluck",
+                    "Crowing, cock-a-doodle-doo"
+                  ],
+                  "allLabels": [
+                    "Cluck",
+                    "Crowing, cock-a-doodle-doo"
+                  ],
+                  "subgroups": {},
+                  "count": 2
+                },
+                "Turkey": {
+                  "labels": [
+                    "Gobble"
+                  ],
+                  "allLabels": [
+                    "Gobble"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                },
+                "Goose": {
+                  "labels": [
+                    "Honk"
+                  ],
+                  "allLabels": [
+                    "Honk"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                },
+                "Duck": {
+                  "labels": [
+                    "Quack"
+                  ],
+                  "allLabels": [
+                    "Quack"
+                  ],
+                  "subgroups": {},
+                  "count": 1
+                }
+              },
+              "count": 9
+            },
+            "Cattle, bovinae": {
+              "labels": [
+                "Moo"
+              ],
+              "allLabels": [
+                "Moo"
+              ],
+              "subgroups": {},
+              "count": 1
+            },
+            "Horse": {
+              "labels": [
+                "Neigh, whinny"
+              ],
+              "allLabels": [
+                "Neigh, whinny"
+              ],
+              "subgroups": {},
+              "count": 1
+            },
+            "Pig": {
+              "labels": [
+                "Oink"
+              ],
+              "allLabels": [
+                "Oink"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 19
+        }
+      },
+      "count": 59
+    },
+    "Source-ambiguous sounds": {
+      "labels": [
+        "Silence"
+      ],
+      "allLabels": [
+        "Bang",
+        "Beep, bleep",
+        "Boing",
+        "Bouncing",
+        "Breaking",
+        "Buzz",
+        "Chirp tone",
+        "Chirp, tweet",
+        "Clang",
+        "Clatter",
+        "Clickety-clack",
+        "Clicking",
+        "Clip-clop",
+        "Crack",
+        "Crackle",
+        "Creak",
+        "Crumpling, crinkling",
+        "Crunch",
+        "Crushing",
+        "Ding",
+        "Flap",
+        "Harmonic",
+        "Hiss",
+        "Hum",
+        "Jingle, tinkle",
+        "Knock",
+        "Ping",
+        "Plop",
+        "Pulse",
+        "Rattle",
+        "Roll",
+        "Rub",
+        "Rumble",
+        "Rustle",
+        "Scrape",
+        "Scratch",
+        "Silence",
+        "Sine wave",
+        "Sizzle",
+        "Slap, smack",
+        "Smash, crash",
+        "Sound effect",
+        "Squeak",
+        "Squeal",
+        "Squish",
+        "Tap",
+        "Tearing",
+        "Thump, thud",
+        "Thunk",
+        "Tick",
+        "Whack, thwack",
+        "Whip",
+        "Whir",
+        "Whoosh, swoosh, swish",
+        "Zing"
+      ],
+      "subgroups": {
+        "Generic impact sounds": {
+          "labels": [
+            "Bang",
+            "Bouncing",
+            "Breaking",
+            "Flap",
+            "Knock",
+            "Slap, smack",
+            "Smash, crash",
+            "Tap",
+            "Thump, thud",
+            "Whack, thwack",
+            "Whip"
+          ],
+          "allLabels": [
+            "Bang",
+            "Bouncing",
+            "Breaking",
+            "Flap",
+            "Knock",
+            "Slap, smack",
+            "Smash, crash",
+            "Tap",
+            "Thump, thud",
+            "Thunk",
+            "Whack, thwack",
+            "Whip"
+          ],
+          "subgroups": {
+            "Thump, thud": {
+              "labels": [
+                "Thunk"
+              ],
+              "allLabels": [
+                "Thunk"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 12
+        },
+        "Onomatopoeia": {
+          "labels": [
+            "Boing",
+            "Clatter",
+            "Clicking",
+            "Crack",
+            "Crackle",
+            "Creak",
+            "Crunch",
+            "Hiss",
+            "Hum",
+            "Jingle, tinkle",
+            "Plop",
+            "Rattle",
+            "Rumble",
+            "Rustle",
+            "Sizzle",
+            "Squish",
+            "Whir",
+            "Whoosh, swoosh, swish",
+            "Zing"
+          ],
+          "allLabels": [
+            "Beep, bleep",
+            "Boing",
+            "Buzz",
+            "Chirp, tweet",
+            "Clang",
+            "Clatter",
+            "Clickety-clack",
+            "Clicking",
+            "Clip-clop",
+            "Crack",
+            "Crackle",
+            "Creak",
+            "Crunch",
+            "Ding",
+            "Hiss",
+            "Hum",
+            "Jingle, tinkle",
+            "Ping",
+            "Plop",
+            "Rattle",
+            "Rumble",
+            "Rustle",
+            "Sizzle",
+            "Squeak",
+            "Squeal",
+            "Squish",
+            "Tick",
+            "Whir",
+            "Whoosh, swoosh, swish",
+            "Zing"
+          ],
+          "subgroups": {
+            "Brief tone": {
+              "labels": [
+                "Beep, bleep",
+                "Buzz",
+                "Chirp, tweet",
+                "Clang",
+                "Ding",
+                "Ping",
+                "Squeak",
+                "Squeal"
+              ],
+              "allLabels": [
+                "Beep, bleep",
+                "Buzz",
+                "Chirp, tweet",
+                "Clang",
+                "Ding",
+                "Ping",
+                "Squeak",
+                "Squeal"
+              ],
+              "subgroups": {},
+              "count": 8
+            },
+            "Clicking": {
+              "labels": [
+                "Clickety-clack",
+                "Clip-clop",
+                "Tick"
+              ],
+              "allLabels": [
+                "Clickety-clack",
+                "Clip-clop",
+                "Tick"
+              ],
+              "subgroups": {},
+              "count": 3
+            }
+          },
+          "count": 30
+        },
+        "Other sourceless": {
+          "labels": [
+            "Pulse",
+            "Sine wave",
+            "Sound effect"
+          ],
+          "allLabels": [
+            "Chirp tone",
+            "Harmonic",
+            "Pulse",
+            "Sine wave",
+            "Sound effect"
+          ],
+          "subgroups": {
+            "Sine wave": {
+              "labels": [
+                "Chirp tone",
+                "Harmonic"
+              ],
+              "allLabels": [
+                "Chirp tone",
+                "Harmonic"
+              ],
+              "subgroups": {},
+              "count": 2
+            }
+          },
+          "count": 5
+        },
+        "Deformable shell": {
+          "labels": [
+            "Crumpling, crinkling",
+            "Crushing",
+            "Tearing"
+          ],
+          "allLabels": [
+            "Crumpling, crinkling",
+            "Crushing",
+            "Tearing"
+          ],
+          "subgroups": {},
+          "count": 3
+        },
+        "Surface contact": {
+          "labels": [
+            "Roll",
+            "Rub",
+            "Scrape",
+            "Scratch"
+          ],
+          "allLabels": [
+            "Roll",
+            "Rub",
+            "Scrape",
+            "Scratch"
+          ],
+          "subgroups": {},
+          "count": 4
+        }
+      },
+      "count": 55
+    },
+    "Channel, environment and background": {
+      "labels": [
+        "Noise"
+      ],
+      "allLabels": [
+        "Cacophony",
+        "Distortion",
+        "Echo",
+        "Environmental noise",
+        "Field recording",
+        "Hubbub, speech noise, speech babble",
+        "Inside, large room or hall",
+        "Inside, public space",
+        "Inside, small room",
+        "Mains hum",
+        "Noise",
+        "Outside, rural or natural",
+        "Outside, urban or manmade",
+        "Pink noise",
+        "Radio",
+        "Reverberation",
+        "Sidetone",
+        "Static",
+        "Television",
+        "Throbbing",
+        "Vibration",
+        "White noise"
+      ],
+      "subgroups": {
+        "Noise": {
+          "labels": [
+            "Cacophony",
+            "Hubbub, speech noise, speech babble",
+            "Pink noise",
+            "Throbbing",
+            "Vibration",
+            "White noise"
+          ],
+          "allLabels": [
+            "Cacophony",
+            "Distortion",
+            "Environmental noise",
+            "Hubbub, speech noise, speech babble",
+            "Mains hum",
+            "Pink noise",
+            "Sidetone",
+            "Static",
+            "Throbbing",
+            "Vibration",
+            "White noise"
+          ],
+          "subgroups": {
+            "Background noise": {
+              "labels": [
+                "Distortion",
+                "Environmental noise",
+                "Mains hum",
+                "Sidetone",
+                "Static"
+              ],
+              "allLabels": [
+                "Distortion",
+                "Environmental noise",
+                "Mains hum",
+                "Sidetone",
+                "Static"
+              ],
+              "subgroups": {},
+              "count": 5
+            }
+          },
+          "count": 11
+        },
+        "Acoustic environment": {
+          "labels": [
+            "Echo",
+            "Inside, large room or hall",
+            "Inside, public space",
+            "Inside, small room",
+            "Outside, rural or natural",
+            "Outside, urban or manmade",
+            "Reverberation"
+          ],
+          "allLabels": [
+            "Echo",
+            "Inside, large room or hall",
+            "Inside, public space",
+            "Inside, small room",
+            "Outside, rural or natural",
+            "Outside, urban or manmade",
+            "Reverberation"
+          ],
+          "subgroups": {},
+          "count": 7
+        },
+        "Sound reproduction": {
+          "labels": [
+            "Radio",
+            "Television"
+          ],
+          "allLabels": [
+            "Field recording",
+            "Radio",
+            "Television"
+          ],
+          "subgroups": {
+            "Recording": {
+              "labels": [
+                "Field recording"
+              ],
+              "allLabels": [
+                "Field recording"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 3
+        }
+      },
+      "count": 22
+    },
+    "Natural sounds": {
+      "labels": [
+        "Fire",
+        "Thunderstorm",
+        "Water",
+        "Wind"
+      ],
+      "allLabels": [
+        "Fire",
+        "Gurgling",
+        "Ocean",
+        "Rain",
+        "Rain on surface",
+        "Raindrop",
+        "Rustling leaves",
+        "Steam",
+        "Stream",
+        "Thunder",
+        "Thunderstorm",
+        "Water",
+        "Waterfall",
+        "Waves, surf",
+        "Wind"
+      ],
+      "subgroups": {
+        "Water": {
+          "labels": [
+            "Gurgling",
+            "Ocean",
+            "Rain",
+            "Steam",
+            "Stream",
+            "Waterfall"
+          ],
+          "allLabels": [
+            "Gurgling",
+            "Ocean",
+            "Rain",
+            "Rain on surface",
+            "Raindrop",
+            "Steam",
+            "Stream",
+            "Waterfall",
+            "Waves, surf"
+          ],
+          "subgroups": {
+            "Rain": {
+              "labels": [
+                "Rain on surface",
+                "Raindrop"
+              ],
+              "allLabels": [
+                "Rain on surface",
+                "Raindrop"
+              ],
+              "subgroups": {},
+              "count": 2
+            },
+            "Ocean": {
+              "labels": [
+                "Waves, surf"
+              ],
+              "allLabels": [
+                "Waves, surf"
+              ],
+              "subgroups": {},
+              "count": 1
+            }
+          },
+          "count": 9
+        },
+        "Wind": {
+          "labels": [
+            "Rustling leaves"
+          ],
+          "allLabels": [
+            "Rustling leaves"
+          ],
+          "subgroups": {},
+          "count": 1
+        },
+        "Thunderstorm": {
+          "labels": [
+            "Thunder"
+          ],
+          "allLabels": [
+            "Thunder"
+          ],
+          "subgroups": {},
+          "count": 1
+        }
+      },
+      "count": 15
+    }
+  },
+  "label_paths": {
+    "Speech": "Human sounds > Human voice",
+    "Child speech, kid speaking": "Human sounds > Human voice > Speech",
+    "Conversation": "Human sounds > Human voice > Speech",
+    "Narration, monologue": "Human sounds > Human voice > Speech",
+    "Babbling": "Human sounds > Human voice > Speech",
+    "Speech synthesizer": "Human sounds > Human voice > Speech",
+    "Shout": "Human sounds > Human voice",
+    "Bellow": "Human sounds > Human voice > Shout",
+    "Whoop": "Human sounds > Human voice > Shout",
+    "Yell": "Human sounds > Human voice > Shout",
+    "Children shouting": "Human sounds > Human group actions",
+    "Screaming": "Human sounds > Human voice",
+    "Whispering": "Human sounds > Human voice",
+    "Laughter": "Human sounds > Human voice",
+    "Baby laughter": "Human sounds > Human voice > Laughter",
+    "Giggle": "Human sounds > Human voice > Laughter",
+    "Snicker": "Human sounds > Human voice > Laughter",
+    "Belly laugh": "Human sounds > Human voice > Laughter",
+    "Chuckle, chortle": "Human sounds > Human voice > Laughter",
+    "Crying, sobbing": "Human sounds > Human voice",
+    "Baby cry, infant cry": "Human sounds > Human voice > Crying, sobbing",
+    "Whimper": "Human sounds > Human voice > Crying, sobbing",
+    "Wail, moan": "Human sounds > Human voice",
+    "Sigh": "Human sounds > Human voice",
+    "Singing": "Human sounds > Human voice",
+    "Choir": "Music > Musical instrument",
+    "Yodeling": "Human sounds > Human voice > Singing",
+    "Chant": "Music > Music genre > Vocal music",
+    "Mantra": "Music > Music genre > Vocal music > Chant",
+    "Child singing": "Human sounds > Human voice > Singing",
+    "Synthetic singing": "Human sounds > Human voice > Singing",
+    "Rapping": "Human sounds > Human voice > Singing",
+    "Humming": "Human sounds > Human voice",
+    "Groan": "Human sounds > Human voice",
+    "Grunt": "Human sounds > Human voice",
+    "Whistling": "Human sounds",
+    "Breathing": "Human sounds > Respiratory sounds",
+    "Wheeze": "Human sounds > Respiratory sounds > Breathing",
+    "Snoring": "Human sounds > Respiratory sounds > Breathing",
+    "Gasp": "Human sounds > Respiratory sounds > Breathing",
+    "Pant": "Human sounds > Respiratory sounds > Breathing",
+    "Snort": "Human sounds > Respiratory sounds > Breathing",
+    "Cough": "Human sounds > Respiratory sounds",
+    "Throat clearing": "Human sounds > Respiratory sounds > Cough",
+    "Sneeze": "Human sounds > Respiratory sounds",
+    "Sniff": "Human sounds > Respiratory sounds",
+    "Run": "Human sounds > Human locomotion",
+    "Shuffle": "Human sounds > Human locomotion",
+    "Walk, footsteps": "Human sounds > Human locomotion",
+    "Chewing, mastication": "Human sounds > Digestive",
+    "Biting": "Human sounds > Digestive",
+    "Gargling": "Human sounds > Digestive",
+    "Stomach rumble": "Human sounds > Digestive",
+    "Burping, eructation": "Human sounds > Digestive",
+    "Hiccup": "Human sounds > Digestive",
+    "Fart": "Human sounds > Digestive",
+    "Hands": "Human sounds",
+    "Finger snapping": "Human sounds > Hands",
+    "Clapping": "Human sounds > Human group actions",
+    "Heart sounds, heartbeat": "Human sounds",
+    "Heart murmur": "Human sounds > Heart sounds, heartbeat",
+    "Cheering": "Human sounds > Human group actions",
+    "Applause": "Human sounds > Human group actions",
+    "Chatter": "Human sounds > Human group actions",
+    "Crowd": "Human sounds > Human group actions",
+    "Hubbub, speech noise, speech babble": "Channel, environment and background > Noise",
+    "Children playing": "Human sounds > Human group actions",
+    "Animal": "Animal",
+    "Domestic animals, pets": "Animal",
+    "Dog": "Animal > Domestic animals, pets",
+    "Bark": "Animal > Domestic animals, pets > Dog",
+    "Yip": "Animal > Domestic animals, pets > Dog",
+    "Howl": "Animal > Wild animals > Canidae, dogs, wolves",
+    "Bow-wow": "Animal > Domestic animals, pets > Dog",
+    "Growling": "Animal > Wild animals > Canidae, dogs, wolves",
+    "Whimper (dog)": "Animal > Domestic animals, pets > Dog",
+    "Cat": "Animal > Domestic animals, pets",
+    "Purr": "Animal > Domestic animals, pets > Cat",
+    "Meow": "Animal > Domestic animals, pets > Cat",
+    "Hiss": "Source-ambiguous sounds > Onomatopoeia",
+    "Caterwaul": "Animal > Domestic animals, pets > Cat",
+    "Livestock, farm animals, working animals": "Animal",
+    "Horse": "Animal > Livestock, farm animals, working animals",
+    "Clip-clop": "Source-ambiguous sounds > Onomatopoeia > Clicking",
+    "Neigh, whinny": "Animal > Livestock, farm animals, working animals > Horse",
+    "Cattle, bovinae": "Animal > Livestock, farm animals, working animals",
+    "Moo": "Animal > Livestock, farm animals, working animals > Cattle, bovinae",
+    "Cowbell": "Sounds of things > Bell",
+    "Pig": "Animal > Livestock, farm animals, working animals",
+    "Oink": "Animal > Livestock, farm animals, working animals > Pig",
+    "Goat": "Animal > Livestock, farm animals, working animals",
+    "Bleat": "Animal > Livestock, farm animals, working animals > Sheep",
+    "Sheep": "Animal > Livestock, farm animals, working animals",
+    "Fowl": "Animal > Livestock, farm animals, working animals",
+    "Chicken, rooster": "Animal > Livestock, farm animals, working animals > Fowl",
+    "Cluck": "Animal > Livestock, farm animals, working animals > Fowl > Chicken, rooster",
+    "Crowing, cock-a-doodle-doo": "Animal > Livestock, farm animals, working animals > Fowl > Chicken, rooster",
+    "Turkey": "Animal > Livestock, farm animals, working animals > Fowl",
+    "Gobble": "Animal > Livestock, farm animals, working animals > Fowl > Turkey",
+    "Duck": "Animal > Livestock, farm animals, working animals > Fowl",
+    "Quack": "Animal > Livestock, farm animals, working animals > Fowl > Duck",
+    "Goose": "Animal > Livestock, farm animals, working animals > Fowl",
+    "Honk": "Animal > Livestock, farm animals, working animals > Fowl > Goose",
+    "Wild animals": "Animal",
+    "Roaring cats (lions, tigers)": "Animal > Wild animals",
+    "Roar": "Animal > Wild animals > Roaring cats (lions, tigers)",
+    "Bird": "Animal > Wild animals",
+    "Bird vocalization, bird call, bird song": "Animal > Wild animals > Bird",
+    "Chirp, tweet": "Source-ambiguous sounds > Onomatopoeia > Brief tone",
+    "Squawk": "Animal > Wild animals > Bird > Bird vocalization, bird call, bird song",
+    "Pigeon, dove": "Animal > Wild animals > Bird",
+    "Coo": "Animal > Wild animals > Bird > Pigeon, dove",
+    "Crow": "Animal > Wild animals > Bird",
+    "Caw": "Animal > Wild animals > Bird > Crow",
+    "Owl": "Animal > Wild animals > Bird",
+    "Hoot": "Animal > Wild animals > Bird > Owl",
+    "Bird flight, flapping wings": "Animal > Wild animals > Bird",
+    "Canidae, dogs, wolves": "Animal > Wild animals",
+    "Rodents, rats, mice": "Animal > Wild animals",
+    "Mouse": "Animal > Wild animals > Rodents, rats, mice",
+    "Patter": "Animal > Wild animals > Rodents, rats, mice",
+    "Insect": "Animal > Wild animals",
+    "Cricket": "Animal > Wild animals > Insect",
+    "Mosquito": "Animal > Wild animals > Insect",
+    "Fly, housefly": "Animal > Wild animals > Insect",
+    "Buzz": "Source-ambiguous sounds > Onomatopoeia > Brief tone",
+    "Bee, wasp, etc.": "Animal > Wild animals > Insect",
+    "Frog": "Animal > Wild animals",
+    "Croak": "Animal > Wild animals > Frog",
+    "Snake": "Animal > Wild animals",
+    "Rattle": "Source-ambiguous sounds > Onomatopoeia",
+    "Whale vocalization": "Animal > Wild animals",
+    "Music": "Music",
+    "Musical instrument": "Music",
+    "Plucked string instrument": "Music > Musical instrument",
+    "Guitar": "Music > Musical instrument > Plucked string instrument",
+    "Electric guitar": "Music > Musical instrument > Plucked string instrument > Guitar",
+    "Bass guitar": "Music > Musical instrument > Plucked string instrument > Guitar",
+    "Acoustic guitar": "Music > Musical instrument > Plucked string instrument > Guitar",
+    "Steel guitar, slide guitar": "Music > Musical instrument > Plucked string instrument > Guitar",
+    "Tapping (guitar technique)": "Music > Musical instrument > Plucked string instrument > Guitar",
+    "Strum": "Music > Musical instrument > Plucked string instrument > Guitar",
+    "Banjo": "Music > Musical instrument > Plucked string instrument",
+    "Sitar": "Music > Musical instrument > Plucked string instrument",
+    "Mandolin": "Music > Musical instrument > Plucked string instrument",
+    "Zither": "Music > Musical instrument > Plucked string instrument",
+    "Ukulele": "Music > Musical instrument > Plucked string instrument",
+    "Keyboard (musical)": "Music > Musical instrument",
+    "Piano": "Music > Musical instrument > Keyboard (musical)",
+    "Electric piano": "Music > Musical instrument > Keyboard (musical) > Piano",
+    "Organ": "Music > Musical instrument > Keyboard (musical)",
+    "Electronic organ": "Music > Musical instrument > Keyboard (musical) > Organ",
+    "Hammond organ": "Music > Musical instrument > Keyboard (musical) > Organ",
+    "Synthesizer": "Music > Musical instrument > Keyboard (musical)",
+    "Sampler": "Music > Musical instrument > Keyboard (musical) > Synthesizer",
+    "Harpsichord": "Music > Musical instrument > Keyboard (musical)",
+    "Percussion": "Music > Musical instrument",
+    "Drum kit": "Music > Musical instrument > Percussion",
+    "Drum machine": "Music > Musical instrument > Percussion > Drum kit",
+    "Drum": "Music > Musical instrument > Percussion",
+    "Snare drum": "Music > Musical instrument > Percussion > Drum",
+    "Rimshot": "Music > Musical instrument > Percussion > Drum > Snare drum",
+    "Drum roll": "Music > Musical instrument > Percussion > Drum > Snare drum",
+    "Bass drum": "Music > Musical instrument > Percussion > Drum",
+    "Timpani": "Music > Musical instrument > Percussion > Drum",
+    "Tabla": "Music > Musical instrument > Percussion > Drum",
+    "Cymbal": "Music > Musical instrument > Percussion",
+    "Hi-hat": "Music > Musical instrument > Percussion > Cymbal",
+    "Wood block": "Music > Musical instrument > Percussion",
+    "Tambourine": "Music > Musical instrument > Percussion",
+    "Rattle (instrument)": "Music > Musical instrument > Percussion",
+    "Maraca": "Music > Musical instrument > Percussion > Rattle (instrument)",
+    "Gong": "Music > Musical instrument > Percussion",
+    "Tubular bells": "Music > Musical instrument > Percussion",
+    "Mallet percussion": "Music > Musical instrument > Percussion",
+    "Marimba, xylophone": "Music > Musical instrument > Percussion > Mallet percussion",
+    "Glockenspiel": "Music > Musical instrument > Percussion > Mallet percussion",
+    "Vibraphone": "Music > Musical instrument > Percussion > Mallet percussion",
+    "Steelpan": "Music > Musical instrument > Percussion > Mallet percussion",
+    "Orchestra": "Music > Musical instrument",
+    "Brass instrument": "Music > Musical instrument",
+    "French horn": "Music > Musical instrument > Brass instrument",
+    "Trumpet": "Music > Musical instrument > Brass instrument",
+    "Trombone": "Music > Musical instrument > Brass instrument",
+    "Bowed string instrument": "Music > Musical instrument",
+    "String section": "Music > Musical instrument > Bowed string instrument",
+    "Violin, fiddle": "Music > Musical instrument > Bowed string instrument",
+    "Pizzicato": "Music > Musical instrument > Bowed string instrument > Violin, fiddle",
+    "Cello": "Music > Musical instrument > Bowed string instrument",
+    "Double bass": "Music > Musical instrument > Bowed string instrument",
+    "Wind instrument, woodwind instrument": "Music > Musical instrument",
+    "Flute": "Music > Musical instrument > Wind instrument, woodwind instrument",
+    "Saxophone": "Music > Musical instrument > Wind instrument, woodwind instrument",
+    "Clarinet": "Music > Musical instrument > Wind instrument, woodwind instrument",
+    "Harp": "Music > Musical instrument",
+    "Bell": "Sounds of things",
+    "Church bell": "Sounds of things > Bell",
+    "Jingle bell": "Sounds of things > Bell",
+    "Bicycle bell": "Sounds of things > Alarm",
+    "Tuning fork": "Sounds of things > Bell",
+    "Chime": "Sounds of things > Bell",
+    "Wind chime": "Sounds of things > Bell > Chime",
+    "Change ringing (campanology)": "Sounds of things > Bell",
+    "Harmonica": "Music > Musical instrument",
+    "Accordion": "Music > Musical instrument",
+    "Bagpipes": "Music > Musical instrument",
+    "Didgeridoo": "Music > Musical instrument",
+    "Shofar": "Music > Musical instrument",
+    "Theremin": "Music > Musical instrument",
+    "Singing bowl": "Music > Musical instrument",
+    "Scratching (performance technique)": "Music > Musical instrument",
+    "Pop music": "Music > Music genre",
+    "Hip hop music": "Music > Music genre",
+    "Beatboxing": "Music > Music genre > Vocal music",
+    "Rock music": "Music > Music genre",
+    "Heavy metal": "Music > Music genre > Rock music",
+    "Punk rock": "Music > Music genre > Rock music",
+    "Grunge": "Music > Music genre > Rock music",
+    "Progressive rock": "Music > Music genre > Rock music",
+    "Rock and roll": "Music > Music genre > Rock music",
+    "Psychedelic rock": "Music > Music genre > Rock music",
+    "Rhythm and blues": "Music > Music genre",
+    "Soul music": "Music > Music genre",
+    "Reggae": "Music > Music genre",
+    "Country": "Music > Music genre",
+    "Swing music": "Music > Music genre > Country",
+    "Bluegrass": "Music > Music genre > Country",
+    "Funk": "Music > Music genre",
+    "Folk music": "Music > Music genre",
+    "Middle Eastern music": "Music > Music genre",
+    "Jazz": "Music > Music genre",
+    "Disco": "Music > Music genre",
+    "Classical music": "Music > Music genre",
+    "Opera": "Music > Music genre > Classical music",
+    "Electronic music": "Music > Music genre",
+    "House music": "Music > Music genre > Electronic music",
+    "Techno": "Music > Music genre > Electronic music",
+    "Dubstep": "Music > Music genre > Electronic music",
+    "Drum and bass": "Music > Music genre > Electronic music",
+    "Electronica": "Music > Music genre > Electronic music",
+    "Electronic dance music": "Music > Music genre > Electronic music",
+    "Ambient music": "Music > Music genre > Electronic music",
+    "Trance music": "Music > Music genre > Electronic music",
+    "Music of Latin America": "Music > Music genre",
+    "Salsa music": "Music > Music genre > Music of Latin America",
+    "Flamenco": "Music > Music genre > Music of Latin America",
+    "Blues": "Music > Music genre",
+    "Music for children": "Music > Music genre",
+    "New-age music": "Music > Music genre",
+    "Vocal music": "Music > Music genre",
+    "A capella": "Music > Music genre > Vocal music",
+    "Music of Africa": "Music > Music genre",
+    "Afrobeat": "Music > Music genre > Music of Africa",
+    "Christian music": "Music > Music genre",
+    "Gospel music": "Music > Music genre > Christian music",
+    "Music of Asia": "Music > Music genre",
+    "Carnatic music": "Music > Music genre > Music of Asia",
+    "Music of Bollywood": "Music > Music genre > Music of Asia",
+    "Ska": "Music > Music genre",
+    "Traditional music": "Music > Music genre",
+    "Independent music": "Music > Music genre",
+    "Song": "Music > Musical concepts",
+    "Background music": "Music > Music role",
+    "Theme music": "Music > Music role",
+    "Jingle (music)": "Music > Music role",
+    "Soundtrack music": "Music > Music role",
+    "Lullaby": "Music > Music role",
+    "Video game music": "Music > Music role",
+    "Christmas music": "Music > Music role",
+    "Dance music": "Music > Music role",
+    "Wedding music": "Music > Music role",
+    "Happy music": "Music > Music mood",
+    "Sad music": "Music > Music mood",
+    "Tender music": "Music > Music mood",
+    "Exciting music": "Music > Music mood",
+    "Angry music": "Music > Music mood",
+    "Scary music": "Music > Music mood",
+    "Wind": "Natural sounds",
+    "Rustling leaves": "Natural sounds > Wind",
+    "Wind noise (microphone)": "Sounds of things > Miscellaneous sources > Sound equipment > Microphone",
+    "Thunderstorm": "Natural sounds",
+    "Thunder": "Natural sounds > Thunderstorm",
+    "Water": "Natural sounds",
+    "Rain": "Natural sounds > Water",
+    "Raindrop": "Natural sounds > Water > Rain",
+    "Rain on surface": "Natural sounds > Water > Rain",
+    "Stream": "Natural sounds > Water",
+    "Waterfall": "Natural sounds > Water",
+    "Ocean": "Natural sounds > Water",
+    "Waves, surf": "Natural sounds > Water > Ocean",
+    "Steam": "Natural sounds > Water",
+    "Gurgling": "Natural sounds > Water",
+    "Fire": "Natural sounds",
+    "Crackle": "Source-ambiguous sounds > Onomatopoeia",
+    "Vehicle": "Sounds of things",
+    "Boat, Water vehicle": "Sounds of things > Vehicle",
+    "Sailboat, sailing ship": "Sounds of things > Vehicle > Boat, Water vehicle",
+    "Rowboat, canoe, kayak": "Sounds of things > Vehicle > Boat, Water vehicle",
+    "Motorboat, speedboat": "Sounds of things > Vehicle > Boat, Water vehicle",
+    "Ship": "Sounds of things > Vehicle > Boat, Water vehicle",
+    "Motor vehicle (road)": "Sounds of things > Vehicle",
+    "Car": "Sounds of things > Vehicle > Motor vehicle (road)",
+    "Vehicle horn, car horn, honking": "Sounds of things > Alarm",
+    "Toot": "Sounds of things > Alarm > Vehicle horn, car horn, honking",
+    "Car alarm": "Sounds of things > Alarm",
+    "Power windows, electric windows": "Sounds of things > Vehicle > Motor vehicle (road) > Car",
+    "Skidding": "Sounds of things > Vehicle > Motor vehicle (road) > Car",
+    "Tire squeal": "Sounds of things > Vehicle > Motor vehicle (road) > Car",
+    "Car passing by": "Sounds of things > Vehicle > Motor vehicle (road) > Car",
+    "Race car, auto racing": "Sounds of things > Vehicle > Motor vehicle (road) > Car",
+    "Truck": "Sounds of things > Vehicle > Motor vehicle (road)",
+    "Air brake": "Sounds of things > Vehicle > Motor vehicle (road) > Truck",
+    "Air horn, truck horn": "Sounds of things > Alarm",
+    "Reversing beeps": "Sounds of things > Vehicle > Motor vehicle (road) > Truck",
+    "Ice cream truck, ice cream van": "Sounds of things > Vehicle > Motor vehicle (road) > Truck",
+    "Bus": "Sounds of things > Vehicle > Motor vehicle (road)",
+    "Emergency vehicle": "Sounds of things > Vehicle > Motor vehicle (road)",
+    "Police car (siren)": "Sounds of things > Alarm > Siren",
+    "Ambulance (siren)": "Sounds of things > Alarm > Siren",
+    "Fire engine, fire truck (siren)": "Sounds of things > Alarm > Siren",
+    "Motorcycle": "Sounds of things > Vehicle > Motor vehicle (road)",
+    "Traffic noise, roadway noise": "Sounds of things > Vehicle > Motor vehicle (road)",
+    "Rail transport": "Sounds of things > Vehicle",
+    "Train": "Sounds of things > Vehicle > Rail transport",
+    "Train whistle": "Sounds of things > Vehicle > Rail transport > Train",
+    "Train horn": "Sounds of things > Vehicle > Rail transport > Train",
+    "Railroad car, train wagon": "Sounds of things > Vehicle > Rail transport",
+    "Train wheels squealing": "Sounds of things > Vehicle > Rail transport",
+    "Subway, metro, underground": "Sounds of things > Vehicle > Rail transport",
+    "Aircraft": "Sounds of things > Vehicle",
+    "Aircraft engine": "Sounds of things > Vehicle > Aircraft",
+    "Jet engine": "Sounds of things > Engine",
+    "Propeller, airscrew": "Sounds of things > Vehicle > Aircraft > Aircraft engine",
+    "Helicopter": "Sounds of things > Vehicle > Aircraft",
+    "Fixed-wing aircraft, airplane": "Sounds of things > Vehicle > Aircraft",
+    "Bicycle": "Sounds of things > Vehicle > Non-motorized land vehicle",
+    "Skateboard": "Sounds of things > Vehicle > Non-motorized land vehicle",
+    "Engine": "Sounds of things",
+    "Light engine (high frequency)": "Sounds of things > Engine",
+    "Dental drill, dentist's drill": "Sounds of things > Tools > Power tool > Drill",
+    "Lawn mower": "Sounds of things > Engine > Light engine (high frequency)",
+    "Chainsaw": "Sounds of things > Engine > Light engine (high frequency)",
+    "Medium engine (mid frequency)": "Sounds of things > Engine",
+    "Heavy engine (low frequency)": "Sounds of things > Engine",
+    "Engine knocking": "Sounds of things > Engine",
+    "Engine starting": "Sounds of things > Engine",
+    "Idling": "Sounds of things > Engine",
+    "Accelerating, revving, vroom": "Sounds of things > Engine",
+    "Door": "Sounds of things > Domestic sounds, home sounds",
+    "Doorbell": "Sounds of things > Alarm",
+    "Ding-dong": "Sounds of things > Alarm > Doorbell",
+    "Sliding door": "Sounds of things > Domestic sounds, home sounds > Door",
+    "Slam": "Sounds of things > Domestic sounds, home sounds > Door",
+    "Knock": "Source-ambiguous sounds > Generic impact sounds",
+    "Tap": "Source-ambiguous sounds > Generic impact sounds",
+    "Squeak": "Source-ambiguous sounds > Onomatopoeia > Brief tone",
+    "Cupboard open or close": "Sounds of things > Domestic sounds, home sounds",
+    "Drawer open or close": "Sounds of things > Domestic sounds, home sounds",
+    "Dishes, pots, and pans": "Sounds of things > Domestic sounds, home sounds",
+    "Cutlery, silverware": "Sounds of things > Domestic sounds, home sounds",
+    "Chopping (food)": "Sounds of things > Domestic sounds, home sounds",
+    "Frying (food)": "Sounds of things > Domestic sounds, home sounds",
+    "Microwave oven": "Sounds of things > Domestic sounds, home sounds",
+    "Blender": "Sounds of things > Domestic sounds, home sounds",
+    "Water tap, faucet": "Sounds of things > Domestic sounds, home sounds",
+    "Sink (filling or washing)": "Sounds of things > Domestic sounds, home sounds",
+    "Bathtub (filling or washing)": "Sounds of things > Domestic sounds, home sounds",
+    "Hair dryer": "Sounds of things > Domestic sounds, home sounds",
+    "Toilet flush": "Sounds of things > Domestic sounds, home sounds",
+    "Toothbrush": "Sounds of things > Domestic sounds, home sounds",
+    "Electric toothbrush": "Sounds of things > Domestic sounds, home sounds > Toothbrush",
+    "Vacuum cleaner": "Sounds of things > Domestic sounds, home sounds",
+    "Zipper (clothing)": "Sounds of things > Domestic sounds, home sounds",
+    "Keys jangling": "Sounds of things > Domestic sounds, home sounds",
+    "Coin (dropping)": "Sounds of things > Domestic sounds, home sounds",
+    "Scissors": "Sounds of things > Domestic sounds, home sounds",
+    "Electric shaver, electric razor": "Sounds of things > Domestic sounds, home sounds",
+    "Shuffling cards": "Sounds of things > Domestic sounds, home sounds",
+    "Typing": "Sounds of things > Domestic sounds, home sounds",
+    "Typewriter": "Sounds of things > Domestic sounds, home sounds > Typing",
+    "Computer keyboard": "Sounds of things > Domestic sounds, home sounds > Typing",
+    "Writing": "Sounds of things > Domestic sounds, home sounds",
+    "Alarm": "Sounds of things",
+    "Telephone": "Sounds of things > Alarm",
+    "Telephone bell ringing": "Sounds of things > Alarm > Telephone",
+    "Ringtone": "Sounds of things > Alarm > Telephone",
+    "Telephone dialing, DTMF": "Sounds of things > Alarm > Telephone",
+    "Dial tone": "Sounds of things > Alarm > Telephone",
+    "Busy signal": "Sounds of things > Alarm > Telephone",
+    "Alarm clock": "Sounds of things > Alarm",
+    "Siren": "Sounds of things > Alarm",
+    "Civil defense siren": "Sounds of things > Alarm > Siren",
+    "Buzzer": "Sounds of things > Alarm",
+    "Smoke detector, smoke alarm": "Sounds of things > Alarm",
+    "Fire alarm": "Sounds of things > Alarm",
+    "Foghorn": "Sounds of things > Alarm",
+    "Whistle": "Sounds of things > Alarm",
+    "Steam whistle": "Sounds of things > Alarm > Whistle",
+    "Mechanisms": "Sounds of things",
+    "Ratchet, pawl": "Sounds of things > Mechanisms",
+    "Clock": "Sounds of things > Mechanisms",
+    "Tick": "Source-ambiguous sounds > Onomatopoeia > Clicking",
+    "Tick-tock": "Sounds of things > Mechanisms > Clock",
+    "Gears": "Sounds of things > Mechanisms",
+    "Pulleys": "Sounds of things > Mechanisms",
+    "Sewing machine": "Sounds of things > Mechanisms",
+    "Mechanical fan": "Sounds of things > Mechanisms",
+    "Air conditioning": "Sounds of things > Mechanisms",
+    "Cash register": "Sounds of things > Mechanisms",
+    "Printer": "Sounds of things > Mechanisms",
+    "Camera": "Sounds of things > Mechanisms",
+    "Single-lens reflex camera": "Sounds of things > Mechanisms > Camera",
+    "Tools": "Sounds of things",
+    "Hammer": "Sounds of things > Tools",
+    "Jackhammer": "Sounds of things > Tools",
+    "Sawing": "Sounds of things > Tools",
+    "Filing (rasp)": "Sounds of things > Tools",
+    "Sanding": "Sounds of things > Tools",
+    "Power tool": "Sounds of things > Tools",
+    "Drill": "Sounds of things > Tools > Power tool",
+    "Explosion": "Sounds of things",
+    "Gunshot, gunfire": "Sounds of things > Explosion",
+    "Machine gun": "Sounds of things > Explosion > Gunshot, gunfire",
+    "Fusillade": "Sounds of things > Explosion > Gunshot, gunfire",
+    "Artillery fire": "Sounds of things > Explosion > Gunshot, gunfire",
+    "Cap gun": "Sounds of things > Explosion > Gunshot, gunfire",
+    "Fireworks": "Sounds of things > Explosion",
+    "Firecracker": "Sounds of things > Explosion > Fireworks",
+    "Burst, pop": "Sounds of things > Explosion",
+    "Eruption": "Sounds of things > Explosion",
+    "Boom": "Sounds of things > Explosion",
+    "Wood": "Sounds of things",
+    "Chop": "Sounds of things > Wood",
+    "Splinter": "Sounds of things > Wood",
+    "Crack": "Source-ambiguous sounds > Onomatopoeia",
+    "Glass": "Sounds of things",
+    "Chink, clink": "Sounds of things > Glass",
+    "Shatter": "Sounds of things > Glass",
+    "Liquid": "Sounds of things",
+    "Splash, splatter": "Sounds of things > Liquid",
+    "Slosh": "Sounds of things > Liquid > Splash, splatter",
+    "Squish": "Source-ambiguous sounds > Onomatopoeia",
+    "Drip": "Sounds of things > Liquid",
+    "Pour": "Sounds of things > Liquid",
+    "Trickle, dribble": "Sounds of things > Liquid > Pour",
+    "Gush": "Sounds of things > Liquid > Pour",
+    "Fill (with liquid)": "Sounds of things > Liquid",
+    "Spray": "Sounds of things > Liquid",
+    "Pump (liquid)": "Sounds of things > Liquid",
+    "Stir": "Sounds of things > Liquid",
+    "Boiling": "Sounds of things > Liquid",
+    "Sonar": "Sounds of things > Miscellaneous sources",
+    "Arrow": "Sounds of things > Miscellaneous sources",
+    "Whoosh, swoosh, swish": "Source-ambiguous sounds > Onomatopoeia",
+    "Thump, thud": "Source-ambiguous sounds > Generic impact sounds",
+    "Thunk": "Source-ambiguous sounds > Generic impact sounds > Thump, thud",
+    "Electronic tuner": "Sounds of things > Miscellaneous sources > Sound equipment",
+    "Effects unit": "Sounds of things > Miscellaneous sources > Sound equipment",
+    "Chorus effect": "Sounds of things > Miscellaneous sources > Sound equipment > Effects unit",
+    "Basketball bounce": "Sounds of things > Specific impact sounds",
+    "Bang": "Source-ambiguous sounds > Generic impact sounds",
+    "Slap, smack": "Source-ambiguous sounds > Generic impact sounds",
+    "Whack, thwack": "Source-ambiguous sounds > Generic impact sounds",
+    "Smash, crash": "Source-ambiguous sounds > Generic impact sounds",
+    "Breaking": "Source-ambiguous sounds > Generic impact sounds",
+    "Bouncing": "Source-ambiguous sounds > Generic impact sounds",
+    "Whip": "Source-ambiguous sounds > Generic impact sounds",
+    "Flap": "Source-ambiguous sounds > Generic impact sounds",
+    "Scratch": "Source-ambiguous sounds > Surface contact",
+    "Scrape": "Source-ambiguous sounds > Surface contact",
+    "Rub": "Source-ambiguous sounds > Surface contact",
+    "Roll": "Source-ambiguous sounds > Surface contact",
+    "Crushing": "Source-ambiguous sounds > Deformable shell",
+    "Crumpling, crinkling": "Source-ambiguous sounds > Deformable shell",
+    "Tearing": "Source-ambiguous sounds > Deformable shell",
+    "Beep, bleep": "Source-ambiguous sounds > Onomatopoeia > Brief tone",
+    "Ping": "Source-ambiguous sounds > Onomatopoeia > Brief tone",
+    "Ding": "Source-ambiguous sounds > Onomatopoeia > Brief tone",
+    "Clang": "Source-ambiguous sounds > Onomatopoeia > Brief tone",
+    "Squeal": "Source-ambiguous sounds > Onomatopoeia > Brief tone",
+    "Creak": "Source-ambiguous sounds > Onomatopoeia",
+    "Rustle": "Source-ambiguous sounds > Onomatopoeia",
+    "Whir": "Source-ambiguous sounds > Onomatopoeia",
+    "Clatter": "Source-ambiguous sounds > Onomatopoeia",
+    "Sizzle": "Source-ambiguous sounds > Onomatopoeia",
+    "Clicking": "Source-ambiguous sounds > Onomatopoeia",
+    "Clickety-clack": "Source-ambiguous sounds > Onomatopoeia > Clicking",
+    "Rumble": "Source-ambiguous sounds > Onomatopoeia",
+    "Plop": "Source-ambiguous sounds > Onomatopoeia",
+    "Jingle, tinkle": "Source-ambiguous sounds > Onomatopoeia",
+    "Hum": "Source-ambiguous sounds > Onomatopoeia",
+    "Zing": "Source-ambiguous sounds > Onomatopoeia",
+    "Boing": "Source-ambiguous sounds > Onomatopoeia",
+    "Crunch": "Source-ambiguous sounds > Onomatopoeia",
+    "Silence": "Source-ambiguous sounds",
+    "Sine wave": "Source-ambiguous sounds > Other sourceless",
+    "Harmonic": "Source-ambiguous sounds > Other sourceless > Sine wave",
+    "Chirp tone": "Source-ambiguous sounds > Other sourceless > Sine wave",
+    "Sound effect": "Source-ambiguous sounds > Other sourceless",
+    "Pulse": "Source-ambiguous sounds > Other sourceless",
+    "Inside, small room": "Channel, environment and background > Acoustic environment",
+    "Inside, large room or hall": "Channel, environment and background > Acoustic environment",
+    "Inside, public space": "Channel, environment and background > Acoustic environment",
+    "Outside, urban or manmade": "Channel, environment and background > Acoustic environment",
+    "Outside, rural or natural": "Channel, environment and background > Acoustic environment",
+    "Reverberation": "Channel, environment and background > Acoustic environment",
+    "Echo": "Channel, environment and background > Acoustic environment",
+    "Noise": "Channel, environment and background",
+    "Environmental noise": "Channel, environment and background > Noise > Background noise",
+    "Static": "Channel, environment and background > Noise > Background noise",
+    "Mains hum": "Channel, environment and background > Noise > Background noise",
+    "Distortion": "Channel, environment and background > Noise > Background noise",
+    "Sidetone": "Channel, environment and background > Noise > Background noise",
+    "Cacophony": "Channel, environment and background > Noise",
+    "White noise": "Channel, environment and background > Noise",
+    "Pink noise": "Channel, environment and background > Noise",
+    "Throbbing": "Channel, environment and background > Noise",
+    "Vibration": "Channel, environment and background > Noise",
+    "Television": "Channel, environment and background > Sound reproduction",
+    "Radio": "Channel, environment and background > Sound reproduction",
+    "Field recording": "Channel, environment and background > Sound reproduction > Recording"
+  }
+}

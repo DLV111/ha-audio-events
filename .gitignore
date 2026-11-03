@@ -206,6 +206,10 @@ tempCodeRunnerFile.py
 # Test audio files
 test_audio.wav
 
+# Node.js dependencies (jsdom is installed ad hoc for the picker DOM tests)
+node_modules/
+package-lock.json
+
 # Ruff stuff:
 .ruff_cache/
 

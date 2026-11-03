@@ -2,13 +2,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Iterable
 from typing import Any
 
 import aiohttp
 
 from app.config import HomeAssistantConfig
 from app.detection.models import EventMessage
-from app.homeassistant.entities import build_entity_ids, build_friendly_names
+from app.homeassistant.entities import (
+    build_entity_ids,
+    build_friendly_names,
+    build_rest_entity_ids,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,26 +27,48 @@ class HomeAssistantClient:
         self,
         config: HomeAssistantConfig,
         request_timeout: aiohttp.ClientTimeout | None = None,
+        *,
+        mqtt_enabled: bool = False,
+        labels: Iterable[str] = (),
     ) -> None:
         self.config = config
         self._timeout = request_timeout or DEFAULT_REQUEST_TIMEOUT
         self._session = aiohttp.ClientSession(timeout=self._timeout)
         self._entity_ids: dict[str, str] | None = None
         self._friendly_names: dict[str, str] | None = None
+        # Whether MQTT owns this add-on's entities. Defaults to False so the
+        # REST path stays the fallback: the add-on's own default is
+        # mqtt.enabled=false, and an install that never enables MQTT must
+        # keep working (see build_rest_entity_ids).
+        self._mqtt_enabled = mqtt_enabled
+        # The labels named in classifier.include, which is where the
+        # per-label sensor ids come from on the REST path.
+        self._labels = list(labels)
 
     async def close(self) -> None:
         await self._session.close()
 
     async def init_entities(self) -> None:
-        """Initialize required HA entities if they don't exist yet."""
+        """Initialize the HA entities this add-on owns over REST, if any.
+
+        Only the entities ``build_rest_entity_ids()`` reports as REST-owned
+        are ensured here: with MQTT enabled that set is empty, because MQTT
+        discovery owns the entities and attaches their registry
+        ``unique_id``; with MQTT disabled it is the two scalar entities plus
+        the per-label sensors for ``classifier.include``, which would
+        otherwise not exist at all.
+        """
         if self._entity_ids is not None and self._friendly_names is not None:
             return
 
         self._entity_ids = build_entity_ids(self.config)
         self._friendly_names = build_friendly_names(self.config)
 
-        # Ensure each entity exists - create with default state if missing
-        for entity_id in self._entity_ids.values():
+        # Ensure each REST-owned entity exists - create with a default state
+        # if missing.
+        for entity_id in sorted(
+            build_rest_entity_ids(self.config, self._mqtt_enabled, self._labels)
+        ):
             await self.update_state(entity_id, "off", {})
 
     async def fire_event(self, event: EventMessage) -> None:

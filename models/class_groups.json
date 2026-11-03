@@ -1,0 +1,2132 @@
+{
+  "generated_from": "models/yamnet_groups.json (AudioSet ontology)",
+  "class_map": "models/yamnet_class_map.csv",
+  "groups": [
+    {
+      "group_id": "sounds-of-things",
+      "name": "Sounds of things",
+      "classes": [
+        {
+          "display_name": "Accelerating, revving, vroom",
+          "value": "accelerating, revving, vroom"
+        },
+        {
+          "display_name": "Air brake",
+          "value": "air brake"
+        },
+        {
+          "display_name": "Air conditioning",
+          "value": "air conditioning"
+        },
+        {
+          "display_name": "Air horn, truck horn",
+          "value": "air horn, truck horn"
+        },
+        {
+          "display_name": "Aircraft",
+          "value": "aircraft"
+        },
+        {
+          "display_name": "Aircraft engine",
+          "value": "aircraft engine"
+        },
+        {
+          "display_name": "Alarm",
+          "value": "alarm"
+        },
+        {
+          "display_name": "Alarm clock",
+          "value": "alarm clock"
+        },
+        {
+          "display_name": "Ambulance (siren)",
+          "value": "ambulance (siren)"
+        },
+        {
+          "display_name": "Arrow",
+          "value": "arrow"
+        },
+        {
+          "display_name": "Artillery fire",
+          "value": "artillery fire"
+        },
+        {
+          "display_name": "Basketball bounce",
+          "value": "basketball bounce"
+        },
+        {
+          "display_name": "Bathtub (filling or washing)",
+          "value": "bathtub (filling or washing)"
+        },
+        {
+          "display_name": "Bell",
+          "value": "bell"
+        },
+        {
+          "display_name": "Bicycle",
+          "value": "bicycle"
+        },
+        {
+          "display_name": "Bicycle bell",
+          "value": "bicycle bell"
+        },
+        {
+          "display_name": "Blender",
+          "value": "blender"
+        },
+        {
+          "display_name": "Boat, Water vehicle",
+          "value": "boat, water vehicle"
+        },
+        {
+          "display_name": "Boiling",
+          "value": "boiling"
+        },
+        {
+          "display_name": "Boom",
+          "value": "boom"
+        },
+        {
+          "display_name": "Burst, pop",
+          "value": "burst, pop"
+        },
+        {
+          "display_name": "Bus",
+          "value": "bus"
+        },
+        {
+          "display_name": "Busy signal",
+          "value": "busy signal"
+        },
+        {
+          "display_name": "Buzzer",
+          "value": "buzzer"
+        },
+        {
+          "display_name": "Camera",
+          "value": "camera"
+        },
+        {
+          "display_name": "Cap gun",
+          "value": "cap gun"
+        },
+        {
+          "display_name": "Car",
+          "value": "car"
+        },
+        {
+          "display_name": "Car alarm",
+          "value": "car alarm"
+        },
+        {
+          "display_name": "Car passing by",
+          "value": "car passing by"
+        },
+        {
+          "display_name": "Cash register",
+          "value": "cash register"
+        },
+        {
+          "display_name": "Chainsaw",
+          "value": "chainsaw"
+        },
+        {
+          "display_name": "Change ringing (campanology)",
+          "value": "change ringing (campanology)"
+        },
+        {
+          "display_name": "Chime",
+          "value": "chime"
+        },
+        {
+          "display_name": "Chink, clink",
+          "value": "chink, clink"
+        },
+        {
+          "display_name": "Chop",
+          "value": "chop"
+        },
+        {
+          "display_name": "Chopping (food)",
+          "value": "chopping (food)"
+        },
+        {
+          "display_name": "Chorus effect",
+          "value": "chorus effect"
+        },
+        {
+          "display_name": "Church bell",
+          "value": "church bell"
+        },
+        {
+          "display_name": "Civil defense siren",
+          "value": "civil defense siren"
+        },
+        {
+          "display_name": "Clock",
+          "value": "clock"
+        },
+        {
+          "display_name": "Coin (dropping)",
+          "value": "coin (dropping)"
+        },
+        {
+          "display_name": "Computer keyboard",
+          "value": "computer keyboard"
+        },
+        {
+          "display_name": "Cowbell",
+          "value": "cowbell"
+        },
+        {
+          "display_name": "Cupboard open or close",
+          "value": "cupboard open or close"
+        },
+        {
+          "display_name": "Cutlery, silverware",
+          "value": "cutlery, silverware"
+        },
+        {
+          "display_name": "Dental drill, dentist's drill",
+          "value": "dental drill, dentist's drill"
+        },
+        {
+          "display_name": "Dial tone",
+          "value": "dial tone"
+        },
+        {
+          "display_name": "Ding-dong",
+          "value": "ding-dong"
+        },
+        {
+          "display_name": "Dishes, pots, and pans",
+          "value": "dishes, pots, and pans"
+        },
+        {
+          "display_name": "Door",
+          "value": "door"
+        },
+        {
+          "display_name": "Doorbell",
+          "value": "doorbell"
+        },
+        {
+          "display_name": "Drawer open or close",
+          "value": "drawer open or close"
+        },
+        {
+          "display_name": "Drill",
+          "value": "drill"
+        },
+        {
+          "display_name": "Drip",
+          "value": "drip"
+        },
+        {
+          "display_name": "Effects unit",
+          "value": "effects unit"
+        },
+        {
+          "display_name": "Electric shaver, electric razor",
+          "value": "electric shaver, electric razor"
+        },
+        {
+          "display_name": "Electric toothbrush",
+          "value": "electric toothbrush"
+        },
+        {
+          "display_name": "Electronic tuner",
+          "value": "electronic tuner"
+        },
+        {
+          "display_name": "Emergency vehicle",
+          "value": "emergency vehicle"
+        },
+        {
+          "display_name": "Engine",
+          "value": "engine"
+        },
+        {
+          "display_name": "Engine knocking",
+          "value": "engine knocking"
+        },
+        {
+          "display_name": "Engine starting",
+          "value": "engine starting"
+        },
+        {
+          "display_name": "Eruption",
+          "value": "eruption"
+        },
+        {
+          "display_name": "Explosion",
+          "value": "explosion"
+        },
+        {
+          "display_name": "Filing (rasp)",
+          "value": "filing (rasp)"
+        },
+        {
+          "display_name": "Fill (with liquid)",
+          "value": "fill (with liquid)"
+        },
+        {
+          "display_name": "Fire alarm",
+          "value": "fire alarm"
+        },
+        {
+          "display_name": "Fire engine, fire truck (siren)",
+          "value": "fire engine, fire truck (siren)"
+        },
+        {
+          "display_name": "Firecracker",
+          "value": "firecracker"
+        },
+        {
+          "display_name": "Fireworks",
+          "value": "fireworks"
+        },
+        {
+          "display_name": "Fixed-wing aircraft, airplane",
+          "value": "fixed-wing aircraft, airplane"
+        },
+        {
+          "display_name": "Foghorn",
+          "value": "foghorn"
+        },
+        {
+          "display_name": "Frying (food)",
+          "value": "frying (food)"
+        },
+        {
+          "display_name": "Fusillade",
+          "value": "fusillade"
+        },
+        {
+          "display_name": "Gears",
+          "value": "gears"
+        },
+        {
+          "display_name": "Glass",
+          "value": "glass"
+        },
+        {
+          "display_name": "Gunshot, gunfire",
+          "value": "gunshot, gunfire"
+        },
+        {
+          "display_name": "Gush",
+          "value": "gush"
+        },
+        {
+          "display_name": "Hair dryer",
+          "value": "hair dryer"
+        },
+        {
+          "display_name": "Hammer",
+          "value": "hammer"
+        },
+        {
+          "display_name": "Heavy engine (low frequency)",
+          "value": "heavy engine (low frequency)"
+        },
+        {
+          "display_name": "Helicopter",
+          "value": "helicopter"
+        },
+        {
+          "display_name": "Ice cream truck, ice cream van",
+          "value": "ice cream truck, ice cream van"
+        },
+        {
+          "display_name": "Idling",
+          "value": "idling"
+        },
+        {
+          "display_name": "Jackhammer",
+          "value": "jackhammer"
+        },
+        {
+          "display_name": "Jet engine",
+          "value": "jet engine"
+        },
+        {
+          "display_name": "Jingle bell",
+          "value": "jingle bell"
+        },
+        {
+          "display_name": "Keys jangling",
+          "value": "keys jangling"
+        },
+        {
+          "display_name": "Lawn mower",
+          "value": "lawn mower"
+        },
+        {
+          "display_name": "Light engine (high frequency)",
+          "value": "light engine (high frequency)"
+        },
+        {
+          "display_name": "Liquid",
+          "value": "liquid"
+        },
+        {
+          "display_name": "Machine gun",
+          "value": "machine gun"
+        },
+        {
+          "display_name": "Mechanical fan",
+          "value": "mechanical fan"
+        },
+        {
+          "display_name": "Mechanisms",
+          "value": "mechanisms"
+        },
+        {
+          "display_name": "Medium engine (mid frequency)",
+          "value": "medium engine (mid frequency)"
+        },
+        {
+          "display_name": "Microwave oven",
+          "value": "microwave oven"
+        },
+        {
+          "display_name": "Motor vehicle (road)",
+          "value": "motor vehicle (road)"
+        },
+        {
+          "display_name": "Motorboat, speedboat",
+          "value": "motorboat, speedboat"
+        },
+        {
+          "display_name": "Motorcycle",
+          "value": "motorcycle"
+        },
+        {
+          "display_name": "Police car (siren)",
+          "value": "police car (siren)"
+        },
+        {
+          "display_name": "Pour",
+          "value": "pour"
+        },
+        {
+          "display_name": "Power tool",
+          "value": "power tool"
+        },
+        {
+          "display_name": "Power windows, electric windows",
+          "value": "power windows, electric windows"
+        },
+        {
+          "display_name": "Printer",
+          "value": "printer"
+        },
+        {
+          "display_name": "Propeller, airscrew",
+          "value": "propeller, airscrew"
+        },
+        {
+          "display_name": "Pulleys",
+          "value": "pulleys"
+        },
+        {
+          "display_name": "Pump (liquid)",
+          "value": "pump (liquid)"
+        },
+        {
+          "display_name": "Race car, auto racing",
+          "value": "race car, auto racing"
+        },
+        {
+          "display_name": "Rail transport",
+          "value": "rail transport"
+        },
+        {
+          "display_name": "Railroad car, train wagon",
+          "value": "railroad car, train wagon"
+        },
+        {
+          "display_name": "Ratchet, pawl",
+          "value": "ratchet, pawl"
+        },
+        {
+          "display_name": "Reversing beeps",
+          "value": "reversing beeps"
+        },
+        {
+          "display_name": "Ringtone",
+          "value": "ringtone"
+        },
+        {
+          "display_name": "Rowboat, canoe, kayak",
+          "value": "rowboat, canoe, kayak"
+        },
+        {
+          "display_name": "Sailboat, sailing ship",
+          "value": "sailboat, sailing ship"
+        },
+        {
+          "display_name": "Sanding",
+          "value": "sanding"
+        },
+        {
+          "display_name": "Sawing",
+          "value": "sawing"
+        },
+        {
+          "display_name": "Scissors",
+          "value": "scissors"
+        },
+        {
+          "display_name": "Sewing machine",
+          "value": "sewing machine"
+        },
+        {
+          "display_name": "Shatter",
+          "value": "shatter"
+        },
+        {
+          "display_name": "Ship",
+          "value": "ship"
+        },
+        {
+          "display_name": "Shuffling cards",
+          "value": "shuffling cards"
+        },
+        {
+          "display_name": "Single-lens reflex camera",
+          "value": "single-lens reflex camera"
+        },
+        {
+          "display_name": "Sink (filling or washing)",
+          "value": "sink (filling or washing)"
+        },
+        {
+          "display_name": "Siren",
+          "value": "siren"
+        },
+        {
+          "display_name": "Skateboard",
+          "value": "skateboard"
+        },
+        {
+          "display_name": "Skidding",
+          "value": "skidding"
+        },
+        {
+          "display_name": "Slam",
+          "value": "slam"
+        },
+        {
+          "display_name": "Sliding door",
+          "value": "sliding door"
+        },
+        {
+          "display_name": "Slosh",
+          "value": "slosh"
+        },
+        {
+          "display_name": "Smoke detector, smoke alarm",
+          "value": "smoke detector, smoke alarm"
+        },
+        {
+          "display_name": "Sonar",
+          "value": "sonar"
+        },
+        {
+          "display_name": "Splash, splatter",
+          "value": "splash, splatter"
+        },
+        {
+          "display_name": "Splinter",
+          "value": "splinter"
+        },
+        {
+          "display_name": "Spray",
+          "value": "spray"
+        },
+        {
+          "display_name": "Steam whistle",
+          "value": "steam whistle"
+        },
+        {
+          "display_name": "Stir",
+          "value": "stir"
+        },
+        {
+          "display_name": "Subway, metro, underground",
+          "value": "subway, metro, underground"
+        },
+        {
+          "display_name": "Telephone",
+          "value": "telephone"
+        },
+        {
+          "display_name": "Telephone bell ringing",
+          "value": "telephone bell ringing"
+        },
+        {
+          "display_name": "Telephone dialing, DTMF",
+          "value": "telephone dialing, dtmf"
+        },
+        {
+          "display_name": "Tick-tock",
+          "value": "tick-tock"
+        },
+        {
+          "display_name": "Tire squeal",
+          "value": "tire squeal"
+        },
+        {
+          "display_name": "Toilet flush",
+          "value": "toilet flush"
+        },
+        {
+          "display_name": "Tools",
+          "value": "tools"
+        },
+        {
+          "display_name": "Toot",
+          "value": "toot"
+        },
+        {
+          "display_name": "Toothbrush",
+          "value": "toothbrush"
+        },
+        {
+          "display_name": "Traffic noise, roadway noise",
+          "value": "traffic noise, roadway noise"
+        },
+        {
+          "display_name": "Train",
+          "value": "train"
+        },
+        {
+          "display_name": "Train horn",
+          "value": "train horn"
+        },
+        {
+          "display_name": "Train wheels squealing",
+          "value": "train wheels squealing"
+        },
+        {
+          "display_name": "Train whistle",
+          "value": "train whistle"
+        },
+        {
+          "display_name": "Trickle, dribble",
+          "value": "trickle, dribble"
+        },
+        {
+          "display_name": "Truck",
+          "value": "truck"
+        },
+        {
+          "display_name": "Tuning fork",
+          "value": "tuning fork"
+        },
+        {
+          "display_name": "Typewriter",
+          "value": "typewriter"
+        },
+        {
+          "display_name": "Typing",
+          "value": "typing"
+        },
+        {
+          "display_name": "Vacuum cleaner",
+          "value": "vacuum cleaner"
+        },
+        {
+          "display_name": "Vehicle",
+          "value": "vehicle"
+        },
+        {
+          "display_name": "Vehicle horn, car horn, honking",
+          "value": "vehicle horn, car horn, honking"
+        },
+        {
+          "display_name": "Water tap, faucet",
+          "value": "water tap, faucet"
+        },
+        {
+          "display_name": "Whistle",
+          "value": "whistle"
+        },
+        {
+          "display_name": "Wind chime",
+          "value": "wind chime"
+        },
+        {
+          "display_name": "Wind noise (microphone)",
+          "value": "wind noise (microphone)"
+        },
+        {
+          "display_name": "Wood",
+          "value": "wood"
+        },
+        {
+          "display_name": "Writing",
+          "value": "writing"
+        },
+        {
+          "display_name": "Zipper (clothing)",
+          "value": "zipper (clothing)"
+        }
+      ]
+    },
+    {
+      "group_id": "music",
+      "name": "Music",
+      "classes": [
+        {
+          "display_name": "A capella",
+          "value": "a capella"
+        },
+        {
+          "display_name": "Accordion",
+          "value": "accordion"
+        },
+        {
+          "display_name": "Acoustic guitar",
+          "value": "acoustic guitar"
+        },
+        {
+          "display_name": "Afrobeat",
+          "value": "afrobeat"
+        },
+        {
+          "display_name": "Ambient music",
+          "value": "ambient music"
+        },
+        {
+          "display_name": "Angry music",
+          "value": "angry music"
+        },
+        {
+          "display_name": "Background music",
+          "value": "background music"
+        },
+        {
+          "display_name": "Bagpipes",
+          "value": "bagpipes"
+        },
+        {
+          "display_name": "Banjo",
+          "value": "banjo"
+        },
+        {
+          "display_name": "Bass drum",
+          "value": "bass drum"
+        },
+        {
+          "display_name": "Bass guitar",
+          "value": "bass guitar"
+        },
+        {
+          "display_name": "Beatboxing",
+          "value": "beatboxing"
+        },
+        {
+          "display_name": "Bluegrass",
+          "value": "bluegrass"
+        },
+        {
+          "display_name": "Blues",
+          "value": "blues"
+        },
+        {
+          "display_name": "Bowed string instrument",
+          "value": "bowed string instrument"
+        },
+        {
+          "display_name": "Brass instrument",
+          "value": "brass instrument"
+        },
+        {
+          "display_name": "Carnatic music",
+          "value": "carnatic music"
+        },
+        {
+          "display_name": "Cello",
+          "value": "cello"
+        },
+        {
+          "display_name": "Chant",
+          "value": "chant"
+        },
+        {
+          "display_name": "Choir",
+          "value": "choir"
+        },
+        {
+          "display_name": "Christian music",
+          "value": "christian music"
+        },
+        {
+          "display_name": "Christmas music",
+          "value": "christmas music"
+        },
+        {
+          "display_name": "Clarinet",
+          "value": "clarinet"
+        },
+        {
+          "display_name": "Classical music",
+          "value": "classical music"
+        },
+        {
+          "display_name": "Country",
+          "value": "country"
+        },
+        {
+          "display_name": "Cymbal",
+          "value": "cymbal"
+        },
+        {
+          "display_name": "Dance music",
+          "value": "dance music"
+        },
+        {
+          "display_name": "Didgeridoo",
+          "value": "didgeridoo"
+        },
+        {
+          "display_name": "Disco",
+          "value": "disco"
+        },
+        {
+          "display_name": "Double bass",
+          "value": "double bass"
+        },
+        {
+          "display_name": "Drum",
+          "value": "drum"
+        },
+        {
+          "display_name": "Drum and bass",
+          "value": "drum and bass"
+        },
+        {
+          "display_name": "Drum kit",
+          "value": "drum kit"
+        },
+        {
+          "display_name": "Drum machine",
+          "value": "drum machine"
+        },
+        {
+          "display_name": "Drum roll",
+          "value": "drum roll"
+        },
+        {
+          "display_name": "Dubstep",
+          "value": "dubstep"
+        },
+        {
+          "display_name": "Electric guitar",
+          "value": "electric guitar"
+        },
+        {
+          "display_name": "Electric piano",
+          "value": "electric piano"
+        },
+        {
+          "display_name": "Electronic dance music",
+          "value": "electronic dance music"
+        },
+        {
+          "display_name": "Electronic music",
+          "value": "electronic music"
+        },
+        {
+          "display_name": "Electronic organ",
+          "value": "electronic organ"
+        },
+        {
+          "display_name": "Electronica",
+          "value": "electronica"
+        },
+        {
+          "display_name": "Exciting music",
+          "value": "exciting music"
+        },
+        {
+          "display_name": "Flamenco",
+          "value": "flamenco"
+        },
+        {
+          "display_name": "Flute",
+          "value": "flute"
+        },
+        {
+          "display_name": "Folk music",
+          "value": "folk music"
+        },
+        {
+          "display_name": "French horn",
+          "value": "french horn"
+        },
+        {
+          "display_name": "Funk",
+          "value": "funk"
+        },
+        {
+          "display_name": "Glockenspiel",
+          "value": "glockenspiel"
+        },
+        {
+          "display_name": "Gong",
+          "value": "gong"
+        },
+        {
+          "display_name": "Gospel music",
+          "value": "gospel music"
+        },
+        {
+          "display_name": "Grunge",
+          "value": "grunge"
+        },
+        {
+          "display_name": "Guitar",
+          "value": "guitar"
+        },
+        {
+          "display_name": "Hammond organ",
+          "value": "hammond organ"
+        },
+        {
+          "display_name": "Happy music",
+          "value": "happy music"
+        },
+        {
+          "display_name": "Harmonica",
+          "value": "harmonica"
+        },
+        {
+          "display_name": "Harp",
+          "value": "harp"
+        },
+        {
+          "display_name": "Harpsichord",
+          "value": "harpsichord"
+        },
+        {
+          "display_name": "Heavy metal",
+          "value": "heavy metal"
+        },
+        {
+          "display_name": "Hi-hat",
+          "value": "hi-hat"
+        },
+        {
+          "display_name": "Hip hop music",
+          "value": "hip hop music"
+        },
+        {
+          "display_name": "House music",
+          "value": "house music"
+        },
+        {
+          "display_name": "Independent music",
+          "value": "independent music"
+        },
+        {
+          "display_name": "Jazz",
+          "value": "jazz"
+        },
+        {
+          "display_name": "Jingle (music)",
+          "value": "jingle (music)"
+        },
+        {
+          "display_name": "Keyboard (musical)",
+          "value": "keyboard (musical)"
+        },
+        {
+          "display_name": "Lullaby",
+          "value": "lullaby"
+        },
+        {
+          "display_name": "Mallet percussion",
+          "value": "mallet percussion"
+        },
+        {
+          "display_name": "Mandolin",
+          "value": "mandolin"
+        },
+        {
+          "display_name": "Mantra",
+          "value": "mantra"
+        },
+        {
+          "display_name": "Maraca",
+          "value": "maraca"
+        },
+        {
+          "display_name": "Marimba, xylophone",
+          "value": "marimba, xylophone"
+        },
+        {
+          "display_name": "Middle Eastern music",
+          "value": "middle eastern music"
+        },
+        {
+          "display_name": "Music",
+          "value": "music"
+        },
+        {
+          "display_name": "Music for children",
+          "value": "music for children"
+        },
+        {
+          "display_name": "Music of Africa",
+          "value": "music of africa"
+        },
+        {
+          "display_name": "Music of Asia",
+          "value": "music of asia"
+        },
+        {
+          "display_name": "Music of Bollywood",
+          "value": "music of bollywood"
+        },
+        {
+          "display_name": "Music of Latin America",
+          "value": "music of latin america"
+        },
+        {
+          "display_name": "Musical instrument",
+          "value": "musical instrument"
+        },
+        {
+          "display_name": "New-age music",
+          "value": "new-age music"
+        },
+        {
+          "display_name": "Opera",
+          "value": "opera"
+        },
+        {
+          "display_name": "Orchestra",
+          "value": "orchestra"
+        },
+        {
+          "display_name": "Organ",
+          "value": "organ"
+        },
+        {
+          "display_name": "Percussion",
+          "value": "percussion"
+        },
+        {
+          "display_name": "Piano",
+          "value": "piano"
+        },
+        {
+          "display_name": "Pizzicato",
+          "value": "pizzicato"
+        },
+        {
+          "display_name": "Plucked string instrument",
+          "value": "plucked string instrument"
+        },
+        {
+          "display_name": "Pop music",
+          "value": "pop music"
+        },
+        {
+          "display_name": "Progressive rock",
+          "value": "progressive rock"
+        },
+        {
+          "display_name": "Psychedelic rock",
+          "value": "psychedelic rock"
+        },
+        {
+          "display_name": "Punk rock",
+          "value": "punk rock"
+        },
+        {
+          "display_name": "Rattle (instrument)",
+          "value": "rattle (instrument)"
+        },
+        {
+          "display_name": "Reggae",
+          "value": "reggae"
+        },
+        {
+          "display_name": "Rhythm and blues",
+          "value": "rhythm and blues"
+        },
+        {
+          "display_name": "Rimshot",
+          "value": "rimshot"
+        },
+        {
+          "display_name": "Rock and roll",
+          "value": "rock and roll"
+        },
+        {
+          "display_name": "Rock music",
+          "value": "rock music"
+        },
+        {
+          "display_name": "Sad music",
+          "value": "sad music"
+        },
+        {
+          "display_name": "Salsa music",
+          "value": "salsa music"
+        },
+        {
+          "display_name": "Sampler",
+          "value": "sampler"
+        },
+        {
+          "display_name": "Saxophone",
+          "value": "saxophone"
+        },
+        {
+          "display_name": "Scary music",
+          "value": "scary music"
+        },
+        {
+          "display_name": "Scratching (performance technique)",
+          "value": "scratching (performance technique)"
+        },
+        {
+          "display_name": "Shofar",
+          "value": "shofar"
+        },
+        {
+          "display_name": "Singing bowl",
+          "value": "singing bowl"
+        },
+        {
+          "display_name": "Sitar",
+          "value": "sitar"
+        },
+        {
+          "display_name": "Ska",
+          "value": "ska"
+        },
+        {
+          "display_name": "Snare drum",
+          "value": "snare drum"
+        },
+        {
+          "display_name": "Song",
+          "value": "song"
+        },
+        {
+          "display_name": "Soul music",
+          "value": "soul music"
+        },
+        {
+          "display_name": "Soundtrack music",
+          "value": "soundtrack music"
+        },
+        {
+          "display_name": "Steel guitar, slide guitar",
+          "value": "steel guitar, slide guitar"
+        },
+        {
+          "display_name": "Steelpan",
+          "value": "steelpan"
+        },
+        {
+          "display_name": "String section",
+          "value": "string section"
+        },
+        {
+          "display_name": "Strum",
+          "value": "strum"
+        },
+        {
+          "display_name": "Swing music",
+          "value": "swing music"
+        },
+        {
+          "display_name": "Synthesizer",
+          "value": "synthesizer"
+        },
+        {
+          "display_name": "Tabla",
+          "value": "tabla"
+        },
+        {
+          "display_name": "Tambourine",
+          "value": "tambourine"
+        },
+        {
+          "display_name": "Tapping (guitar technique)",
+          "value": "tapping (guitar technique)"
+        },
+        {
+          "display_name": "Techno",
+          "value": "techno"
+        },
+        {
+          "display_name": "Tender music",
+          "value": "tender music"
+        },
+        {
+          "display_name": "Theme music",
+          "value": "theme music"
+        },
+        {
+          "display_name": "Theremin",
+          "value": "theremin"
+        },
+        {
+          "display_name": "Timpani",
+          "value": "timpani"
+        },
+        {
+          "display_name": "Traditional music",
+          "value": "traditional music"
+        },
+        {
+          "display_name": "Trance music",
+          "value": "trance music"
+        },
+        {
+          "display_name": "Trombone",
+          "value": "trombone"
+        },
+        {
+          "display_name": "Trumpet",
+          "value": "trumpet"
+        },
+        {
+          "display_name": "Tubular bells",
+          "value": "tubular bells"
+        },
+        {
+          "display_name": "Ukulele",
+          "value": "ukulele"
+        },
+        {
+          "display_name": "Vibraphone",
+          "value": "vibraphone"
+        },
+        {
+          "display_name": "Video game music",
+          "value": "video game music"
+        },
+        {
+          "display_name": "Violin, fiddle",
+          "value": "violin, fiddle"
+        },
+        {
+          "display_name": "Vocal music",
+          "value": "vocal music"
+        },
+        {
+          "display_name": "Wedding music",
+          "value": "wedding music"
+        },
+        {
+          "display_name": "Wind instrument, woodwind instrument",
+          "value": "wind instrument, woodwind instrument"
+        },
+        {
+          "display_name": "Wood block",
+          "value": "wood block"
+        },
+        {
+          "display_name": "Zither",
+          "value": "zither"
+        }
+      ]
+    },
+    {
+      "group_id": "human-sounds",
+      "name": "Human sounds",
+      "classes": [
+        {
+          "display_name": "Applause",
+          "value": "applause"
+        },
+        {
+          "display_name": "Babbling",
+          "value": "babbling"
+        },
+        {
+          "display_name": "Baby cry, infant cry",
+          "value": "baby cry, infant cry"
+        },
+        {
+          "display_name": "Baby laughter",
+          "value": "baby laughter"
+        },
+        {
+          "display_name": "Bellow",
+          "value": "bellow"
+        },
+        {
+          "display_name": "Belly laugh",
+          "value": "belly laugh"
+        },
+        {
+          "display_name": "Biting",
+          "value": "biting"
+        },
+        {
+          "display_name": "Breathing",
+          "value": "breathing"
+        },
+        {
+          "display_name": "Burping, eructation",
+          "value": "burping, eructation"
+        },
+        {
+          "display_name": "Chatter",
+          "value": "chatter"
+        },
+        {
+          "display_name": "Cheering",
+          "value": "cheering"
+        },
+        {
+          "display_name": "Chewing, mastication",
+          "value": "chewing, mastication"
+        },
+        {
+          "display_name": "Child singing",
+          "value": "child singing"
+        },
+        {
+          "display_name": "Child speech, kid speaking",
+          "value": "child speech, kid speaking"
+        },
+        {
+          "display_name": "Children playing",
+          "value": "children playing"
+        },
+        {
+          "display_name": "Children shouting",
+          "value": "children shouting"
+        },
+        {
+          "display_name": "Chuckle, chortle",
+          "value": "chuckle, chortle"
+        },
+        {
+          "display_name": "Clapping",
+          "value": "clapping"
+        },
+        {
+          "display_name": "Conversation",
+          "value": "conversation"
+        },
+        {
+          "display_name": "Cough",
+          "value": "cough"
+        },
+        {
+          "display_name": "Crowd",
+          "value": "crowd"
+        },
+        {
+          "display_name": "Crying, sobbing",
+          "value": "crying, sobbing"
+        },
+        {
+          "display_name": "Fart",
+          "value": "fart"
+        },
+        {
+          "display_name": "Finger snapping",
+          "value": "finger snapping"
+        },
+        {
+          "display_name": "Gargling",
+          "value": "gargling"
+        },
+        {
+          "display_name": "Gasp",
+          "value": "gasp"
+        },
+        {
+          "display_name": "Giggle",
+          "value": "giggle"
+        },
+        {
+          "display_name": "Groan",
+          "value": "groan"
+        },
+        {
+          "display_name": "Grunt",
+          "value": "grunt"
+        },
+        {
+          "display_name": "Hands",
+          "value": "hands"
+        },
+        {
+          "display_name": "Heart murmur",
+          "value": "heart murmur"
+        },
+        {
+          "display_name": "Heart sounds, heartbeat",
+          "value": "heart sounds, heartbeat"
+        },
+        {
+          "display_name": "Hiccup",
+          "value": "hiccup"
+        },
+        {
+          "display_name": "Humming",
+          "value": "humming"
+        },
+        {
+          "display_name": "Laughter",
+          "value": "laughter"
+        },
+        {
+          "display_name": "Narration, monologue",
+          "value": "narration, monologue"
+        },
+        {
+          "display_name": "Pant",
+          "value": "pant"
+        },
+        {
+          "display_name": "Rapping",
+          "value": "rapping"
+        },
+        {
+          "display_name": "Run",
+          "value": "run"
+        },
+        {
+          "display_name": "Screaming",
+          "value": "screaming"
+        },
+        {
+          "display_name": "Shout",
+          "value": "shout"
+        },
+        {
+          "display_name": "Shuffle",
+          "value": "shuffle"
+        },
+        {
+          "display_name": "Sigh",
+          "value": "sigh"
+        },
+        {
+          "display_name": "Singing",
+          "value": "singing"
+        },
+        {
+          "display_name": "Sneeze",
+          "value": "sneeze"
+        },
+        {
+          "display_name": "Snicker",
+          "value": "snicker"
+        },
+        {
+          "display_name": "Sniff",
+          "value": "sniff"
+        },
+        {
+          "display_name": "Snoring",
+          "value": "snoring"
+        },
+        {
+          "display_name": "Snort",
+          "value": "snort"
+        },
+        {
+          "display_name": "Speech",
+          "value": "speech"
+        },
+        {
+          "display_name": "Speech synthesizer",
+          "value": "speech synthesizer"
+        },
+        {
+          "display_name": "Stomach rumble",
+          "value": "stomach rumble"
+        },
+        {
+          "display_name": "Synthetic singing",
+          "value": "synthetic singing"
+        },
+        {
+          "display_name": "Throat clearing",
+          "value": "throat clearing"
+        },
+        {
+          "display_name": "Wail, moan",
+          "value": "wail, moan"
+        },
+        {
+          "display_name": "Walk, footsteps",
+          "value": "walk, footsteps"
+        },
+        {
+          "display_name": "Wheeze",
+          "value": "wheeze"
+        },
+        {
+          "display_name": "Whimper",
+          "value": "whimper"
+        },
+        {
+          "display_name": "Whispering",
+          "value": "whispering"
+        },
+        {
+          "display_name": "Whistling",
+          "value": "whistling"
+        },
+        {
+          "display_name": "Whoop",
+          "value": "whoop"
+        },
+        {
+          "display_name": "Yell",
+          "value": "yell"
+        },
+        {
+          "display_name": "Yodeling",
+          "value": "yodeling"
+        }
+      ]
+    },
+    {
+      "group_id": "animal",
+      "name": "Animal",
+      "classes": [
+        {
+          "display_name": "Animal",
+          "value": "animal"
+        },
+        {
+          "display_name": "Bark",
+          "value": "bark"
+        },
+        {
+          "display_name": "Bee, wasp, etc.",
+          "value": "bee, wasp, etc."
+        },
+        {
+          "display_name": "Bird",
+          "value": "bird"
+        },
+        {
+          "display_name": "Bird flight, flapping wings",
+          "value": "bird flight, flapping wings"
+        },
+        {
+          "display_name": "Bird vocalization, bird call, bird song",
+          "value": "bird vocalization, bird call, bird song"
+        },
+        {
+          "display_name": "Bleat",
+          "value": "bleat"
+        },
+        {
+          "display_name": "Bow-wow",
+          "value": "bow-wow"
+        },
+        {
+          "display_name": "Canidae, dogs, wolves",
+          "value": "canidae, dogs, wolves"
+        },
+        {
+          "display_name": "Cat",
+          "value": "cat"
+        },
+        {
+          "display_name": "Caterwaul",
+          "value": "caterwaul"
+        },
+        {
+          "display_name": "Cattle, bovinae",
+          "value": "cattle, bovinae"
+        },
+        {
+          "display_name": "Caw",
+          "value": "caw"
+        },
+        {
+          "display_name": "Chicken, rooster",
+          "value": "chicken, rooster"
+        },
+        {
+          "display_name": "Cluck",
+          "value": "cluck"
+        },
+        {
+          "display_name": "Coo",
+          "value": "coo"
+        },
+        {
+          "display_name": "Cricket",
+          "value": "cricket"
+        },
+        {
+          "display_name": "Croak",
+          "value": "croak"
+        },
+        {
+          "display_name": "Crow",
+          "value": "crow"
+        },
+        {
+          "display_name": "Crowing, cock-a-doodle-doo",
+          "value": "crowing, cock-a-doodle-doo"
+        },
+        {
+          "display_name": "Dog",
+          "value": "dog"
+        },
+        {
+          "display_name": "Domestic animals, pets",
+          "value": "domestic animals, pets"
+        },
+        {
+          "display_name": "Duck",
+          "value": "duck"
+        },
+        {
+          "display_name": "Fly, housefly",
+          "value": "fly, housefly"
+        },
+        {
+          "display_name": "Fowl",
+          "value": "fowl"
+        },
+        {
+          "display_name": "Frog",
+          "value": "frog"
+        },
+        {
+          "display_name": "Goat",
+          "value": "goat"
+        },
+        {
+          "display_name": "Gobble",
+          "value": "gobble"
+        },
+        {
+          "display_name": "Goose",
+          "value": "goose"
+        },
+        {
+          "display_name": "Growling",
+          "value": "growling"
+        },
+        {
+          "display_name": "Honk",
+          "value": "honk"
+        },
+        {
+          "display_name": "Hoot",
+          "value": "hoot"
+        },
+        {
+          "display_name": "Horse",
+          "value": "horse"
+        },
+        {
+          "display_name": "Howl",
+          "value": "howl"
+        },
+        {
+          "display_name": "Insect",
+          "value": "insect"
+        },
+        {
+          "display_name": "Livestock, farm animals, working animals",
+          "value": "livestock, farm animals, working animals"
+        },
+        {
+          "display_name": "Meow",
+          "value": "meow"
+        },
+        {
+          "display_name": "Moo",
+          "value": "moo"
+        },
+        {
+          "display_name": "Mosquito",
+          "value": "mosquito"
+        },
+        {
+          "display_name": "Mouse",
+          "value": "mouse"
+        },
+        {
+          "display_name": "Neigh, whinny",
+          "value": "neigh, whinny"
+        },
+        {
+          "display_name": "Oink",
+          "value": "oink"
+        },
+        {
+          "display_name": "Owl",
+          "value": "owl"
+        },
+        {
+          "display_name": "Patter",
+          "value": "patter"
+        },
+        {
+          "display_name": "Pig",
+          "value": "pig"
+        },
+        {
+          "display_name": "Pigeon, dove",
+          "value": "pigeon, dove"
+        },
+        {
+          "display_name": "Purr",
+          "value": "purr"
+        },
+        {
+          "display_name": "Quack",
+          "value": "quack"
+        },
+        {
+          "display_name": "Roar",
+          "value": "roar"
+        },
+        {
+          "display_name": "Roaring cats (lions, tigers)",
+          "value": "roaring cats (lions, tigers)"
+        },
+        {
+          "display_name": "Rodents, rats, mice",
+          "value": "rodents, rats, mice"
+        },
+        {
+          "display_name": "Sheep",
+          "value": "sheep"
+        },
+        {
+          "display_name": "Snake",
+          "value": "snake"
+        },
+        {
+          "display_name": "Squawk",
+          "value": "squawk"
+        },
+        {
+          "display_name": "Turkey",
+          "value": "turkey"
+        },
+        {
+          "display_name": "Whale vocalization",
+          "value": "whale vocalization"
+        },
+        {
+          "display_name": "Whimper (dog)",
+          "value": "whimper (dog)"
+        },
+        {
+          "display_name": "Wild animals",
+          "value": "wild animals"
+        },
+        {
+          "display_name": "Yip",
+          "value": "yip"
+        }
+      ]
+    },
+    {
+      "group_id": "source-ambiguous-sounds",
+      "name": "Source-ambiguous sounds",
+      "classes": [
+        {
+          "display_name": "Bang",
+          "value": "bang"
+        },
+        {
+          "display_name": "Beep, bleep",
+          "value": "beep, bleep"
+        },
+        {
+          "display_name": "Boing",
+          "value": "boing"
+        },
+        {
+          "display_name": "Bouncing",
+          "value": "bouncing"
+        },
+        {
+          "display_name": "Breaking",
+          "value": "breaking"
+        },
+        {
+          "display_name": "Buzz",
+          "value": "buzz"
+        },
+        {
+          "display_name": "Chirp tone",
+          "value": "chirp tone"
+        },
+        {
+          "display_name": "Chirp, tweet",
+          "value": "chirp, tweet"
+        },
+        {
+          "display_name": "Clang",
+          "value": "clang"
+        },
+        {
+          "display_name": "Clatter",
+          "value": "clatter"
+        },
+        {
+          "display_name": "Clickety-clack",
+          "value": "clickety-clack"
+        },
+        {
+          "display_name": "Clicking",
+          "value": "clicking"
+        },
+        {
+          "display_name": "Clip-clop",
+          "value": "clip-clop"
+        },
+        {
+          "display_name": "Crack",
+          "value": "crack"
+        },
+        {
+          "display_name": "Crackle",
+          "value": "crackle"
+        },
+        {
+          "display_name": "Creak",
+          "value": "creak"
+        },
+        {
+          "display_name": "Crumpling, crinkling",
+          "value": "crumpling, crinkling"
+        },
+        {
+          "display_name": "Crunch",
+          "value": "crunch"
+        },
+        {
+          "display_name": "Crushing",
+          "value": "crushing"
+        },
+        {
+          "display_name": "Ding",
+          "value": "ding"
+        },
+        {
+          "display_name": "Flap",
+          "value": "flap"
+        },
+        {
+          "display_name": "Harmonic",
+          "value": "harmonic"
+        },
+        {
+          "display_name": "Hiss",
+          "value": "hiss"
+        },
+        {
+          "display_name": "Hum",
+          "value": "hum"
+        },
+        {
+          "display_name": "Jingle, tinkle",
+          "value": "jingle, tinkle"
+        },
+        {
+          "display_name": "Knock",
+          "value": "knock"
+        },
+        {
+          "display_name": "Ping",
+          "value": "ping"
+        },
+        {
+          "display_name": "Plop",
+          "value": "plop"
+        },
+        {
+          "display_name": "Pulse",
+          "value": "pulse"
+        },
+        {
+          "display_name": "Rattle",
+          "value": "rattle"
+        },
+        {
+          "display_name": "Roll",
+          "value": "roll"
+        },
+        {
+          "display_name": "Rub",
+          "value": "rub"
+        },
+        {
+          "display_name": "Rumble",
+          "value": "rumble"
+        },
+        {
+          "display_name": "Rustle",
+          "value": "rustle"
+        },
+        {
+          "display_name": "Scrape",
+          "value": "scrape"
+        },
+        {
+          "display_name": "Scratch",
+          "value": "scratch"
+        },
+        {
+          "display_name": "Silence",
+          "value": "silence"
+        },
+        {
+          "display_name": "Sine wave",
+          "value": "sine wave"
+        },
+        {
+          "display_name": "Sizzle",
+          "value": "sizzle"
+        },
+        {
+          "display_name": "Slap, smack",
+          "value": "slap, smack"
+        },
+        {
+          "display_name": "Smash, crash",
+          "value": "smash, crash"
+        },
+        {
+          "display_name": "Sound effect",
+          "value": "sound effect"
+        },
+        {
+          "display_name": "Squeak",
+          "value": "squeak"
+        },
+        {
+          "display_name": "Squeal",
+          "value": "squeal"
+        },
+        {
+          "display_name": "Squish",
+          "value": "squish"
+        },
+        {
+          "display_name": "Tap",
+          "value": "tap"
+        },
+        {
+          "display_name": "Tearing",
+          "value": "tearing"
+        },
+        {
+          "display_name": "Thump, thud",
+          "value": "thump, thud"
+        },
+        {
+          "display_name": "Thunk",
+          "value": "thunk"
+        },
+        {
+          "display_name": "Tick",
+          "value": "tick"
+        },
+        {
+          "display_name": "Whack, thwack",
+          "value": "whack, thwack"
+        },
+        {
+          "display_name": "Whip",
+          "value": "whip"
+        },
+        {
+          "display_name": "Whir",
+          "value": "whir"
+        },
+        {
+          "display_name": "Whoosh, swoosh, swish",
+          "value": "whoosh, swoosh, swish"
+        },
+        {
+          "display_name": "Zing",
+          "value": "zing"
+        }
+      ]
+    },
+    {
+      "group_id": "channel-environment-and-background",
+      "name": "Channel, environment and background",
+      "classes": [
+        {
+          "display_name": "Cacophony",
+          "value": "cacophony"
+        },
+        {
+          "display_name": "Distortion",
+          "value": "distortion"
+        },
+        {
+          "display_name": "Echo",
+          "value": "echo"
+        },
+        {
+          "display_name": "Environmental noise",
+          "value": "environmental noise"
+        },
+        {
+          "display_name": "Field recording",
+          "value": "field recording"
+        },
+        {
+          "display_name": "Hubbub, speech noise, speech babble",
+          "value": "hubbub, speech noise, speech babble"
+        },
+        {
+          "display_name": "Inside, large room or hall",
+          "value": "inside, large room or hall"
+        },
+        {
+          "display_name": "Inside, public space",
+          "value": "inside, public space"
+        },
+        {
+          "display_name": "Inside, small room",
+          "value": "inside, small room"
+        },
+        {
+          "display_name": "Mains hum",
+          "value": "mains hum"
+        },
+        {
+          "display_name": "Noise",
+          "value": "noise"
+        },
+        {
+          "display_name": "Outside, rural or natural",
+          "value": "outside, rural or natural"
+        },
+        {
+          "display_name": "Outside, urban or manmade",
+          "value": "outside, urban or manmade"
+        },
+        {
+          "display_name": "Pink noise",
+          "value": "pink noise"
+        },
+        {
+          "display_name": "Radio",
+          "value": "radio"
+        },
+        {
+          "display_name": "Reverberation",
+          "value": "reverberation"
+        },
+        {
+          "display_name": "Sidetone",
+          "value": "sidetone"
+        },
+        {
+          "display_name": "Static",
+          "value": "static"
+        },
+        {
+          "display_name": "Television",
+          "value": "television"
+        },
+        {
+          "display_name": "Throbbing",
+          "value": "throbbing"
+        },
+        {
+          "display_name": "Vibration",
+          "value": "vibration"
+        },
+        {
+          "display_name": "White noise",
+          "value": "white noise"
+        }
+      ]
+    },
+    {
+      "group_id": "natural-sounds",
+      "name": "Natural sounds",
+      "classes": [
+        {
+          "display_name": "Fire",
+          "value": "fire"
+        },
+        {
+          "display_name": "Gurgling",
+          "value": "gurgling"
+        },
+        {
+          "display_name": "Ocean",
+          "value": "ocean"
+        },
+        {
+          "display_name": "Rain",
+          "value": "rain"
+        },
+        {
+          "display_name": "Rain on surface",
+          "value": "rain on surface"
+        },
+        {
+          "display_name": "Raindrop",
+          "value": "raindrop"
+        },
+        {
+          "display_name": "Rustling leaves",
+          "value": "rustling leaves"
+        },
+        {
+          "display_name": "Steam",
+          "value": "steam"
+        },
+        {
+          "display_name": "Stream",
+          "value": "stream"
+        },
+        {
+          "display_name": "Thunder",
+          "value": "thunder"
+        },
+        {
+          "display_name": "Thunderstorm",
+          "value": "thunderstorm"
+        },
+        {
+          "display_name": "Water",
+          "value": "water"
+        },
+        {
+          "display_name": "Waterfall",
+          "value": "waterfall"
+        },
+        {
+          "display_name": "Waves, surf",
+          "value": "waves, surf"
+        },
+        {
+          "display_name": "Wind",
+          "value": "wind"
+        }
+      ]
+    }
+  ]
+}
