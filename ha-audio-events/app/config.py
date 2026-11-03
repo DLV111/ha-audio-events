@@ -15,6 +15,9 @@ class AudioSourceConfig:
     channels: int = 1
     format: str = "pcm_s16le"
     source_path: str | None = None
+    rtsp_streams: list[dict[str, str]] = field(
+        default_factory=list
+    )  # supervisor option: audio.streams map
 
 
 @dataclass(frozen=True)
@@ -30,6 +33,7 @@ class ClassifierConfig:
     max_results: int = 5
     include: list[str] = field(default_factory=list)
     exclude: list[str] = field(default_factory=list)
+    hide_silence: bool = True
 
 
 @dataclass(frozen=True)
@@ -176,6 +180,11 @@ def load_config(path: Path | str | None = None) -> AppConfig:
                 if isinstance(raw_audio, dict)
                 else None
             ),
+            rtsp_streams=(
+                raw_audio.get("streams", [])
+                if isinstance(raw_audio, dict) and isinstance(raw_audio.get("streams"), list)
+                else []
+            ),
         )
 
     activity = raw.get("activity", {})
@@ -198,6 +207,7 @@ def load_config(path: Path | str | None = None) -> AppConfig:
             max_results=int(classifier.get("max_results", 5)),
             include=[str(item).lower() for item in classifier.get("include", []) or []],
             exclude=[str(item).lower() for item in classifier.get("exclude", []) or []],
+            hide_silence=bool(classifier.get("hide_silence", True)),
         ),
         aggregation=AggregationConfig(
             start_confidence=float(aggregation.get("start_confidence", 0.85)),

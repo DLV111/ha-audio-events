@@ -219,3 +219,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- HA Audio Events secrets hardening ---
+# config.yaml must not contain real credentials (RTSP, MQTT, HA tokens).
+# Secrets are stored in Supervisor options (/data/options.json) only.
+# If a config.yaml with non-empty rtsp_username, rtsp_password,
+# mqtt.password, homeassistant.token, or webui.auth_token is committed,
+# CI will fail via tests/test_hardening.py.
+# The repo's config.yaml is a template; any non-empty secret values must
+# be removed before committing.
+config.yaml
+config.yaml.*

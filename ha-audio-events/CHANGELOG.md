@@ -5,6 +5,17 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-11-03
+### Changed
+- Secure RTSP credentials: passwords masked in logs, stored via Supervisor options (audio.streams map), multi-stream support
+- Branch protection guard: enforces PR base=develop, blocks main→develop pushes
+- CI job renamed to `Test Suite (3.12)`
+- .gitignore hardening: config.yaml secrets exposure blocked
+### Fixed
+- RTSP log line no longer exposes passwords in clear text
+- Web UI source path display masks password portion
+- Backward-compatible: inline source_path URLs with username:password@ still supported
+
 ## [0.5.2] - 2026-09-28
 ### Changed
 - Removed the standalone Audio Event Duration, Audio Model, and Last Audio Confidence sensors; these details remain available in Home Assistant event data and Last Audio Event attributes.
