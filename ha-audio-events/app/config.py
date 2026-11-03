@@ -183,7 +183,8 @@ def load_config(path: Path | str | None = None) -> AppConfig:
             ),
             rtsp_streams=(
                 raw_audio.get("streams", [])
-                if isinstance(raw_audio, dict) and isinstance(raw_audio.get("streams"), list)
+                if isinstance(raw_audio, dict)
+                and isinstance(raw_audio.get("streams"), list)
                 else []
             ),
         )
