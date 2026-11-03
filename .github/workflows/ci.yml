@@ -72,7 +72,7 @@ jobs:
 
   test:
     needs: [pr-title-validation]
-    name: Test Suite (3.12)
+    name: Test Suite
     runs-on: ubuntu-latest
     strategy:
       matrix:
