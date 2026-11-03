@@ -50,3 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Audio class filters in the Web UI panel**: a new "Audio Class Filters" section with Include / Exclude multi-select dropdowns populated from all 521 YAMNet class names — no more free-text editing of `classifier.include`/`classifier.exclude` in the add-on options. Applying filters persists them to the add-on options and restarts the add-on, using the same response-then-restart contract as the source picker.
 
+
+
+## [0.10.0] - 2026-11-03
+### Changed
+- Version bump (0.9.0 → 0.10.0)
