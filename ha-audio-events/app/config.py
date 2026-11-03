@@ -15,6 +15,9 @@ class AudioSourceConfig:
     channels: int = 1
     format: str = "pcm_s16le"
     source_path: str | None = None
+    rtsp_streams: list[dict[str, str]] = field(
+        default_factory=list
+    )  # supervisor option: audio.streams map
 
 
 @dataclass(frozen=True)
@@ -177,6 +180,12 @@ def load_config(path: Path | str | None = None) -> AppConfig:
                 _clean_str(raw_audio.get("source_path"))
                 if isinstance(raw_audio, dict)
                 else None
+            ),
+            rtsp_streams=(
+                raw_audio.get("streams", [])
+                if isinstance(raw_audio, dict)
+                and isinstance(raw_audio.get("streams"), list)
+                else []
             ),
         )
 

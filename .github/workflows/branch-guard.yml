@@ -1,0 +1,32 @@
+name: Branch Protection Guard
+
+on:
+  pull_request:
+    branches: ["develop"]
+  push:
+    branches: ["main", "develop"]
+
+jobs:
+  branch-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce PR base = develop
+        run: |
+          if [ "${{ github.event.pull_request.base.ref }}" != "develop" ]; then
+            echo "ERROR: PR must target develop (current base: ${{ github.event.pull_request.base.ref }})"
+            exit 1
+          fi
+          echo "✅ PR targets develop (base: develop)"
+      - name: Prevent main -> develop push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop' && github.event.before != '0000000000000000000000000000000000000000'
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          # Block if a main branch commit is being pushed into develop
+          src_branch="${{ github.event.ref || github.event.pull_request.head.ref }}"
+          if [ "$src_branch" = "main" ]; then
+            echo "ERROR: Direct push from main into develop is blocked."
+            exit 1
+          fi
+          echo "✅ Branch guard passed (no main -> develop push)"

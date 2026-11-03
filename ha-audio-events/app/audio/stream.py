@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import logging
 import os
 import shutil
 import sys
+import urllib.parse
 import wave
 from collections import deque
 from collections.abc import AsyncIterator
@@ -44,6 +46,31 @@ class AudioStreamSource:
         base = normalize_ha_url(ha_url) or "http://supervisor/core"
         return f"{base.rstrip('/')}/api/camera_proxy_stream/{entity_id}"
 
+    @staticmethod
+    def _mask_url(url: str) -> str:
+        """Mask any password portion of a URL for safe logging."""
+        if not url:
+            return url
+        parsed = urllib.parse.urlparse(url)
+        if not parsed.password:
+            return url
+        netloc = parsed.hostname or ""
+        if parsed.port:
+            netloc = f"{netloc}:{parsed.port}"
+        if parsed.username:
+            netloc = f"{parsed.username}:***@{netloc}"
+        return parsed._replace(netloc=netloc).geturl()
+
+    @staticmethod
+    def _build_auth_headers(
+        url: str, username: str | None = None, password: str | None = None
+    ) -> str | None:
+        """Build HTTP Basic Auth header string for ffmpeg -headers."""
+        if not username:
+            return None
+        token = base64.b64encode(f"{username}:{password or ''}".encode()).decode()
+        return f"Authorization: Basic {token}"
+
     async def stream(self) -> AsyncIterator[np.ndarray]:
         if self.config.source_path:
             source = str(self.config.source_path).strip()
@@ -72,8 +99,26 @@ class AudioStreamSource:
                 return
 
             if source.startswith(("rtsp://", "http://", "https://", "rtmp://")):
-                _LOGGER.info("Streaming audio from network URL via ffmpeg: %s", source)
-                async for chunk in self._stream_ffmpeg(source):
+                rtsp_user = None
+                rtsp_pass = None
+                for stream in self.config.rtsp_streams:
+                    if stream.get("source_path") == source:
+                        rtsp_user = stream.get("rtsp_username")
+                        rtsp_pass = stream.get("rtsp_password")
+                        break
+                if rtsp_user and source.startswith("rtsp://"):
+                    parsed = urllib.parse.urlparse(source)
+                    netloc = parsed.hostname or ""
+                    if parsed.port:
+                        netloc = f"{netloc}:{parsed.port}"
+                    netloc = f"{rtsp_user}@{netloc}"
+                    source = parsed._replace(netloc=netloc).geturl()
+                _LOGGER.info(
+                    "Streaming audio from network URL via ffmpeg: %s",
+                    self._mask_url(source),
+                )
+                headers = self._build_auth_headers(source, rtsp_user, rtsp_pass)
+                async for chunk in self._stream_ffmpeg(source, headers=headers):
                     yield chunk
                 return
 

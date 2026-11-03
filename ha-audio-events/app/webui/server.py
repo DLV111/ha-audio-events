@@ -310,10 +310,27 @@ class WebUI:
             customOption.textContent = '--- Enter custom RTSP/URL ---'; select.appendChild(customOption);
         }
 
+        function maskUrlForDisplay(url) {
+            if (!url) return url;
+            try {
+                const u = new URL(url);
+                if (u.password) {
+                    u.password = '***';
+                    return u.toString();
+                }
+            } catch (e) {}
+            return url;
+        }
         function updateCurrentSourceDisplay() {
             const display = document.getElementById('current-source');
-            if (currentSource) { display.textContent = currentSource; display.style.color = '#155724'; }
-            else { display.textContent = 'No source configured'; display.style.color = '#6c757d'; }
+            if (currentSource) {
+                display.textContent = maskUrlForDisplay(currentSource);
+                display.style.color = '#155724';
+            } else {
+                display.textContent = 'No source configured';
+                display.style.color = '#6c757d';
+            }
+
         }
 
         function updateSubmitButton() {
