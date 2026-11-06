@@ -146,17 +146,17 @@ def main(base_ref: str = "HEAD~1") -> int:
                 text=True,
                 check=True,
             ).stdout
-        import re as _re
+            import re as _re
 
-        base_versions = [
-            m.group(1)
-            for m in _re.finditer(r"^## \[([^\]]+)\]", base_headings, _re.MULTILINE)
-        ]
-        for i, base_ver in enumerate(base_versions):
-            if i >= len(head_headings) or head_headings[i] != base_ver:
-                errors.append(
-                    f"Changelog heading removed or changed at index {i}: {base_ver} -> {head_headings[i] if i < len(head_headings) else '<missing>'}"
-                )
+            base_versions = [
+                m.group(1)
+                for m in _re.finditer(r"^## \[([^\]]+)\]", base_headings, _re.MULTILINE)
+            ]
+            for i, base_ver in enumerate(base_versions):
+                if i >= len(head_headings) or head_headings[i] != base_ver:
+                    errors.append(
+                        f"Changelog heading removed or changed at index {i}: {base_ver} -> {head_headings[i] if i < len(head_headings) else '<missing>'}"
+                    )
 
     if errors:
         print("ERROR: PR-vs-base checks failed:")
