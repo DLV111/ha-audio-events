@@ -30,7 +30,7 @@ def get_version_from_config(path: Path) -> str | None:
 
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         return str(data.get("version")) if data.get("version") is not None else None
-    except Exception:
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
         return None
 
 
@@ -61,7 +61,6 @@ def changed_addon_paths(base_sha: str) -> list[str]:
 
 
 def main(base_ref: str = "HEAD~1") -> int:
-    import os
 
     errors: list[str] = []
     head_config_ver = get_version_from_config(CONFIG_PATH)
@@ -86,14 +85,18 @@ def main(base_ref: str = "HEAD~1") -> int:
 
     # Version strictly increases when add-on files changed vs base.
     if base_ref and base_ref != "HEAD":
-        base_sha = subprocess.run(
-            ["git", "rev-parse", base_ref],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-        if changed_addon_paths(base_sha):
+        try:
+            base_sha = subprocess.run(
+                ["git", "rev-parse", base_ref],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+        except subprocess.CalledProcessError:
+            # Base ref not available (e.g. shallow checkout); skip base comparison.
+            base_sha = None
+        if base_sha and changed_addon_paths(base_sha):
             # Compare with base version; base files may not be checked out, so
             # compare via git show.
             base_config_text = subprocess.run(
@@ -106,7 +109,11 @@ def main(base_ref: str = "HEAD~1") -> int:
             import yaml as _yaml
 
             base_data = _yaml.safe_load(base_config_text) or {}
-            base_ver = str(base_data.get("version")) if base_data.get("version") is not None else None
+            base_ver = (
+                str(base_data.get("version"))
+                if base_data.get("version") is not None
+                else None
+            )
             if base_ver and head_config_ver:
                 try:
                     from packaging.version import Version
@@ -115,29 +122,35 @@ def main(base_ref: str = "HEAD~1") -> int:
                         errors.append(
                             f"Version must strictly increase: {base_ver} -> {head_config_ver}"
                         )
-                except Exception:
+                except (ValueError, TypeError):
                     errors.append("Invalid version format for version increase check")
 
     # Changelog append-only: base headings must be prefix of head headings.
     if base_ref and base_ref != "HEAD":
-        base_sha = subprocess.run(
-            ["git", "rev-parse", base_ref],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-        base_headings = subprocess.run(
-            ["git", "show", f"{base_sha}:ha-audio-events/CHANGELOG.md"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
+        try:
+            base_sha = subprocess.run(
+                ["git", "rev-parse", base_ref],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+        except subprocess.CalledProcessError:
+            # Base ref not available (e.g. shallow checkout); skip changelog comparison.
+            base_sha = None
+        if base_sha:
+            base_headings = subprocess.run(
+                ["git", "show", f"{base_sha}:ha-audio-events/CHANGELOG.md"],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
         import re as _re
 
         base_versions = [
-            m.group(1) for m in _re.finditer(r"^## \[([^\]]+)\]", base_headings, _re.MULTILINE)
+            m.group(1)
+            for m in _re.finditer(r"^## \[([^\]]+)\]", base_headings, _re.MULTILINE)
         ]
         for i, base_ver in enumerate(base_versions):
             if i >= len(head_headings) or head_headings[i] != base_ver:
