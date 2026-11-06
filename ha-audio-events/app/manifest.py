@@ -19,6 +19,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import re
 import yaml
 
 # Recognised map types (Mirrors supervisor MappingType plus the legacy
@@ -116,16 +117,224 @@ def validate_map(manifest: dict[str, Any]) -> list[str]:
     return errors
 
 
-def validate_manifest(path: Path | str) -> list[str]:
-    """Validate an add-on manifest file, returning a list of error messages."""
-    manifest = load_manifest(path)
+def validate_manifest_dict(manifest: dict[str, Any]) -> list[str]:
+    """Validate a manifest dict, returning a list of error messages."""
     errors: list[str] = validate_map(manifest)
 
     if "name" not in manifest:
         errors.append("missing required 'name' field")
+    elif not isinstance(manifest.get("name"), str) or not manifest["name"].strip():
+        errors.append("'name' must be a non-empty string")
+
     if "version" not in manifest:
         errors.append("missing required 'version' field")
+    elif not isinstance(manifest.get("version"), str) or not manifest["version"].strip():
+        errors.append("'version' must be a non-empty string")
+
     if "slug" not in manifest:
         errors.append("missing required 'slug' field")
+    elif not isinstance(manifest.get("slug"), str) or not manifest["slug"].strip():
+        errors.append("'slug' must be a non-empty string")
+
+    if "description" not in manifest:
+        errors.append("missing required 'description' field")
+    elif not isinstance(manifest.get("description"), str) or not manifest["description"].strip():
+        errors.append("'description' must be a non-empty string")
+
+    if "arch" not in manifest:
+        errors.append("missing required 'arch' field")
+    elif not isinstance(manifest.get("arch"), list) or not manifest["arch"]:
+        errors.append("'arch' must be a non-empty list")
+
+    if "options" not in manifest:
+        errors.append("missing required 'options' field")
+    elif not isinstance(manifest.get("options"), dict):
+        errors.append("'options' must be a mapping")
+
+    if "schema" not in manifest:
+        errors.append("missing required 'schema' field")
+    elif not isinstance(manifest.get("schema"), dict):
+        errors.append("'schema' must be a mapping")
+
+    errors.extend(validate_options_schema(manifest))
+    return errors
+
+
+def validate_manifest(path: Path | str) -> list[str]:
+    """Validate an add-on manifest file, returning a list of error messages."""
+    manifest = load_manifest(path)
+    return validate_manifest_dict(manifest) + validate_options_schema(manifest)
+
+
+def _schema_key_for_option(option_key: str) -> str:
+    """Map an options key to its schema key (stripping a trailing ``?``)."""
+    return option_key.rstrip("?")
+
+
+def validate_options_schema(manifest: dict[str, Any]) -> list[str]:
+    """Validate parity between the ``options`` and ``schema`` sections.
+
+    Rules:
+    - Every key in ``options`` must have a corresponding entry in ``schema``
+      (the schema key may optionally end with ``?`` for nullable fields).
+    - A nullable schema key (ending with ``?``) must not carry a default value
+      in ``options`` -- the Supervisor rejects ``null`` defaults for nullable
+      fields, so those defaults must be blank strings instead.
+    """
+    errors: list[str] = []
+    options = manifest.get("options")
+    schema = manifest.get("schema")
+
+    if not isinstance(options, dict):
+        if options is not None:
+            errors.append("'options' must be a mapping")
+        return errors
+    if not isinstance(schema, dict):
+        if schema is not None:
+            errors.append("'schema' must be a mapping")
+        return errors
+
+    # Schema values ending with '?' are nullable -- their corresponding
+    # option must not carry a default value.
+    nullable_keys = {k for k, v in schema.items() if isinstance(v, str) and v.endswith("?")}
+
+    for option_key, option_value in options.items():
+        schema_key = _schema_key_for_option(str(option_key))
+        if schema_key not in schema:
+            errors.append(
+                f"option '{option_key}' has no corresponding schema entry"
+            )
+            continue
+        if schema_key in nullable_keys and option_value is not None:
+            errors.append(
+                f"nullable option '{option_key}' must not have a default "
+                f"value in options (got {option_value!r})"
+            )
+
+    return errors
+
+
+def validate_full(path: Path | str) -> list[str]:
+    """Validate a manifest file end-to-end (structure + options/schema)."""
+    manifest = load_manifest(path)
+    return validate_manifest(path) + validate_options_schema(manifest)
+
+
+# ---------------------------------------------------------------------------
+# Release metadata validation (version consistency, changelog, version increase)
+# ---------------------------------------------------------------------------
+
+VERSION_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)")
+
+def get_config_version(path: Path | str) -> str | None:
+    """Extract version from config.yaml."""
+    import yaml
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    return data.get("version")
+
+
+def get_pyproject_version(path: Path | str) -> str | None:
+    """Extract version from pyproject.toml."""
+    content = Path(path).read_text(encoding="utf-8")
+    match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', content)
+    return match.group(1) if match else None
+
+
+def get_changelog_heading_version(path: Path | str) -> str | None:
+    """Extract the version from the first changelog heading (## [x.y.z])."""
+    content = Path(path).read_text(encoding="utf-8")
+    match = re.search(r"^## \[([^\]]+)\]", content, re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def get_all_changelog_versions(path: Path | str) -> list[str]:
+    """Extract all version headings from changelog in descending order."""
+    content = Path(path).read_text(encoding="utf-8")
+    return [m.group(1) for m in re.finditer(r"^## \[([^\]]+)\]", content, re.MULTILINE)]
+
+
+def check_version_consistency(
+    config_path: Path | str,
+    pyproject_path: Path | str,
+    changelog_path: Path | str,
+) -> list[str]:
+    """Verify config.yaml, pyproject.toml, and CHANGELOG.md top heading have same version."""
+    errors: list[str] = []
+    config_ver = get_config_version(config_path)
+    pyproject_ver = get_pyproject_version(pyproject_path)
+    changelog_ver = get_changelog_heading_version(changelog_path)
+
+    if config_ver is None:
+        errors.append("config.yaml: version not found")
+    if pyproject_ver is None:
+        errors.append("pyproject.toml: version not found")
+    if changelog_ver is None:
+        errors.append("CHANGELOG.md: no version heading found")
+
+    versions = {
+        "config.yaml": config_ver,
+        "pyproject.toml": pyproject_ver,
+        "CHANGELOG.md": changelog_ver,
+    }
+    non_none = [v for v in versions.values() if v is not None]
+    if len(set(non_none)) > 1:
+        errors.append(
+            "Version mismatch: "
+            + ", ".join(f"{k}={v}" for k, v in versions.items() if v is not None)
+        )
+
+    return errors
+
+
+def check_version_increases(
+    base_config_path: Path | str,
+    head_config_path: Path | str,
+) -> list[str]:
+    """Verify version strictly increased in config.yaml when add-on files changed."""
+    errors: list[str] = []
+    base_ver = get_config_version(base_config_path)
+    head_ver = get_config_version(head_config_path)
+
+    if base_ver is None:
+        errors.append("Base config.yaml: version not found")
+    if head_ver is None:
+        errors.append("Head config.yaml: version not found")
+
+    if base_ver and head_ver:
+        try:
+            from packaging.version import Version
+            if Version(head_ver) <= Version(base_ver):
+                errors.append(
+                    f"Version must strictly increase: {base_ver} -> {head_ver}"
+                )
+        except Exception:
+            errors.append("Invalid version format")
+
+    return errors
+
+
+def check_changelog_append_only(
+    base_changelog_path: Path | str,
+    head_changelog_path: Path | str,
+) -> list[str]:
+    """Verify changelog only appends new headings (no removed/renamed headings)."""
+    errors: list[str] = []
+    base_versions = get_all_changelog_versions(base_changelog_path)
+    head_versions = get_all_changelog_versions(head_changelog_path)
+
+    if not base_versions:
+        errors.append("Base CHANGELOG.md has no version headings")
+    if not head_versions:
+        errors.append("Head CHANGELOG.md has no version headings")
+
+    # Check that base versions are a prefix of head versions (only new entries added)
+    for i, base_ver in enumerate(base_versions):
+        if i >= len(head_versions):
+            errors.append(f"Changelog heading removed: {base_ver}")
+        elif head_versions[i] != base_ver:
+            errors.append(
+                f"Changelog heading changed at position {i}: "
+                f"{base_ver} -> {head_versions[i]}"
+            )
 
     return errors

@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: ["main", "develop"]
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: ["main", "develop"]
   workflow_dispatch:
 
 env:
@@ -144,12 +144,38 @@ jobs:
           source .venv/bin/activate
           PYTHONPATH=ha-audio-events .venv/bin/mypy ha-audio-events/app
 
+      - name: Run PR-vs-base checks
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=ha-audio-events .venv/bin/python scripts/ci_pr_vs_base.py HEAD~1
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: coverage-report
           path: htmlcov/
+
+  # Linter - official add-on/app linter jobs (disabled by default; enable when available)
+  addon-linter:
+    name: Add-on Linter
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: frenck/action-addon-linter@v1
+        with:
+          config-file: ha-audio-events/config.yaml
+
+  app-linter:
+    name: App Linter
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: frenck/action-app-linter@v1
 
   # WebUI Code Validation - specifically validates WebUI integration
   webui-validation:
@@ -182,9 +208,9 @@ jobs:
           try:
             from app.webui.server import WebUI
             from app.addon_mgr import AddonManager
-            print('✅ WebUI imports validated successfully')
+            print('WebUI imports validated successfully')
           except ImportError as e:
-            print(f'❌ WebUI import error: {e}')
+            print(f'WebUI import error: {e}')
             raise
           " || exit 1
 
@@ -193,18 +219,17 @@ jobs:
           source .venv/bin/activate
           # Check for required WebUI files and structure
           if [[ ! -f "ha-audio-events/app/webui/server.py" ]]; then
-            echo "❌ WebUI server.py missing"
+            echo "WebUI server.py missing"
             exit 1
           fi
           if [[ ! -f "ha-audio-events/app/webui/__init__.py" ]]; then
-            echo "❌ WebUI __init__.py missing"
+            echo "WebUI __init__.py missing"
             exit 1
           fi
-          
-          echo "✅ WebUI structure validated"
+
+          echo "WebUI structure validated"
 
       - name: Run WebUI-specific tests
         run: |
           source .venv/bin/activate
           PYTHONPATH=ha-audio-events .venv/bin/pytest tests/test_webui.py -v
-
