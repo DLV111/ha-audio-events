@@ -16,10 +16,10 @@ the add-on store again.
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Any
 
+import re
 import yaml
 
 # Recognised map types (Mirrors supervisor MappingType plus the legacy
