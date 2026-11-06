@@ -16,10 +16,10 @@ the add-on store again.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
-import re
 import yaml
 
 # Recognised map types (Mirrors supervisor MappingType plus the legacy
@@ -307,8 +307,8 @@ def check_version_increases(
                 errors.append(
                     f"Version must strictly increase: {base_ver} -> {head_ver}"
                 )
-        except Exception:
-            errors.append("Invalid version format")
+        except Exception as e:
+            errors.append(f"Invalid version format: {str(e)}")
 
     return errors
 
