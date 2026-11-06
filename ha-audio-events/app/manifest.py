@@ -307,8 +307,8 @@ def check_version_increases(
                 errors.append(
                     f"Version must strictly increase: {base_ver} -> {head_ver}"
                 )
-        except Exception as e:
-            errors.append(f"Invalid version format: {str(e)}")
+        except ValueError as e:
+            errors.append(f"Invalid version format: {e!s}")
 
     return errors
 
