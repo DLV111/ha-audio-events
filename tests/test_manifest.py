@@ -113,7 +113,9 @@ def test_committed_manifest_has_required_fields() -> None:
 
     manifest = load_manifest(path)
     errors = validate_manifest_dict(manifest)
-    assert errors == [], "add-on manifest is missing required fields:\n" + "\n".join(errors)
+    assert errors == [], "add-on manifest is missing required fields:\n" + "\n".join(
+        errors
+    )
     assert "description" in manifest
     assert isinstance(manifest["description"], str)
     assert manifest["description"].strip()
@@ -133,9 +135,7 @@ def test_manifest_requires_version() -> None:
 
 
 def test_manifest_requires_slug() -> None:
-    errors = validate_manifest_dict(
-        {"name": "ha-audio-events", "version": "0.1.0"}
-    )
+    errors = validate_manifest_dict({"name": "ha-audio-events", "version": "0.1.0"})
     assert any("missing required 'slug' field" in error for error in errors)
 
 

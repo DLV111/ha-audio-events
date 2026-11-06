@@ -16,10 +16,10 @@ the add-on store again.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
-import re
 import yaml
 
 # Recognised map types (Mirrors supervisor MappingType plus the legacy
@@ -128,7 +128,9 @@ def validate_manifest_dict(manifest: dict[str, Any]) -> list[str]:
 
     if "version" not in manifest:
         errors.append("missing required 'version' field")
-    elif not isinstance(manifest.get("version"), str) or not manifest["version"].strip():
+    elif (
+        not isinstance(manifest.get("version"), str) or not manifest["version"].strip()
+    ):
         errors.append("'version' must be a non-empty string")
 
     if "slug" not in manifest:
@@ -138,7 +140,10 @@ def validate_manifest_dict(manifest: dict[str, Any]) -> list[str]:
 
     if "description" not in manifest:
         errors.append("missing required 'description' field")
-    elif not isinstance(manifest.get("description"), str) or not manifest["description"].strip():
+    elif (
+        not isinstance(manifest.get("description"), str)
+        or not manifest["description"].strip()
+    ):
         errors.append("'description' must be a non-empty string")
 
     if "arch" not in manifest:
@@ -196,14 +201,14 @@ def validate_options_schema(manifest: dict[str, Any]) -> list[str]:
 
     # Schema values ending with '?' are nullable -- their corresponding
     # option must not carry a default value.
-    nullable_keys = {k for k, v in schema.items() if isinstance(v, str) and v.endswith("?")}
+    nullable_keys = {
+        k for k, v in schema.items() if isinstance(v, str) and v.endswith("?")
+    }
 
     for option_key, option_value in options.items():
         schema_key = _schema_key_for_option(str(option_key))
         if schema_key not in schema:
-            errors.append(
-                f"option '{option_key}' has no corresponding schema entry"
-            )
+            errors.append(f"option '{option_key}' has no corresponding schema entry")
             continue
         if schema_key in nullable_keys and option_value is not None:
             errors.append(
@@ -226,9 +231,11 @@ def validate_full(path: Path | str) -> list[str]:
 
 VERSION_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)")
 
+
 def get_config_version(path: Path | str) -> str | None:
     """Extract version from config.yaml."""
     import yaml
+
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     return data.get("version")
 
@@ -303,6 +310,7 @@ def check_version_increases(
     if base_ver and head_ver:
         try:
             from packaging.version import Version
+
             if Version(head_ver) <= Version(base_ver):
                 errors.append(
                     f"Version must strictly increase: {base_ver} -> {head_ver}"
