@@ -149,7 +149,10 @@ jobs:
       - name: Run PR-vs-base checks
         run: |
           source .venv/bin/activate
-          PYTHONPATH=ha-audio-events .venv/bin/python scripts/ci_pr_vs_base.py HEAD~1
+          # Fetch base branch for comparison
+          git fetch origin ${{ github.base_ref }} --depth=1 2>/dev/null || git fetch origin develop --depth=1
+          BASE_SHA=$(git rev-parse origin/${{ github.base_ref }} 2>/dev/null || git rev-parse origin/develop)
+          PYTHONPATH=ha-audio-events .venv/bin/python scripts/ci_pr_vs_base.py "$BASE_SHA"
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
