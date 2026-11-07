@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.10.1] - 2026-11-06
 ### Fixed
 - **Add-on manifest `description` restored**: the field was accidentally deleted from `ha-audio-events/config.yaml` (see PR #39), which caused the Home Assistant Supervisor to reject the manifest and drop the add-on from the store listing. The description is restored, and the CI `validate_manifest` guard now requires `name`, `version`, `slug`, `description` and `arch`, so a missing field can never slip through again.
-- **CI guards restored**: an options/schema parity check, version-consistency check, strict version-increase check and changelog append-only check are now wired into CI (pytest tests plus a PR-vs-base script).
+- **CI guards restored**: an options/schema parity check, version-consistency check, strict version-increase check and changelog append-only check are now wired into CI (pytest tests plus a PR-vs-base script). Nullable schema keys like `audio.source_path`, `mqtt.username`, `mqtt.password` and `webui.auth_token` are no longer allowed as default-empty-string options in the manifest, but the behavior (empty defaults) is preserved inside the add-on.
 
 ## [0.10.0] - 2026-11-03
 ### Changed

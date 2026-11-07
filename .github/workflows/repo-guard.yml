@@ -6,16 +6,8 @@ on:
   pull_request:
 
 jobs:
-  repo-access:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify repository accessible
-        run: echo "Repository accessible"
-
   validate-addon-manifest:
     runs-on: ubuntu-latest
-    needs: repo-access
     steps:
       - uses: actions/checkout@v4
         with:
