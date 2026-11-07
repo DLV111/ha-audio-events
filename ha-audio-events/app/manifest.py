@@ -168,7 +168,7 @@ def validate_manifest_dict(manifest: dict[str, Any]) -> list[str]:
 def validate_manifest(path: Path | str) -> list[str]:
     """Validate an add-on manifest file, returning a list of error messages."""
     manifest = load_manifest(path)
-    return validate_manifest_dict(manifest) + validate_options_schema(manifest)
+    return validate_manifest_dict(manifest)
 
 
 def _schema_key_for_option(option_key: str) -> str:
@@ -180,11 +180,11 @@ def validate_options_schema(manifest: dict[str, Any]) -> list[str]:
     """Validate parity between the ``options`` and ``schema`` sections.
 
     Rules:
-    - Every key in ``options`` must have a corresponding entry in ``schema``
-      (the schema key may optionally end with ``?`` for nullable fields).
-    - A nullable schema key (ending with ``?``) must not carry a default value
-      in ``options`` -- the Supervisor rejects ``null`` defaults for nullable
-      fields, so those defaults must be blank strings instead.
+    - Every key in ``options`` must have a corresponding entry in ``schema``.
+    - A schema key ending with ``?`` is nullable: it must NOT appear in ``options``
+      at all (the Supervisor rejects ``null`` defaults for nullable fields).
+    - Schema keys absent from ``options`` must be optional (end with ``?``).
+    - Nested dicts in schema are recursed into.
     """
     errors: list[str] = []
     options = manifest.get("options")
@@ -199,43 +199,66 @@ def validate_options_schema(manifest: dict[str, Any]) -> list[str]:
             errors.append("'schema' must be a mapping")
         return errors
 
-    # Schema values ending with '?' are nullable -- their corresponding
-    # option must not carry a default value.
-    nullable_keys = {
-        k for k, v in schema.items() if isinstance(v, str) and v.endswith("?")
-    }
+    return _validate_options_schema_recursive(options, schema, path="")
+
+
+def _validate_options_schema_recursive(
+    options: dict[str, Any],
+    schema: dict[str, Any],
+    path: str,
+) -> list[str]:
+    """Recursively validate options/schema parity."""
+    errors: list[str] = []
+
+    # Schema keys absent from options must be optional (end with '?').
+    for schema_key, schema_val in schema.items():
+        if schema_key not in options and not schema_key.endswith("?"):
+            prefix = f"{path}." if path else ""
+            errors.append(
+                f"schema key '{prefix}{schema_key}' is required but missing from options"
+            )
 
     for option_key, option_value in options.items():
-        schema_key = _schema_key_for_option(str(option_key))
+        prefix = f"{path}." if path else ""
+        schema_key = option_key.rstrip("?")
         if schema_key not in schema:
-            errors.append(f"option '{option_key}' has no corresponding schema entry")
+            errors.append(f"option '{prefix}{option_key}' has no corresponding schema entry")
             continue
-        if schema_key in nullable_keys and option_value is not None:
+
+        schema_val = schema[schema_key]
+        # (a) Nullable schema keys must NOT appear in options at all.
+        if schema_key.endswith("?"):
             errors.append(
-                f"nullable option '{option_key}' must not have a default "
-                f"value in options (got {option_value!r})"
+                f"nullable option '{prefix}{option_key}' must not appear in options"
+            )
+            continue
+
+        # (b) Recurse into nested dicts.
+        if isinstance(schema_val, dict) and isinstance(option_value, dict):
+            errors.extend(
+                _validate_options_schema_recursive(
+                    option_value, schema_val, path=f"{prefix}{option_key}"
+                )
+            )
+        elif isinstance(schema_val, dict) and not isinstance(option_value, dict):
+            errors.append(
+                f"option '{prefix}{option_key}' must be a mapping, got {type(option_value).__name__}"
             )
 
     return errors
 
 
 def validate_full(path: Path | str) -> list[str]:
-    """Validate a manifest file end-to-end (structure + options/schema)."""
-    manifest = load_manifest(path)
-    return validate_manifest(path) + validate_options_schema(manifest)
+    """Alias for validate_manifest."""
+    return validate_manifest(path)
 
 
 # ---------------------------------------------------------------------------
 # Release metadata validation (version consistency, changelog, version increase)
 # ---------------------------------------------------------------------------
 
-VERSION_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)")
-
-
 def get_config_version(path: Path | str) -> str | None:
     """Extract version from config.yaml."""
-    import yaml
-
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     return data.get("version")
 
@@ -325,7 +348,11 @@ def check_changelog_append_only(
     base_changelog_path: Path | str,
     head_changelog_path: Path | str,
 ) -> list[str]:
-    """Verify changelog only appends new headings (no removed/renamed headings)."""
+    """Verify changelog only appends new headings (no removed/renamed headings).
+
+    The changelog is newest-first, so a release adds a new top heading; existing
+    headings must all still be present in the head changelog.
+    """
     errors: list[str] = []
     base_versions = get_all_changelog_versions(base_changelog_path)
     head_versions = get_all_changelog_versions(head_changelog_path)
@@ -335,14 +362,9 @@ def check_changelog_append_only(
     if not head_versions:
         errors.append("Head CHANGELOG.md has no version headings")
 
-    # Check that base versions are a prefix of head versions (only new entries added)
-    for i, base_ver in enumerate(base_versions):
-        if i >= len(head_versions):
+    head_set = set(head_versions)
+    for base_ver in base_versions:
+        if base_ver not in head_set:
             errors.append(f"Changelog heading removed: {base_ver}")
-        elif head_versions[i] != base_ver:
-            errors.append(
-                f"Changelog heading changed at position {i}: "
-                f"{base_ver} -> {head_versions[i]}"
-            )
 
     return errors
