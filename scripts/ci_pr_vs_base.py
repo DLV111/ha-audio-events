@@ -17,11 +17,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ha-audio-events" / "app"))
 
 from manifest import (
-    get_config_version,
-    get_pyproject_version,
+    check_changelog_append_only,
     check_version_consistency,
     check_version_increases,
-    check_changelog_append_only,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

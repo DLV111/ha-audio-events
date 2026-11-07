@@ -222,7 +222,9 @@ def _validate_options_schema_recursive(
         prefix = f"{path}." if path else ""
         schema_key = option_key.rstrip("?")
         if schema_key not in schema:
-            errors.append(f"option '{prefix}{option_key}' has no corresponding schema entry")
+            errors.append(
+                f"option '{prefix}{option_key}' has no corresponding schema entry"
+            )
             continue
 
         schema_val = schema[schema_key]
@@ -256,6 +258,7 @@ def validate_full(path: Path | str) -> list[str]:
 # ---------------------------------------------------------------------------
 # Release metadata validation (version consistency, changelog, version increase)
 # ---------------------------------------------------------------------------
+
 
 def get_config_version(path: Path | str) -> str | None:
     """Extract version from config.yaml."""
