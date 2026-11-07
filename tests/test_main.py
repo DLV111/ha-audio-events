@@ -154,7 +154,6 @@ async def test_run_pipeline_no_audio_source() -> None:
         patch("app.main.build_classifier") as mock_classifier,
         patch("app.main.EventAggregator") as mock_aggregator,
     ):
-
         # Create a source that yields no audio - use a simple async iterator
         class EmptyAsyncIterator:
             def __aiter__(self):
