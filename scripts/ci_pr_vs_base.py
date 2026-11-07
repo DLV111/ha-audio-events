@@ -37,12 +37,12 @@ from manifest import (
 ADDON_DIR = "ha-audio-events"
 
 
-def _git_show(ref: str, path: str) -> str | None:
+def _git_show(ref: str, path: str, root: Path) -> str | None:
     """Return the file content at a git ref, or None if not present."""
     try:
         result = subprocess.run(
             ["git", "show", f"{ref}:{path}"],
-            cwd=REPO_ROOT,
+            cwd=root,
             capture_output=True,
             text=True,
             check=True,
@@ -53,7 +53,7 @@ def _git_show(ref: str, path: str) -> str | None:
         return None
 
 
-def _write_temp(content: str, suffix: str) -> str:
+def _write_temp(content: str, suffix: str, root: Path) -> str:
     import os
 
     fd, path = tempfile.mkstemp(suffix=suffix)
@@ -62,12 +62,12 @@ def _write_temp(content: str, suffix: str) -> str:
     return path
 
 
-def _changes_touch_ha_audio_events(base_ref: str) -> bool:
+def _changes_touch_ha_audio_events(base_ref: str, root: Path) -> bool:
     """Check if the PR touches ha-audio-events/ files by comparing refs."""
     try:
         result = subprocess.run(
             ["git", "diff", base_ref, "HEAD", "--name-only", "ha-audio-events/"],
-            cwd=REPO_ROOT,
+            cwd=root,
             capture_output=True,
             text=True,
             check=True,
@@ -77,30 +77,31 @@ def _changes_touch_ha_audio_events(base_ref: str) -> bool:
         return False
 
 
-def main(base_ref: str = "origin/develop") -> int:
+def main(base_ref: str = "origin/develop", repo_root: Path | None = None) -> int:
     errors: list[str] = []
+    root = repo_root or REPO_ROOT
 
     # Verify the base ref can be resolved
     if base_ref and base_ref != "HEAD":
-        base_config_content = _git_show(base_ref, f"{ADDON_DIR}/config.yaml")
+        base_config_content = _git_show(base_ref, f"{ADDON_DIR}/config.yaml", root)
         if base_config_content is None:
             print(f"ERROR: base ref '{base_ref}' not found; is fetch-depth 0 set?")
             return 1
-        base_changelog_content = _git_show(base_ref, f"{ADDON_DIR}/CHANGELOG.md")
+        base_changelog_content = _git_show(base_ref, f"{ADDON_DIR}/CHANGELOG.md", root)
         if base_changelog_content is None:
             print(f"ERROR: base ref '{base_ref}' not found; is fetch-depth 0 set?")
             return 1
 
-        base_config_path = _write_temp(base_config_content, ".yaml")
-        base_changelog_path = _write_temp(base_changelog_content, ".md")
+        base_config_path = _write_temp(base_config_content, ".yaml", root)
+        base_changelog_path = _write_temp(base_changelog_content, ".md", root)
     else:
         base_config_path = None
         base_changelog_path = None
 
     # Version consistency across config.yaml, pyproject.toml, and CHANGELOG.md.
-    head_config = REPO_ROOT / ADDON_DIR / "config.yaml"
-    head_pyproject = REPO_ROOT / "pyproject.toml"
-    head_changelog = REPO_ROOT / ADDON_DIR / "CHANGELOG.md"
+    head_config = root / ADDON_DIR / "config.yaml"
+    head_pyproject = root / "pyproject.toml"
+    head_changelog = root / ADDON_DIR / "CHANGELOG.md"
 
     errors.extend(
         check_version_consistency(head_config, head_pyproject, head_changelog)
@@ -108,7 +109,7 @@ def main(base_ref: str = "origin/develop") -> int:
 
     # Only check version increase if add-on files changed
     if base_ref and base_ref != "HEAD":
-        if _changes_touch_ha_audio_events(base_ref):
+        if _changes_touch_ha_audio_events(base_ref, root):
             errors.extend(check_version_increases(base_config_path, head_config))
         errors.extend(check_changelog_append_only(base_changelog_path, head_changelog))
 
