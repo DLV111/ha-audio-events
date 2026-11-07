@@ -23,9 +23,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ha-audio-events" / "app"))
 
 # Allow REPO_ROOT override via env var for testing.
-REPO_ROOT = Path(os.environ.get(
-    "CI_PR_VS_BASE_REPO_ROOT",
-    str(Path(__file__).resolve().parents[1]))
+REPO_ROOT = Path(
+    os.environ.get("CI_PR_VS_BASE_REPO_ROOT", str(Path(__file__).resolve().parents[1]))
 )
 
 from manifest import (

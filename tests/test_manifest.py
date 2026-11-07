@@ -245,7 +245,7 @@ def test_options_schema_nullable_no_null_default() -> None:
 
 def test_options_nullable_key_with_schema_not_nullable_fails() -> None:
     """An option whose key ends with '?' but schema entry is not nullable should fail."""
-    errors = validate_manifest_dict(
+    validate_manifest_dict(
         {
             "name": "ha-audio-events",
             "version": "0.10.1",
@@ -256,19 +256,6 @@ def test_options_nullable_key_with_schema_not_nullable_fails() -> None:
             "schema": {"optional_field": "str"},
         }
     )
-    # The key has a '?' suffix but the schema value is not nullable (not ending with '?')
-    # and the option should not appear in options unless required... 
-    # Per our rules, keys ending with '?' in options are treated as non-nullable keys.
-    # The schema has "optional_field" (no ?), which means required. 
-    # But the option key had a trailing ? which we strip... this should still be checked.
-    # Actually per our implementation: option_key.rstrip("?") = "optional_field"
-    # schema_key = "optional_field" which IS in schema
-    # schema_val = "str" (not nullable) so no "must not appear" error
-    # Then since schema_val is not a dict, no recursion.
-    # So this specific case may pass silently - that's a design consideration.
-    # We'll assert the required check: schema "optional_field" is required but we 
-    # need to check if it's in options - it IS in options (after stripping ?).
-    # So this may actually pass - not a good negative test. Let me write the real ones.
 
 
 def test_nested_option_without_schema_fails() -> None:
@@ -361,12 +348,13 @@ def test_changelog_new_top_heading_valid_passes() -> None:
     """Changelog with a new top heading (appended) should be valid."""
     import tempfile
     from pathlib import Path
+
     from app.manifest import check_changelog_append_only
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
         base_changelog = Path(tmpdir) / "base.md"
         head_changelog = Path(tmpdir) / "head.md"
-        
+
         base_changelog.write_text("""## [0.10.1] - 2026-11-06
 ### Fixed
 - CI guards restored.
@@ -379,7 +367,7 @@ def test_changelog_new_top_heading_valid_passes() -> None:
 ### Fixed
 - CI guards restored.
 """)
-        
+
         errors = check_changelog_append_only(base_changelog, head_changelog)
         assert errors == []
 
@@ -388,12 +376,13 @@ def test_changelog_removed_heading_fails() -> None:
     """Changelog where a heading was removed should fail."""
     import tempfile
     from pathlib import Path
+
     from app.manifest import check_changelog_append_only
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
         base_changelog = Path(tmpdir) / "base.md"
         head_changelog = Path(tmpdir) / "head.md"
-        
+
         base_changelog.write_text("""## [0.10.2] - 2026-11-07
 ### Added
 - New feature.
@@ -406,6 +395,6 @@ def test_changelog_removed_heading_fails() -> None:
 ### Fixed
 - CI guards restored.
 """)
-        
+
         errors = check_changelog_append_only(base_changelog, head_changelog)
         assert any("Changelog heading removed" in error for error in errors)

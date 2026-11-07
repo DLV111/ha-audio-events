@@ -1,5 +1,5 @@
 """Tests for ci_pr_vs_base.py script using temporary git repositories."""
-import os
+
 import subprocess
 import sys
 from pathlib import Path
@@ -15,7 +15,9 @@ from ci_pr_vs_base import main
 
 def run_git(repo_path, *args):
     """Run git command in repo."""
-    result = subprocess.run(["git", *args], cwd=repo_path, capture_output=True, text=True)
+    result = subprocess.run(
+        ["git", *args], check=False, cwd=repo_path, capture_output=True, text=True
+    )
     if result.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed: {result.stderr}")
     return result
@@ -41,22 +43,34 @@ def create_base_repo(tmp_path):
     addon_dir.mkdir()
 
     # pyproject.toml at repo root
-    write_file(repo_path, "pyproject.toml", """[project]
+    write_file(
+        repo_path,
+        "pyproject.toml",
+        """[project]
 name = "ha-audio-events"
 version = "0.10.1"
-""")
+""",
+    )
 
     # config.yaml and CHANGELOG.md inside ha-audio-events/
-    write_file(repo_path, "ha-audio-events/config.yaml", """name: HA Audio Events
+    write_file(
+        repo_path,
+        "ha-audio-events/config.yaml",
+        """name: HA Audio Events
 slug: ha_audio_events
 version: 0.10.1
 description: Home Assistant add-on for audio event detection using TensorFlow Lite.
-""")
+""",
+    )
 
-    write_file(repo_path, "ha-audio-events/CHANGELOG.md", """## [0.10.1] - 2026-11-06
+    write_file(
+        repo_path,
+        "ha-audio-events/CHANGELOG.md",
+        """## [0.10.1] - 2026-11-06
 ### Fixed
 - CI guards restored.
-""")
+""",
+    )
 
     run_git(repo_path, "add", ".")
     run_git(repo_path, "commit", "-m", "Initial commit")
@@ -79,7 +93,7 @@ def test_docs_only_pr_passes(tmp_path):
     run_git(repo_path, "add", "docs/")
     run_git(repo_path, "commit", "-m", "Add documentation")
 
-    exit_code = main('develop', repo_root=repo_path)
+    exit_code = main("develop", repo_root=repo_path)
     assert exit_code == 0, f"Expected exit code 0, got {exit_code}"
 
 
@@ -88,17 +102,21 @@ def test_add_on_change_without_version_bump_fails(tmp_path):
     repo_path = create_base_repo(tmp_path)
 
     # Make a change to config.yaml inside ha-audio-events/ without changing version
-    write_file(repo_path, "ha-audio-events/config.yaml", """name: HA Audio Events
+    write_file(
+        repo_path,
+        "ha-audio-events/config.yaml",
+        """name: HA Audio Events
 slug: ha_audio_events
 version: 0.10.1
 description: Home Assistant add-on for audio event detection using TensorFlow Lite.
 # Added a comment
-""")
+""",
+    )
 
     run_git(repo_path, "add", ".")
     run_git(repo_path, "commit", "-m", "Add comment to config.yaml")
 
-    exit_code = main('develop', repo_root=repo_path)
+    exit_code = main("develop", repo_root=repo_path)
     # Should fail because version didn't increase
     assert exit_code != 0, f"Expected non-zero exit code, got {exit_code}"
 
@@ -108,31 +126,43 @@ def test_version_bump_with_new_top_changelog_heading_passes(tmp_path):
     repo_path = create_base_repo(tmp_path)
 
     # Bump version in pyproject.toml and config.yaml to 0.10.2
-    write_file(repo_path, "pyproject.toml", """[project]
+    write_file(
+        repo_path,
+        "pyproject.toml",
+        """[project]
 name = "ha-audio-events"
 version = "0.10.2"
-""")
+""",
+    )
 
-    write_file(repo_path, "ha-audio-events/config.yaml", """name: HA Audio Events
+    write_file(
+        repo_path,
+        "ha-audio-events/config.yaml",
+        """name: HA Audio Events
 slug: ha_audio_events
 version: 0.10.2
 description: Home Assistant add-on for audio event detection using TensorFlow Lite.
-""")
+""",
+    )
 
     # Add new top heading in CHANGELOG.md
-    write_file(repo_path, "ha-audio-events/CHANGELOG.md", """## [0.10.2] - 2026-11-07
+    write_file(
+        repo_path,
+        "ha-audio-events/CHANGELOG.md",
+        """## [0.10.2] - 2026-11-07
 ### Added
 - New feature.
 
 ## [0.10.1] - 2026-11-06
 ### Fixed
 - CI guards restored.
-""")
+""",
+    )
 
     run_git(repo_path, "add", ".")
     run_git(repo_path, "commit", "-m", "Bump version to 0.10.2 and add changelog entry")
 
-    exit_code = main('develop', repo_root=repo_path)
+    exit_code = main("develop", repo_root=repo_path)
     assert exit_code == 0, f"Expected exit code 0, got {exit_code}"
 
 
@@ -141,39 +171,55 @@ def test_deleted_changelog_heading_fails(tmp_path):
     repo_path = create_base_repo(tmp_path)
 
     # Create a second commit with version 0.10.2 (base has two headings)
-    write_file(repo_path, "pyproject.toml", """[project]
+    write_file(
+        repo_path,
+        "pyproject.toml",
+        """[project]
 name = "ha-audio-events"
 version = "0.10.2"
-""")
+""",
+    )
 
-    write_file(repo_path, "ha-audio-events/config.yaml", """name: HA Audio Events
+    write_file(
+        repo_path,
+        "ha-audio-events/config.yaml",
+        """name: HA Audio Events
 slug: ha_audio_events
 version: 0.10.2
 description: Home Assistant add-on for audio event detection using TensorFlow Lite.
-""")
+""",
+    )
 
-    write_file(repo_path, "ha-audio-events/CHANGELOG.md", """## [0.10.2] - 2026-11-07
+    write_file(
+        repo_path,
+        "ha-audio-events/CHANGELOG.md",
+        """## [0.10.2] - 2026-11-07
 ### Added
 - New feature.
 
 ## [0.10.1] - 2026-11-06
 ### Fixed
 - CI guards restored.
-""")
+""",
+    )
 
     run_git(repo_path, "add", ".")
     run_git(repo_path, "commit", "-m", "Bump to 0.10.2")
 
     # Now delete one heading (0.10.2) - keep only 0.10.1
-    write_file(repo_path, "ha-audio-events/CHANGELOG.md", """## [0.10.1] - 2026-11-06
+    write_file(
+        repo_path,
+        "ha-audio-events/CHANGELOG.md",
+        """## [0.10.1] - 2026-11-06
 ### Fixed
 - CI guards restored.
-""")
+""",
+    )
 
     run_git(repo_path, "add", ".")
     run_git(repo_path, "commit", "-m", "Delete 0.10.2 heading")
 
-    exit_code = main('develop', repo_root=repo_path)
+    exit_code = main("develop", repo_root=repo_path)
     # Should fail because changelog heading was deleted
     assert exit_code != 0, f"Expected non-zero exit code, got {exit_code}"
 
@@ -184,18 +230,20 @@ def test_missing_base_fails_with_clear_message(tmp_path):
 
     # Capture stdout to check error message
     import io
+
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()
 
-    exit_code = main('non-existent-branch', repo_root=repo_path)
+    exit_code = main("non-existent-branch", repo_root=repo_path)
 
     output = sys.stdout.getvalue()
     sys.stdout = old_stdout
 
     # Should fail with message about missing base ref
     assert exit_code != 0, f"Expected non-zero exit code, got {exit_code}"
-    assert "base ref 'non-existent-branch' not found" in output, \
-        f"Expected error message not found in output: {output}"
+    assert (
+        "base ref 'non-existent-branch' not found" in output
+    ), f"Expected error message not found in output: {output}"
 
 
 def test_base_head_with_no_changes_passes(tmp_path):
@@ -205,7 +253,7 @@ def test_base_head_with_no_changes_passes(tmp_path):
     # Switch back to develop (HEAD == develop)
     run_git(repo_path, "checkout", "develop")
 
-    exit_code = main('HEAD', repo_root=repo_path)
+    exit_code = main("HEAD", repo_root=repo_path)
     # Should pass because version didn't change and changelog didn't change
     assert exit_code == 0, f"Expected exit code 0, got {exit_code}"
 
