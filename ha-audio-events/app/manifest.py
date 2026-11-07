@@ -210,9 +210,11 @@ def _validate_options_schema_recursive(
     """Recursively validate options/schema parity."""
     errors: list[str] = []
 
-    # Schema keys absent from options must be optional (end with '?').
+    # Schema keys absent from options must be optional (their schema value ends with '?').
     for schema_key, schema_val in schema.items():
-        if schema_key not in options and not schema_key.endswith("?"):
+        if schema_key not in options and not (
+            isinstance(schema_val, str) and schema_val.endswith("?")
+        ):
             prefix = f"{path}." if path else ""
             errors.append(
                 f"schema key '{prefix}{schema_key}' is required but missing from options"
@@ -229,7 +231,7 @@ def _validate_options_schema_recursive(
 
         schema_val = schema[schema_key]
         # (a) Nullable schema keys must NOT appear in options at all.
-        if schema_key.endswith("?"):
+        if isinstance(schema_val, str) and schema_val.endswith("?"):
             errors.append(
                 f"nullable option '{prefix}{option_key}' must not appear in options"
             )
