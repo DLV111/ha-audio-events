@@ -13,6 +13,7 @@ the current checkout (the PR head).
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -21,13 +22,18 @@ from pathlib import Path
 # Ensure the app package is importable when running from the repo root.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ha-audio-events" / "app"))
 
+# Allow REPO_ROOT override via env var for testing.
+REPO_ROOT = Path(os.environ.get(
+    "CI_PR_VS_BASE_REPO_ROOT",
+    str(Path(__file__).resolve().parents[1]))
+)
+
 from manifest import (
     check_changelog_append_only,
     check_version_consistency,
     check_version_increases,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
 ADDON_DIR = "ha-audio-events"
 
 
