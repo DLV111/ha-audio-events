@@ -1,61 +1,38 @@
 name: Repository Guard
+
 on:
   push:
     branches: [develop, main]
   pull_request:
 
 jobs:
-  repo-access:
+  validate-addon-manifest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify repository accessible
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
         run: |
-          curl -sf -o /dev/null https://github.com/DLV111/ha-audio-events || {
-            echo "❌ Repository not accessible (deleted, archived, or private)"
-            exit 1
-          }
-          echo "✓ Repository accessible"
-      - name: Verify add-on manifest structure
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install pyyaml packaging
+      - name: Validate add-on manifest
         run: |
-          [ -f ha-audio-events/app/manifest.py ] || {
-            echo "❌ Add-on manifest.py missing — add-on may have been removed from repo"
-            exit 1
-          }
-          python3 -c "
-import yaml, sys
-from pathlib import Path
-m = yaml.safe_load((Path('ha-audio-events/config.yaml')).read_text())
-v = m.get('version', 'missing')
-p = Path('pyproject.toml').read_text()
-import re
-m2 = re.search(r'version\s*=\s*\"([^\"]+)\"', p, re.MULTILINE)
-v2 = m2.group(1) if m2 else 'missing'
-assert v == v2, f'Version mismatch: config.yaml={v} vs pyproject.toml={v2}'
-print(f'✓ Version consistent: {v}')
-"
-      - name: Verify config.yaml has required fields
-        run: |
-          python3 -c "
-import yaml
-from pathlib import Path
-m = yaml.safe_load((Path('ha-audio-events/config.yaml')).read_text())
-required = ['model', 'audio', 'classifier', 'version']
-for r in required:
-    if r not in m:
-        print(f'❌ Missing required field: {r}')
-        exit(1)
-    print(f'✓ Field present: {r}')
-"
-      - name: Verify manifest version sync with pyproject
-        run: |
-          python3 -c "
-import re, yaml
-from pathlib import Path
-py = Path('pyproject.toml').read_text()
-mf = Path('ha-audio-events/config.yaml').read_text()
-v1 = re.search(r'version\s*=\s*\"([^\"]+)\"', py, re.MULTILINE).group(1)
-m = yaml.safe_load(mf).get('version', '')
-assert v1 == m, f'Version MISMATCH: pyproject={v1} but config.yaml={m}'
-print(f'✓ Versions in sync: {v1}')
-"
+          source .venv/bin/activate
+          PYTHONPATH=ha-audio-events .venv/bin/python -c "
+          import sys
+          sys.path.insert(0, 'ha-audio-events/app')
+          from manifest import validate_manifest
+          errors = validate_manifest('ha-audio-events/config.yaml')
+          if errors:
+              print('ERROR: Manifest validation failed:')
+              for e in errors:
+                  print(f'  - {e}')
+              sys.exit(1)
+          print('Manifest validation passed.')
+          "
