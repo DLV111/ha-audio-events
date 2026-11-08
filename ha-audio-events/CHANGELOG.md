@@ -5,10 +5,32 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.10.1] - 2026-11-06
+## [0.10.2] - 2026-11-08
 ### Fixed
-- **Add-on manifest `description` restored**: the field was accidentally deleted from `ha-audio-events/config.yaml` (see PR #39), which caused the Home Assistant Supervisor to reject the manifest and drop the add-on from the store listing. The description is restored, and the CI `validate_manifest` guard now requires `name`, `version`, `slug`, `description` and `arch`, so a missing field can never slip through again.
-- **CI guards restored**: an options/schema parity check, version-consistency check, strict version-increase check and changelog append-only check are now wired into CI (pytest tests plus a PR-vs-base script). Nullable schema keys like `audio.source_path`, `mqtt.username`, `mqtt.password` and `webui.auth_token` are no longer allowed as default-empty-string options in the manifest, but the behavior (empty defaults) is preserved inside the add-on.
+- **Add-on manifest `description` restored**: the field was accidentally deleted
+  from `ha-audio-events/config.yaml` (see PR #39), which caused the Home Assistant
+  Supervisor to reject the manifest and drop the add-on from the store listing.
+  The description is restored, and the CI `validate_manifest` guard now requires
+  `name`, `version`, `slug`, `description` and `arch`, so a missing field can never
+  slip through again.
+- **CI guards restored**: an options/schema parity check, version-consistency
+  check, strict version-increase check and changelog append-only check are now
+  wired into CI (pytest tests plus a PR-vs-base script). Nullable schema keys like
+  `audio.source_path`, `mqtt.username`, `mqtt.password` and `webui.auth_token` are
+  no longer allowed as default-empty-string options in the manifest, but the
+  behavior (empty defaults) is preserved inside the add-on.
+
+### Changed
+- Refactored add-on Dockerfile for better layer caching and smaller image size:
+  switched to a multi-stage builder/runtime build on `python:3.12-slim-bookworm`,
+  installed system and Python dependencies before copying application source,
+  added BuildKit cache mounts for apt and pip, and moved build tooling out of
+  the runtime image.
+- Added `ha-audio-events/requirements.txt` to keep container Python dependencies
+  in sync with `pyproject.toml`.
+- Added `ha-audio-events/.dockerignore` to reduce build-context noise.
+- Added `tests/test_dockerfile.py` to guard the Dockerfile structure, base image,
+  dependency installation order, BuildKit cache mounts, and entrypoint.
 
 ## [0.10.0] - 2026-11-03
 ### Changed
