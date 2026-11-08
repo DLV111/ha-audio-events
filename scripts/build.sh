@@ -66,6 +66,7 @@ use_buildx=false
 if [ "$CONTAINER_ENGINE" = "docker" ]; then
     export DOCKER_BUILDKIT=1
     export BUILDKIT_PROGRESS="$BUILDKIT_PROGRESS"
+<<<<<<< HEAD
 
     # Some systems ship a 'docker' binary that is really a Podman compatibility
     # shim. BuildKit-specific cache export/import (e.g. type=gha) won't work

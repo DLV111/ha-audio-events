@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BUILD_CACHE_FROM=type=gha`, `BUILD_CACHE_TO=type=gha,mode=max`,
   `BUILDKIT_INLINE_CACHE=1`, and uses `docker/setup-buildx-action@v3` so CI
   reuses dependency layers across builds.
+<<<<<<< HEAD
 - Makefile auto-detects the container engine (Docker preferred, matching CI) and
   still allows `CONTAINER_ENGINE=podman` for local Podman workflows.
 - Documented all build-script environment variables in `README.md` and `agents.md`.

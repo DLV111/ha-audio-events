@@ -276,6 +276,7 @@ Environment variables recognised by `scripts/build.sh` and the Makefile:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
+<<<<<<< HEAD
 | `CONTAINER_ENGINE` | auto (`docker` if present, else `podman`) | Container tool to use |
 | `IMAGE_NAME` | `ha-audio-events-test` | Image name/tag |
 | `BUILD_CONTEXT` | `./ha-audio-events` | Build context path |
