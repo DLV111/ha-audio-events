@@ -225,7 +225,7 @@ Common overrides (set as environment variables or `make VAR=value` arguments):
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `CONTAINER_ENGINE` | `podman` | `docker` or `podman`. CI uses `docker`. |
+| `CONTAINER_ENGINE` | auto (`docker` if present, else `podman`) | `docker` or `podman`. CI uses `docker`. |
 | `IMAGE_NAME` | `ha-audio-events-test` | Image tag for the build. |
 | `BUILD_CONTEXT` | `./ha-audio-events` | Build context path. |
 | `BUILD_CACHE_FROM` | *(empty)* | Cache source(s); separate multiple with `;`. |
