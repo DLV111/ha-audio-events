@@ -251,6 +251,41 @@ pytest -v
 python3 -m app.demo tests/fixtures/audio/train/freight_train_01.wav
 ```
 
+## Container Build
+
+The container image is built through `scripts/build.sh`, which is also invoked
+by the Makefile targets (`make build-container`, `make test-container`, ...).
+The script auto-detects Docker or Podman and enables BuildKit/Docker caching
+where available, so local and CI builds use the same command.
+
+```bash
+# Default build (auto-detects engine, uses layer caching)
+make build-container
+
+# Force Docker + BuildKit with GitHub Actions cache export (CI mode)
+make build-container CONTAINER_ENGINE=docker \
+  BUILD_CACHE_FROM=type=gha \
+  BUILD_CACHE_TO=type=gha,mode=max \
+  BUILDKIT_INLINE_CACHE=1
+
+# Force Podman
+make build-container CONTAINER_ENGINE=podman
+```
+
+Environment variables recognised by `scripts/build.sh` and the Makefile:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `CONTAINER_ENGINE` | `podman` (`docker` in CI) | Container tool to use |
+| `IMAGE_NAME` | `ha-audio-events-test` | Image name/tag |
+| `BUILD_CONTEXT` | `./ha-audio-events` | Build context path |
+| `BUILD_CACHE_FROM` | (none) | BuildKit `--cache-from` source(s); separate multiple with `;` |
+| `BUILD_CACHE_TO` | (none) | BuildKit `--cache-to` destination |
+| `BUILDKIT_INLINE_CACHE` | (none) | Set to `1` to embed cache metadata in the image |
+| `BUILDKIT_PROGRESS` | `plain` | BuildKit progress output |
+| `PUSH_IMAGE` | `false` | Set to `true` to push the image (docker buildx only) |
+| `VOLUME_LABEL` | `:Z` | SELinux label for `run` volume mounts; set empty for Docker |
+
 ---
 
 ## Troubleshooting

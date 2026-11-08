@@ -1,8 +1,46 @@
-.PHONY: version version-noninteractive test test-unit test-lint test-format test-types test-container test-container-webui test-container-verbose test-fixtures test-fixtures-container test-fixture-local demo-file download-yamnet-model update-yamnet-model update-yamnet-groups generate-class-groups help
+.PHONY: version version-noninteractive test test-unit test-lint test-format test-types test-container test-container-webui test-container-verbose test-fixtures test-fixtures-container test-fixture-local demo-file download-yamnet-model update-yamnet-model update-yamnet-groups generate-class-groups build-container help
+
+# Container build caching defaults (override via environment or make variables).
+# The build script auto-detects docker/podman and enables BuildKit for docker.
+# For Makefile targets that also run containers, mirror that auto-detection here
+# so the same engine is used for build and run.
+CONTAINER_ENGINE ?=
+ifeq ($(CONTAINER_ENGINE),)
+  ifneq ($(shell command -v docker 2>/dev/null),)
+    CONTAINER_ENGINE := docker
+  else ifneq ($(shell command -v podman 2>/dev/null),)
+    CONTAINER_ENGINE := podman
+  else
+    CONTAINER_ENGINE := docker
+  endif
+endif
+IMAGE_NAME ?= ha-audio-events-test
+BUILD_CONTEXT ?= ./ha-audio-events
+BUILD_CACHE_FROM ?=
+BUILD_CACHE_TO ?=
+BUILDKIT_INLINE_CACHE ?=
+BUILDKIT_PROGRESS ?= plain
+PUSH_IMAGE ?= false
+VOLUME_LABEL ?= :Z
+
+BUILD_SCRIPT := scripts/build.sh
+BUILD_ENV := \
+	CONTAINER_ENGINE="$(CONTAINER_ENGINE)" \
+	IMAGE_NAME="$(IMAGE_NAME)" \
+	BUILD_CONTEXT="$(BUILD_CONTEXT)" \
+	BUILD_CACHE_FROM="$(BUILD_CACHE_FROM)" \
+	BUILD_CACHE_TO="$(BUILD_CACHE_TO)" \
+	BUILDKIT_INLINE_CACHE="$(BUILDKIT_INLINE_CACHE)" \
+	BUILDKIT_PROGRESS="$(BUILDKIT_PROGRESS)" \
+	PUSH_IMAGE="$(PUSH_IMAGE)"
+
+build-container:
+	@$(BUILD_ENV) $(BUILD_SCRIPT)
 
 help:
 	@echo "Available targets:"
 	@echo "  make test                  Run lint + format + type-check + tests with coverage"
+	@echo "  make build-container       Build the container image using scripts/build.sh (supports BuildKit cache)"
 	@echo "  make test-container       Build container, run it against a real dog-bark fixture, and assert a detection actually fired"
 	@echo "  make test-container-webui  Build container, start it with the webui enabled, and assert it serves HTTP"
 	@echo "  make test-container-verbose  Build and smoke-test with more runtime logs"
@@ -83,17 +121,17 @@ test-fixture-local:
 
 test-container:
 	@echo "Building container image..."
-	@podman build -t ha-audio-events-test ./ha-audio-events
+	@$(BUILD_ENV) $(BUILD_SCRIPT)
 	@echo "Converting a real fixture (dog bark) to WAV..."
 	@mkdir -p /tmp/ha-audio-events-container-test
 	@.venv/bin/python -c "from pathlib import Path; import subprocess; fixture=Path('tests/fixtures/audio/dog-barking/audiopapkin-barking-large-and-small-dog-290711.mp3'); output=Path('/tmp/ha-audio-events-container-test/test_audio.wav'); subprocess.run(['ffmpeg','-y','-i',str(fixture),'-ar','16000','-ac','1','-f','wav',str(output)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); print(f'Converted {fixture.name} -> {output.name}')"
 	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/test_audio.wav\nactivity:\n  rms_threshold: 0.01\n  peak_threshold: 0.01\n  hold_time: 0.1\nclassifier:\n  threshold: 0.1\n  max_results: 5\n  include:\n    - speech\n    - dog\n    - train\n    - thunder\n    - siren\n  exclude:\n    - music\n    - silence\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\nwebui:\n  enabled: false\n' > /tmp/ha-audio-events-test-config.yaml
 	@echo "Running container smoke test..."
-	@podman run --rm \
+	@$(CONTAINER_ENGINE) run --rm \
 		-e PYTHONUNBUFFERED=1 \
-		-v "/tmp/ha-audio-events-container-test:/data:Z" \
-		-v /tmp/ha-audio-events-test-config.yaml:/tmp/config.yaml:Z \
-		localhost/ha-audio-events-test \
+		-v "/tmp/ha-audio-events-container-test:/data$(VOLUME_LABEL)" \
+		-v /tmp/ha-audio-events-test-config.yaml:/tmp/config.yaml$(VOLUME_LABEL) \
+		$(IMAGE_NAME) \
 		timeout 60 \
 		bash -c 'set -e; cd /app && cp /data/test_audio.wav /tmp/test_audio.wav && cp /tmp/config.yaml /app/config.yaml && python3 -m app.main' \
 		2>&1 | tee /tmp/ha-audio-events-container-test/output.log
@@ -110,14 +148,14 @@ test-container:
 
 test-container-webui:
 	@echo "Building container image..."
-	@podman build -t ha-audio-events-test ./ha-audio-events
+	@$(BUILD_ENV) $(BUILD_SCRIPT)
 	@echo "Starting container with webui enabled..."
-	@podman rm -f ha-audio-events-webui-test >/dev/null 2>&1 || true
-	@podman run -d --name ha-audio-events-webui-test \
+	@$(CONTAINER_ENGINE) rm -f ha-audio-events-webui-test >/dev/null 2>&1 || true
+	@$(CONTAINER_ENGINE) run -d --name ha-audio-events-webui-test \
 		-e PYTHONUNBUFFERED=1 \
 		-e SUPERVISOR_TOKEN=test-token \
 		-p 18099:8099 \
-		localhost/ha-audio-events-test \
+		$(IMAGE_NAME) \
 		timeout 60 python3 -m app.main
 	@echo "Waiting for the webui to come up..."
 	@success=0; \
@@ -131,44 +169,44 @@ test-container-webui:
 	if [ "$$success" != "1" ]; then \
 		echo "FAILED: webui never became reachable on 127.0.0.1:18099 within 30s."; \
 		echo "--- container running state ---"; \
-		podman inspect -f 'Running={{.State.Running}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}' ha-audio-events-webui-test || true; \
-		echo "--- port mapping (as podman sees it) ---"; \
-		podman port ha-audio-events-webui-test || true; \
+		$(CONTAINER_ENGINE) inspect -f 'Running={{.State.Running}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}' ha-audio-events-webui-test || true; \
+		echo "--- port mapping (as $(CONTAINER_ENGINE) sees it) ---"; \
+		$(CONTAINER_ENGINE) port ha-audio-events-webui-test || true; \
 		echo "--- verbose curl attempt ---"; \
 		curl -v -m 5 http://127.0.0.1:18099/ || true; \
 		echo "--- container logs ---"; \
-		podman logs ha-audio-events-webui-test || true; \
-		podman rm -f ha-audio-events-webui-test >/dev/null 2>&1 || true; \
+		$(CONTAINER_ENGINE) logs ha-audio-events-webui-test || true; \
+		$(CONTAINER_ENGINE) rm -f ha-audio-events-webui-test >/dev/null 2>&1 || true; \
 		exit 1; \
 	fi
 	@echo "Validating webui endpoints respond..."
 	@status=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18099/api/detections); \
 	if [ "$$status" != "200" ]; then \
 		echo "FAILED: GET /api/detections returned HTTP $$status, expected 200"; \
-		podman logs ha-audio-events-webui-test || true; \
-		podman rm -f ha-audio-events-webui-test >/dev/null 2>&1 || true; \
+		$(CONTAINER_ENGINE) logs ha-audio-events-webui-test || true; \
+		$(CONTAINER_ENGINE) rm -f ha-audio-events-webui-test >/dev/null 2>&1 || true; \
 		exit 1; \
 	fi
-	@podman rm -f ha-audio-events-webui-test >/dev/null 2>&1 || true
+	@$(CONTAINER_ENGINE) rm -f ha-audio-events-webui-test >/dev/null 2>&1 || true
 	@echo "Container webui smoke test passed: ingress panel served HTTP correctly."
 
 test-fixtures-container:
 	@echo "Building container image..."
-	@podman build -t ha-audio-events-test ./ha-audio-events
+	@$(BUILD_ENV) $(BUILD_SCRIPT)
 	@mkdir -p /tmp/ha-audio-events-fixtures
 	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/fixture.wav\nactivity:\n  rms_threshold: 0.03\n  peak_threshold: 0.05\n  hold_time: 0.5\nclassifier:\n  threshold: 0.1\n  max_results: 5\n  include:\n    - speech\n    - dog\n    - train\n    - thunder\n    - siren\n  exclude:\n    - music\n    - silence\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\nwebui:\n  enabled: false\n' > /tmp/ha-audio-events-fixture-config.yaml
 	@for fixture in tests/fixtures/audio/train/freesound_community-8-freight-train_126s.mp3 tests/fixtures/audio/dog-barking/audiopapkin-barking-large-and-small-dog-290711.mp3; do \
 		cp "$$fixture" /tmp/ha-audio-events-fixtures/fixture.mp3; \
 		.venv/bin/python -c "from pathlib import Path; import subprocess; fixture=Path('/tmp/ha-audio-events-fixtures/fixture.mp3'); output=Path('/tmp/ha-audio-events-fixtures/fixture.wav'); subprocess.run(['ffmpeg','-y','-i',str(fixture),'-ar','16000','-ac','1','-f','wav',str(output)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); print(f'Converted {fixture.name} -> {output.name}')"; \
-		podman run --rm -i -e PYTHONUNBUFFERED=1 -v "$$(pwd):/data:Z" -v /tmp/ha-audio-events-fixture-config.yaml:/tmp/config.yaml:Z -v /tmp/ha-audio-events-fixtures:/tmp/fixtures:Z localhost/ha-audio-events-test timeout 60 /bin/bash -lc 'cd /app && cp /tmp/fixtures/fixture.wav /tmp/fixture.wav && cp /tmp/config.yaml /app/config.yaml && /app/run.sh' ; \
+		$(CONTAINER_ENGINE) run --rm -i -e PYTHONUNBUFFERED=1 -v "$$(pwd):/data$(VOLUME_LABEL)" -v /tmp/ha-audio-events-fixture-config.yaml:/tmp/config.yaml$(VOLUME_LABEL) -v /tmp/ha-audio-events-fixtures:/tmp/fixtures$(VOLUME_LABEL) $(IMAGE_NAME) timeout 60 /bin/bash -lc 'cd /app && cp /tmp/fixtures/fixture.wav /tmp/fixture.wav && cp /tmp/config.yaml /app/config.yaml && /app/run.sh' ; \
 	done
 
 test-container-verbose:
 	@echo "Building container image with verbose logging..."
-	@podman build -t ha-audio-events-test ./ha-audio-events
+	@$(BUILD_ENV) $(BUILD_SCRIPT)
 	@.venv/bin/python -c "import math,wave; from pathlib import Path; p=Path('test_audio.wav'); w=wave.open(str(p),'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); [w.writeframesraw((int(12000*math.sin(2*math.pi*440*i/16000)) if i % 800 < 400 else 0).to_bytes(2,'little',signed=True)) for i in range(16000)]; w.close()"
 	@printf 'model: yamnet\nbuffer_seconds: 3.0\naudio:\n  sample_rate: 16000\n  channels: 1\n  format: pcm_s16le\n  source_path: /tmp/test_audio.wav\nactivity:\n  rms_threshold: 0.01\n  peak_threshold: 0.01\n  hold_time: 0.1\nclassifier:\n  threshold: 0.1\n  max_results: 5\n  include:\n    - speech\n    - dog\n    - train\n    - thunder\n    - siren\n  exclude:\n    - music\n    - silence\nhomeassistant:\n  enabled: false\nmqtt:\n  enabled: false\nwebui:\n  enabled: false\n' > /tmp/ha-audio-events-test-config.yaml
-	@podman run --rm -i -e PYTHONUNBUFFERED=1 -v "$$(pwd):/data:Z" -v /tmp/ha-audio-events-test-config.yaml:/tmp/config.yaml:Z localhost/ha-audio-events-test timeout 60 /bin/bash -lc 'cd /app && cp /data/test_audio.wav /tmp/test_audio.wav && cp /tmp/config.yaml /app/config.yaml && /app/run.sh'
+	@$(CONTAINER_ENGINE) run --rm -i -e PYTHONUNBUFFERED=1 -v "$$(pwd):/data$(VOLUME_LABEL)" -v /tmp/ha-audio-events-test-config.yaml:/tmp/config.yaml$(VOLUME_LABEL) $(IMAGE_NAME) timeout 60 /bin/bash -lc 'cd /app && cp /data/test_audio.wav /tmp/test_audio.wav && cp /tmp/config.yaml /app/config.yaml && /app/run.sh'
 
 test: test-lint test-format test-types test-with-coverage
 
