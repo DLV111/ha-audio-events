@@ -72,8 +72,10 @@ def _changes_touch_ha_audio_events(base_ref: str, root: Path) -> bool:
             check=True,
         )
         return len(result.stdout.strip()) > 0
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-        return False
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(
+            f"git diff failed while checking add-on file changes: {exc}"
+        ) from exc
 
 
 def main(base_ref: str = "origin/develop", repo_root: Path | None = None) -> int:
@@ -108,7 +110,12 @@ def main(base_ref: str = "origin/develop", repo_root: Path | None = None) -> int
 
     # Only check version increase if add-on files changed
     if base_ref and base_ref != "HEAD":
-        if _changes_touch_ha_audio_events(base_ref, root):
+        try:
+            touches_addon = _changes_touch_ha_audio_events(base_ref, root)
+        except RuntimeError as exc:
+            print(f"ERROR: {exc}")
+            return 1
+        if touches_addon:
             errors.extend(check_version_increases(base_config_path, head_config))
         errors.extend(check_changelog_append_only(base_changelog_path, head_changelog))
 

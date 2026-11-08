@@ -148,9 +148,10 @@ jobs:
 
       - name: Run PR-vs-base checks
         if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           source .venv/bin/activate
-          BASE_REF="${{ github.base_ref }}"
           git fetch origin "$BASE_REF" --depth=1
           BASE_SHA=$(git rev-parse "origin/$BASE_REF")
           PYTHONPATH=ha-audio-events .venv/bin/python scripts/ci_pr_vs_base.py "$BASE_SHA"
@@ -162,4 +163,3 @@ jobs:
           name: coverage-report
           path: htmlcov/
 
-  # WebUI Code Validation - specifically validates WebUI integration
