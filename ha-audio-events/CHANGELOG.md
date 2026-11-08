@@ -5,6 +5,19 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.2] - 2026-11-08
+### Changed
+- Refactored add-on Dockerfile for better layer caching and smaller image size:
+  switched to a multi-stage builder/runtime build on `python:3.12-slim-bookworm`,
+  installed system and Python dependencies before copying application source,
+  added BuildKit cache mounts for apt and pip, and moved build tooling out of
+  the runtime image.
+- Added `ha-audio-events/requirements.txt` to keep container Python dependencies
+  in sync with `pyproject.toml`.
+- Added `ha-audio-events/.dockerignore` to reduce build-context noise.
+- Added `tests/test_dockerfile.py` to guard the Dockerfile structure, base image,
+  dependency installation order, BuildKit cache mounts, and entrypoint.
+
 ## [0.10.1] - 2026-11-06
 ### Fixed
 - **Add-on manifest `description` restored**: the field was accidentally deleted from `ha-audio-events/config.yaml` (see PR #39), which caused the Home Assistant Supervisor to reject the manifest and drop the add-on from the store listing. The description is restored, and the CI `validate_manifest` guard now requires `name`, `version`, `slug`, `description` and `arch`, so a missing field can never slip through again.

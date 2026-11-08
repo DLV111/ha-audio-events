@@ -1,0 +1,35 @@
+# Build instructions
+Dockerfile
+.dockerignore
+
+# Python caches and compiled bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Local environment files
+.env
+.envrc
+.venv/
+venv/
+
+# Test, coverage, and lint caches (not shipped in the runtime image)
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Logs
+*.log
+
+# macOS / editor droppings
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Documentation not required at runtime
+CHANGELOG.md
