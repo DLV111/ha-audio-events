@@ -66,12 +66,23 @@ use_buildx=false
 if [ "$CONTAINER_ENGINE" = "docker" ]; then
     export DOCKER_BUILDKIT=1
     export BUILDKIT_PROGRESS="$BUILDKIT_PROGRESS"
-    if docker buildx version >/dev/null 2>&1; then
+
+    # Some systems ship a 'docker' binary that is really a Podman compatibility
+    # shim. BuildKit-specific cache export/import (e.g. type=gha) won't work
+    # there, so detect the real backend and fall back to plain layer caching.
+    docker_backend=$(docker --version 2>/dev/null || true)
+    buildx_backend=$(docker buildx version 2>/dev/null || true)
+    if echo "$docker_backend $buildx_backend" | grep -qiE "podman|buildah"; then
+        echo "INFO: docker command is backed by Podman; using layer caching only" >&2
+        build_cmd=(docker build)
+        skip_cache_export=true
+    elif docker buildx version >/dev/null 2>&1; then
         build_cmd=(docker buildx build)
         use_buildx=true
     else
         echo "WARNING: docker buildx unavailable; falling back to 'docker build'" >&2
         build_cmd=(docker build)
+        skip_cache_export=true
     fi
 else
     build_cmd=(podman build)
