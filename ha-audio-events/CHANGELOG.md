@@ -5,7 +5,41 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.3] - 2026-11-08
+### Added
+- `scripts/build.sh`: container build helper that auto-detects Docker/Podman,
+  enables BuildKit for Docker, and supports cache export/import and inline cache
+  metadata through environment variables.
+- `tests/test_buildkit_ci.py`: regression tests verifying that the build script,
+  Makefile, CI workflow, and Dockerfile all agree on BuildKit caching.
+
+### Changed
+- `Makefile` container targets now route through `scripts/build.sh` and expose
+  `BUILD_CACHE_FROM`, `BUILD_CACHE_TO`, `BUILDKIT_INLINE_CACHE`, and
+  `BUILDKIT_PROGRESS` variables, keeping local and CI build commands identical.
+- `.github/workflows/ci.yml` sets `CONTAINER_ENGINE=docker`,
+  `BUILD_CACHE_FROM=type=gha`, `BUILD_CACHE_TO=type=gha,mode=max`,
+  `BUILDKIT_INLINE_CACHE=1`, and uses `docker/setup-buildx-action@v3` so CI
+  reuses dependency layers across builds.
+- Makefile auto-detects the container engine (Docker preferred, matching CI) and
+  still allows `CONTAINER_ENGINE=podman` for local Podman workflows.
+- Documented all build-script environment variables in `README.md` and `agents.md`.
+
 ## [0.10.2] - 2026-11-08
+### Fixed
+- **Add-on manifest `description` restored**: the field was accidentally deleted
+  from `ha-audio-events/config.yaml` (see PR #39), which caused the Home Assistant
+  Supervisor to reject the manifest and drop the add-on from the store listing.
+  The description is restored, and the CI `validate_manifest` guard now requires
+  `name`, `version`, `slug`, `description` and `arch`, so a missing field can never
+  slip through again.
+- **CI guards restored**: an options/schema parity check, version-consistency
+  check, strict version-increase check and changelog append-only check are now
+  wired into CI (pytest tests plus a PR-vs-base script). Nullable schema keys like
+  `audio.source_path`, `mqtt.username`, `mqtt.password` and `webui.auth_token` are
+  no longer allowed as default-empty-string options in the manifest, but the
+  behavior (empty defaults) is preserved inside the add-on.
+
 ### Changed
 - Refactored add-on Dockerfile for better layer caching and smaller image size:
   switched to a multi-stage builder/runtime build on `python:3.12-slim-bookworm`,
@@ -20,8 +54,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.10.1] - 2026-11-06
 ### Fixed
-- **Add-on manifest `description` restored**: the field was accidentally deleted from `ha-audio-events/config.yaml` (see PR #39), which caused the Home Assistant Supervisor to reject the manifest and drop the add-on from the store listing. The description is restored, and the CI `validate_manifest` guard now requires `name`, `version`, `slug`, `description` and `arch`, so a missing field can never slip through again.
-- **CI guards restored**: an options/schema parity check, version-consistency check, strict version-increase check and changelog append-only check are now wired into CI (pytest tests plus a PR-vs-base script). Nullable schema keys like `audio.source_path`, `mqtt.username`, `mqtt.password` and `webui.auth_token` are no longer allowed as default-empty-string options in the manifest, but the behavior (empty defaults) is preserved inside the add-on.
+- **Add-on manifest `description` restored**: the field was accidentally deleted
+  from `ha-audio-events/config.yaml` (see PR #39), which caused the Home Assistant
+  Supervisor to reject the manifest and drop the add-on from the store listing.
+  The description is restored, and the CI `validate_manifest` guard now requires
+  `name`, `version`, `slug`, `description` and `arch`, so a missing field can never
+  slip through again.
+- **CI guards restored**: an options/schema parity check, version-consistency
+  check, strict version-increase check and changelog append-only check are now
+  wired into CI (pytest tests plus a PR-vs-base script). Nullable schema keys like
+  `audio.source_path`, `mqtt.username`, `mqtt.password` and `webui.auth_token` are
+  no longer allowed as default-empty-string options in the manifest, but the
+  behavior (empty defaults) is preserved inside the add-on.
 
 ## [0.10.0] - 2026-11-03
 ### Changed
