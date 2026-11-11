@@ -5,6 +5,24 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.4] - 2026-11-11
+### Added
+- Expanded README container-build documentation with cache-behaviour overview,
+  expected build-time table (before/after metrics), and troubleshooting guide
+  for Home Assistant container updates.
+- Added developer-oriented "Container Build Workflow" section to `agents.md`
+  covering build entry points, caching layers, measured timings, and common
+  build problems.
+- Added `tests/test_container_build_docs.py` to guard the new documentation
+  sections and keep README, `agents.md`, and `docs/container-build-validation.md`
+  consistent.
+
+### Changed
+- Updated `agents.md` test-result summary to reflect the current 309-test suite
+  and 80% coverage threshold.
+- Aligned `agents.md` linting examples with CI by including `scripts/` in ruff
+  and black checks.
+
 ## [0.10.3] - 2026-11-08
 ### Added
 - `scripts/build.sh`: container build helper that auto-detects Docker/Podman,
