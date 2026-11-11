@@ -249,16 +249,23 @@ def _detection(label: str, confidence: float):
 
 
 def test_flush_ends_active_events_and_clears_state() -> None:
-    aggregator = EventAggregator(AggregationConfig(start_confidence=0.5))
+    aggregator = EventAggregator(
+        AggregationConfig(start_confidence=0.5, sustain_confidence=0.25)
+    )
 
     aggregator.update([_detection("dog", 0.9)])
     events = aggregator.flush()
 
-    assert len(events) == 1
-    ended = events[0]
+    lifecycle = [e for e in events if not e.is_display]
+    display = [e for e in events if e.is_display]
+    assert len(lifecycle) == 1
+    ended = lifecycle[0]
     assert isinstance(ended, EventMessage)
     assert ended.state == "ended"
     assert ended.label == "dog"
+    # Display resets to silence when the last active event ends.
+    assert len(display) == 1
+    assert display[0].label == "silence"
     # State must be cleared so a later flush emits nothing.
     assert aggregator.flush() == []
 
@@ -266,14 +273,21 @@ def test_flush_ends_active_events_and_clears_state() -> None:
 def test_update_after_timeout_emits_ended_once() -> None:
     from datetime import UTC, datetime, timedelta
 
-    aggregator = EventAggregator(AggregationConfig(start_confidence=0.5))
+    aggregator = EventAggregator(
+        AggregationConfig(start_confidence=0.5, sustain_confidence=0.25)
+    )
     t0 = datetime.now(UTC)
     aggregator.update([_detection("dog", 0.9)], timestamp=t0)
     t1 = t0 + timedelta(seconds=10)
 
     events = aggregator.update([], timestamp=t1)
 
-    assert [e.state for e in events] == ["ended"]
+    lifecycle = [e for e in events if not e.is_display]
+    display = [e for e in events if e.is_display]
+    assert [e.state for e in lifecycle] == ["ended"]
+    # Display resets to silence once the event expires.
+    assert len(display) == 1
+    assert display[0].label == "silence"
     # A second update after the end must not re-emit anything.
     assert aggregator.update([], timestamp=t1 + timedelta(seconds=10)) == []
 

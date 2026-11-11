@@ -66,10 +66,14 @@ class HomeAssistantClient:
 
         # Ensure each REST-owned entity exists - create with a default state
         # if missing.
-        for entity_id in sorted(
-            build_rest_entity_ids(self.config, self._mqtt_enabled, self._labels)
-        ):
-            await self.update_state(entity_id, "off", {})
+        rest_entity_ids = build_rest_entity_ids(
+            self.config, self._mqtt_enabled, self._labels
+        )
+        for entity_id in sorted(rest_entity_ids):
+            if entity_id == self._entity_ids["last_audio_event"]:
+                await self.update_state(entity_id, "silence", {})
+            else:
+                await self.update_state(entity_id, "off", {})
 
     async def fire_event(self, event: EventMessage) -> None:
         if not self.config.enabled:

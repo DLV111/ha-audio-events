@@ -24,7 +24,15 @@ classifier:
     - silence
 aggregation:
   start_confidence: 0.01
+  sustain_confidence: 0.005
+  switch_margin: 0.1
+  switch_debounce_seconds: 1.0
+  switch_min_observations: 2
+  min_event_hold_seconds: 2.0
   end_timeout: 1.0
+  silence_timeout_seconds: 5.0
+  activation_delay_seconds: 0.0
+  candidate_max_observation_gap_seconds: 2.0
 homeassistant:
   enabled: false
 mqtt:

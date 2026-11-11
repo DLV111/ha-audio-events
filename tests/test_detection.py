@@ -56,16 +56,18 @@ def test_filter_detections_respects_include_exclude() -> None:
 
 
 def test_event_aggregator_starts_and_ends() -> None:
-    config = AggregationConfig(start_confidence=0.8, end_timeout=0.1)
+    config = AggregationConfig(
+        start_confidence=0.8,
+        sustain_confidence=0.7,
+        min_event_hold_seconds=0.0,
+        end_timeout=0.1,
+    )
     aggregator = EventAggregator(config)
+    now = datetime(2026, 10, 26, tzinfo=UTC)
     detection = Detection(label="train", confidence=0.9, timestamp=None, model="yamnet")
-    events = aggregator.update([detection])
+    events = aggregator.update([detection], timestamp=now)
     assert any(event.state == "started" for event in events)
-    # Simulate ended state by waiting longer than end_timeout.
-    import time
-
-    time.sleep(0.2)
-    events = aggregator.update([])
+    events = aggregator.update([], timestamp=now + timedelta(seconds=0.2))
     assert any(event.state == "ended" for event in events)
 
 

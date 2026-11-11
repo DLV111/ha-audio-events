@@ -74,7 +74,9 @@ async def run_demo(audio_path: str) -> list[str]:
         classifier=ClassifierConfig(
             threshold=0.05, max_results=5, include=[], exclude=["music", "silence"]
         ),
-        aggregation=AggregationConfig(start_confidence=0.05, end_timeout=2.0),
+        aggregation=AggregationConfig(
+            start_confidence=0.05, sustain_confidence=0.025, end_timeout=2.0
+        ),
         homeassistant=HomeAssistantConfig(
             enabled=False,
             url=base_config.homeassistant.url,

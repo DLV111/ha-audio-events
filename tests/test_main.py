@@ -140,7 +140,9 @@ async def test_run_pipeline_no_audio_source() -> None:
         audio=AudioSourceConfig(sample_rate=16000, channels=1),
         activity=ActivityConfig(rms_threshold=0.01, peak_threshold=0.01),
         buffer_seconds=3.0,
-        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        aggregation=AggregationConfig(
+            start_confidence=0.5, sustain_confidence=0.25, end_timeout=2.0
+        ),
         classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
         homeassistant=HomeAssistantConfig(enabled=False),
         mqtt=MQTTConfig(enabled=False),
@@ -189,7 +191,9 @@ async def test_run_pipeline_with_audio_chunks() -> None:
         audio=AudioSourceConfig(sample_rate=16000, channels=1),
         activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
         buffer_seconds=3.0,
-        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        aggregation=AggregationConfig(
+            start_confidence=0.5, sustain_confidence=0.25, end_timeout=2.0
+        ),
         classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
         homeassistant=HomeAssistantConfig(enabled=False),
         mqtt=MQTTConfig(enabled=False),
@@ -253,7 +257,9 @@ async def test_run_pipeline_wires_up_webui_correctly() -> None:
         audio=AudioSourceConfig(sample_rate=16000, channels=1),
         activity=ActivityConfig(rms_threshold=0.01, peak_threshold=0.01),
         buffer_seconds=3.0,
-        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        aggregation=AggregationConfig(
+            start_confidence=0.5, sustain_confidence=0.25, end_timeout=2.0
+        ),
         classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
         homeassistant=HomeAssistantConfig(enabled=False),
         mqtt=MQTTConfig(enabled=False),
@@ -331,7 +337,9 @@ async def test_pipeline_flushes_active_events_when_stream_ends() -> None:
         audio=AudioSourceConfig(sample_rate=16000, channels=1),
         activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
         buffer_seconds=3.0,
-        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        aggregation=AggregationConfig(
+            start_confidence=0.5, sustain_confidence=0.25, end_timeout=2.0
+        ),
         classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
         homeassistant=HomeAssistantConfig(enabled=False),
         mqtt=MQTTConfig(enabled=False),
@@ -388,7 +396,9 @@ async def test_webui_starts_while_stream_is_still_live() -> None:
         audio=AudioSourceConfig(sample_rate=16000, channels=1),
         activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
         buffer_seconds=3.0,
-        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        aggregation=AggregationConfig(
+            start_confidence=0.5, sustain_confidence=0.25, end_timeout=2.0
+        ),
         classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
         homeassistant=HomeAssistantConfig(enabled=False),
         mqtt=MQTTConfig(enabled=False),
@@ -480,7 +490,9 @@ async def test_webui_survives_pipeline_failure() -> None:
         audio=AudioSourceConfig(sample_rate=16000, channels=1),
         activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
         buffer_seconds=3.0,
-        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        aggregation=AggregationConfig(
+            start_confidence=0.5, sustain_confidence=0.25, end_timeout=2.0
+        ),
         classifier=ClassifierConfig(threshold=0.5, include=[], exclude=[]),
         homeassistant=HomeAssistantConfig(enabled=False),
         mqtt=MQTTConfig(enabled=False),
@@ -551,7 +563,9 @@ async def test_mqtt_owns_scalar_entities_not_rest(caplog) -> None:
         audio=AudioSourceConfig(sample_rate=16000, channels=1),
         activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
         buffer_seconds=3.0,
-        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        aggregation=AggregationConfig(
+            start_confidence=0.5, sustain_confidence=0.25, end_timeout=2.0
+        ),
         classifier=ClassifierConfig(threshold=0.5, include=["dog"], exclude=[]),
         homeassistant=HomeAssistantConfig(
             enabled=True,
@@ -654,7 +668,9 @@ async def test_rest_owns_entities_when_mqtt_disabled(caplog) -> None:
         audio=AudioSourceConfig(sample_rate=16000, channels=1),
         activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
         buffer_seconds=3.0,
-        aggregation=AggregationConfig(start_confidence=0.5, end_timeout=2.0),
+        aggregation=AggregationConfig(
+            start_confidence=0.5, sustain_confidence=0.25, end_timeout=2.0
+        ),
         classifier=ClassifierConfig(threshold=0.5, include=["dog"], exclude=[]),
         homeassistant=HomeAssistantConfig(
             enabled=True,
@@ -673,6 +689,15 @@ async def test_rest_owns_entities_when_mqtt_disabled(caplog) -> None:
         duration=1.5,
         state="started",
         model="yamnet",
+    )
+    display_event = EventMessage(
+        event_type="audio.detected",
+        label="dog",
+        confidence=0.0,
+        duration=0.0,
+        state="current",
+        model="",
+        is_display=True,
     )
 
     chunk = np.ones(16000, dtype=np.float32) * 0.01
@@ -709,7 +734,7 @@ async def test_rest_owns_entities_when_mqtt_disabled(caplog) -> None:
         mock_classifier.return_value = mock_classifier_instance
 
         aggregator = MagicMock()
-        aggregator.update.return_value = [event]
+        aggregator.update.return_value = [event, display_event]
         aggregator.flush.return_value = []
         mock_aggregator.return_value = aggregator
 
@@ -726,7 +751,8 @@ async def test_rest_owns_entities_when_mqtt_disabled(caplog) -> None:
         url == "http://localhost:8123/api/events/audio.detected" for url, _ in posts
     )
     # ...and every entity state is pushed over REST again: the two scalar
-    # entities plus the per-label sensor for the detected label.
+    # entities plus the per-label sensor for the detected label. The display
+    # event owns the last_audio_event update.
     assert any(
         url == "http://localhost:8123/api/states/sensor.audio_last_audio_event"
         and payload.get("state") == "dog"
