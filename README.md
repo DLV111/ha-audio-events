@@ -251,6 +251,124 @@ pytest -v
 python3 -m app.demo tests/fixtures/audio/train/freight_train_01.wav
 ```
 
+## Container Build
+
+The container image is built through `scripts/build.sh`, which is also invoked
+by the Makefile targets (`make build-container`, `make test-container`, ...).
+The script auto-detects Docker or Podman and enables BuildKit/Docker caching
+where available, so local and CI builds use the same command.
+
+```bash
+# Default build (auto-detects engine, uses layer caching)
+make build-container
+
+# Force Docker + BuildKit with GitHub Actions cache export (CI mode)
+make build-container CONTAINER_ENGINE=docker \
+  BUILD_CACHE_FROM=type=gha \
+  BUILD_CACHE_TO=type=gha,mode=max \
+  BUILDKIT_INLINE_CACHE=1
+
+# Force Podman
+make build-container CONTAINER_ENGINE=podman
+```
+
+Environment variables recognised by `scripts/build.sh` and the Makefile:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `CONTAINER_ENGINE` | auto (`docker` if present, else `podman`) | Container tool to use |
+| `IMAGE_NAME` | `ha-audio-events-test` | Image name/tag |
+| `BUILD_CONTEXT` | `./ha-audio-events` | Build context path |
+| `BUILD_CACHE_FROM` | (none) | BuildKit `--cache-from` source(s); separate multiple with `;` |
+| `BUILD_CACHE_TO` | (none) | BuildKit `--cache-to` destination |
+| `BUILDKIT_INLINE_CACHE` | (none) | Set to `1` to embed cache metadata in the image |
+| `BUILDKIT_PROGRESS` | `plain` | BuildKit progress output |
+| `PUSH_IMAGE` | `false` | Set to `true` to push the image (docker buildx only) |
+| `VOLUME_LABEL` | `:Z` | SELinux label for `run` volume mounts; set empty for Docker |
+
+### Measuring build times
+
+`scripts/measure_build_times.sh` benchmarks container builds across cold/warm
+scenarios (clean caches, no-change rebuild, source-only change, dependency
+change, layer-cache-miss with warm cache mounts) and prints a summary table.
+It builds from a snapshot of the build context, never modifies the working
+tree, and removes the benchmark image afterwards:
+
+```bash
+./scripts/measure_build_times.sh                       # standard scenario set
+./scripts/measure_build_times.sh --scenarios all       # includes warm-no-layer-cache
+./scripts/measure_build_times.sh --json times.json     # machine-readable results
+```
+
+Scenario results are recorded in `docs/container-build-validation.md`.
+
+### How the cache works
+
+`scripts/build.sh` combines three caching mechanisms:
+
+1. **Layer caching** (all engines): Docker/Podman reuse layers when the matching
+   `RUN`/`COPY` instructions haven't changed. Podman needs `--layers`, which the
+   script adds automatically.
+2. **BuildKit cache mounts** (Docker buildx / recent Podman): the Dockerfile
+   mounts persistent caches for `apt` (`/var/cache/apt`) and `pip`
+   (`/root/.cache/pip`) so `.deb` packages and wheels survive even when the
+   layer above them changes.
+3. **Inline / registry / GHA cache** (CI and advanced local builds):
+   `BUILDKIT_INLINE_CACHE=1` embeds cache metadata in the image;
+   `BUILD_CACHE_FROM=type=gha` and `BUILD_CACHE_TO=type=gha,mode=max` let
+   GitHub Actions reuse dependency layers between CI runs.
+
+### Expected build times
+
+These numbers were measured on a rootless Podman 4.9.3 host; raw seconds vary by
+machine and network, but the relative improvements are representative. Full
+details are in `docs/container-build-validation.md`.
+
+| metric | baseline (pre-optimization) | optimized | improvement |
+|---|---:|---:|---|
+| image size | 1010 MiB | 716 MiB | **−29%** |
+| warm no-change rebuild | 0.7 s | 3.6 s | negligible |
+| rebuild after source change | 19.6 s | 4.4 s | **−78%** |
+| rebuild after dependency change | ~19.6 s | 9.0 s | **−55%** |
+| fully cold build | 86.9 s | 113.4 s | +30%* |
+
+\* Cold builds are slower because the multi-stage image pays for two `apt`
+transactions and a `COPY --from=builder` of the compiled site-packages. In CI
+this is mitigated by `BUILD_CACHE_FROM`/`BUILD_CACHE_TO`; locally it is rare
+because layer caches persist between builds.
+
+### Troubleshooting container builds / Home Assistant updates
+
+1. **Add-on update seems to hang or takes a long time**:
+   - The Supervisor rebuilds the image from scratch when no cache is present.
+     The optimized *cold* build is ~30% slower than the old single-stage image,
+     but normal updates reuse layers and are much faster (see table above).
+   - Ensure the host has at least 2 GiB of free disk space and a stable network.
+
+2. **Every build reinstalls dependencies (cache not reused)**:
+   - Confirm the build context is `./ha-audio-events` and that
+     `ha-audio-events/.dockerignore` is present.
+   - Avoid editing `ha-audio-events/requirements.txt` unless dependencies
+     actually change; even whitespace changes invalidate the dependency layer.
+
+3. **`docker` on this host is really Podman**:
+   - `scripts/build.sh` detects the Podman compatibility shim and falls back to
+     plain layer caching. BuildKit `type=gha` cache export is not supported in
+     this mode; use `CONTAINER_ENGINE=podman` explicitly if desired.
+
+4. **`make test-container` fails with SELinux permission errors**:
+   - The Makefile defaults to `VOLUME_LABEL=:Z` for Podman. On Docker set
+     `VOLUME_LABEL=` (CI does this automatically).
+
+5. **Image is larger than ~1 GiB**:
+   - Make sure you are building with the multi-stage `ha-audio-events/Dockerfile`
+     and not an old single-stage copy. The runtime image should be ~716 MiB.
+
+6. **Build fails with `docker buildx` not found**:
+   - Install Docker Buildx, or set `CONTAINER_ENGINE=podman`. The script falls
+     back to `docker build` automatically, but cache export/import will be
+     disabled.
+
 ---
 
 ## Troubleshooting

@@ -233,8 +233,7 @@ def test_blank_string_options_coerce_to_none(tmp_path: Path) -> None:
 def test_nonblank_string_options_are_kept(tmp_path: Path) -> None:
     cfg_file = tmp_path / "config.yaml"
     cfg_file.write_text(
-        'audio:\n  source_path: "camera.garage_camera"\n'
-        'mqtt:\n  username: "audio"\n',
+        'audio:\n  source_path: "camera.garage_camera"\nmqtt:\n  username: "audio"\n',
         encoding="utf-8",
     )
 

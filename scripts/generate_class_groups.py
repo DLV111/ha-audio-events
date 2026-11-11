@@ -43,7 +43,10 @@ from pathlib import Path
 
 GROUPS_IN = Path("models/yamnet_groups.json")
 CLASS_MAP = Path("models/yamnet_class_map.csv")
-OUTPUTS = [Path("models/class_groups.json"), Path("ha-audio-events/models/class_groups.json")]
+OUTPUTS = [
+    Path("models/class_groups.json"),
+    Path("ha-audio-events/models/class_groups.json"),
+]
 
 
 def slugify(name: str) -> str:
