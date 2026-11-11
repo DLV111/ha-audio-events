@@ -286,6 +286,22 @@ Environment variables recognised by `scripts/build.sh` and the Makefile:
 | `PUSH_IMAGE` | `false` | Set to `true` to push the image (docker buildx only) |
 | `VOLUME_LABEL` | `:Z` | SELinux label for `run` volume mounts; set empty for Docker |
 
+### Measuring build times
+
+`scripts/measure_build_times.sh` benchmarks container builds across cold/warm
+scenarios (clean caches, no-change rebuild, source-only change, dependency
+change, layer-cache-miss with warm cache mounts) and prints a summary table.
+It builds from a snapshot of the build context, never modifies the working
+tree, and removes the benchmark image afterwards:
+
+```bash
+./scripts/measure_build_times.sh                       # standard scenario set
+./scripts/measure_build_times.sh --scenarios all       # includes warm-no-layer-cache
+./scripts/measure_build_times.sh --json times.json     # machine-readable results
+```
+
+Scenario results are recorded in `docs/container-build-validation.md`.
+
 ---
 
 ## Troubleshooting
