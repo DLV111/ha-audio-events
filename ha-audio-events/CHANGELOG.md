@@ -5,6 +5,14 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-11-12
+### Fixed
+- Stable audio-event lifecycle and dominant-label selection (ADR-45): per-label
+  activation with start/sustain thresholds, minimum event hold and end-timeout
+  expiration, canonical families (Thunder/Thunderstorm), hysteretic dominant
+  switching with debounce/hold, and physical-quiet global idle override.
+- Flapping between sounds and failure to turn off on silence (issue #45).
+
 ## [0.10.4] - 2026-11-11
 ### Added
 - Expanded README container-build documentation with cache-behaviour overview,
