@@ -194,8 +194,8 @@ make test-unit          # Just unit tests (no coverage)
 ```
 
 ### Test Results (as of last run)
-- **44 tests, all passing** in ~4 seconds
-- Coverage: **64%** (threshold: 60%)
+- **309 tests, all passing** in ~16 seconds
+- Coverage: **84%** (threshold: 80%)
 - Integration tests require `models/yamnet.tflite` and `models/yamnet_class_map.csv`
   (present in the repo). If missing, those tests are skipped.
 - `test_stream.py::test_stream_source_wav_file` requires
@@ -237,6 +237,78 @@ Common overrides (set as environment variables or `make VAR=value` arguments):
 
 The old CI had separate `test` and `coverage-check` jobs that ran tests twice. Now both CI and local run tests once with coverage.
 
+### Container Build Workflow
+
+The optimized container build is documented for end-users in `README.md` and
+validated in `docs/container-build-validation.md`. This section is the
+developer-oriented reference.
+
+#### Build entry points
+
+| Command | What it does |
+|---|---|
+| `make build-container` | Builds the image via `scripts/build.sh` with auto-detected engine. |
+| `make test-container` | Builds, runs the dog-bark fixture, and asserts a real detection fires. |
+| `make test-container-webui` | Builds, starts the container, and asserts the web UI serves HTTP. |
+| `./scripts/measure_build_times.sh --scenarios all` | Benchmarks cold/warm/source-change/deps-change/layer-cache-miss builds. |
+| `./scripts/validate_container_contents.sh` | Runs 28 static checks on the built image. |
+
+All build commands route through `scripts/build.sh`. Keep the script, the
+Makefile, and `.github/workflows/ci.yml` in sync when changing caching
+behaviour.
+
+#### Caching behaviour
+
+1. **Layer caching**: the Dockerfile copies `requirements.txt` and installs
+   dependencies *before* copying the rest of the app. Editing app source code
+   therefore reuses the heavy dependency layer. Podman needs `--layers` (added
+   automatically).
+2. **BuildKit cache mounts**: `ha-audio-events/Dockerfile` uses
+   `RUN --mount=type=cache,target=/var/cache/apt ...` and
+   `RUN --mount=type=cache,target=/root/.cache/pip ...`. These mounts persist
+   across builds even when the surrounding layer is rebuilt. The measure script
+   knows how to locate and clear the buildah cache directory for genuine cold
+   benchmarks.
+3. **Inline / registry / GHA cache**: CI sets `BUILDKIT_INLINE_CACHE=1`,
+   `BUILD_CACHE_FROM=type=gha`, and `BUILD_CACHE_TO=type=gha,mode=max` so
+   consecutive CI runs share dependency layers. The build script also supports
+   `type=registry` caches for self-hosted runners.
+
+#### Expected build times
+
+Representative numbers from `docs/container-build-validation.md` (rootless
+Podman 4.9.3):
+
+| metric | baseline | optimized | delta |
+|---|---:|---:|---|
+| image size | 1010 MiB | 716 MiB | **−29%** |
+| warm no-change rebuild | 0.7 s | 3.6 s | negligible |
+| source-change rebuild | 19.6 s | 4.4 s | **−78%** |
+| dependency-change rebuild | ~19.6 s | 9.0 s | **−55%** |
+| fully cold build | 86.9 s | 113.4 s | +30% (accepted trade-off) |
+
+Key implementation details behind the wins:
+
+- Multi-stage `builder`/`runtime` build removes `build-essential`, `gcc`, and apt
+  state from the runtime image.
+- `requirements.txt` is installed before `COPY . /app`, so source edits skip pip.
+- `python -m compileall` precompiles app bytecode at build time, improving
+  container startup even with `PYTHONDONTWRITEBYTECODE=1`.
+
+#### Troubleshooting container builds
+
+- **Cold builds are slower than before**: expected. The multi-stage build pays
+  for two apt transactions and a ~200 MiB `COPY --from=builder`. In CI this is
+  covered by cache-from/cache-to; locally it is unusual because layers persist.
+- **No cache reuse**: verify the build context is `./ha-audio-events`, not the
+  repo root, and that `ha-audio-events/.dockerignore` is present. Whitespace
+  changes in `requirements.txt` invalidate the dependency layer.
+- **Podman-backed `docker` shim**: the script detects it and falls back to layer
+  caching only. Do not try to use `type=gha` cache export in this mode.
+- **`make test-container` SELinux errors**: set `VOLUME_LABEL=` on Docker hosts
+  (the CI default). Podman hosts should keep the default `:Z`.
+- **Buildx unavailable**: install Docker Buildx, or set `CONTAINER_ENGINE=podman`.
+
 ### Running the Demo
 
 The demo classifies an audio file and prints detected events. Requires
@@ -272,20 +344,20 @@ PYTHONPATH=ha-audio-events .venv/bin/python -m app.demo tests/fixtures/audio/tra
 
 ```bash
 # Check for issues
-PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/
+PYTHONPATH=ha-audio-events .venv/bin/ruff check ha-audio-events/app/ tests/ scripts/
 
 # Auto-fix what's possible
-PYTHONPATH=ha-audio-events .venv/bin/ruff check --fix ha-audio-events/app/ tests/
+PYTHONPATH=ha-audio-events .venv/bin/ruff check --fix ha-audio-events/app/ tests/ scripts/
 
 # Check formatting
-PYTHONPATH=ha-audio-events .venv/bin/black --check --target-version py312 ha-audio-events/app/ tests/
+PYTHONPATH=ha-audio-events .venv/bin/black --check --target-version py312 ha-audio-events/app/ tests/ scripts/
 
 # Check coverage
-PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing
+PYTHONPATH=ha-audio-events .venv/bin/pytest --cov=ha-audio-events/app --cov-fail-under=80 --cov-report=term-missing
 ```
 
-> **Note**: There are pre-existing linting issues (import sorting, unused imports,
-> modernization suggestions). These don't affect test functionality.
+> **Note**: CI also runs `mypy ha-audio-events/app`. There are a small number of
+> pre-existing style suggestions; auto-fix before pushing.
 
 ---
 

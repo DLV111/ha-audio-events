@@ -2,34 +2,39 @@
 Dockerfile
 .dockerignore
 
-# Python caches and compiled bytecode
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+# Python caches and compiled bytecode. Patterns are anchored at the context
+# root, so '**/' is required to also match caches nested under app/, models/,
+# etc. -- without it 'COPY . /app' ships host .pyc files into the image.
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/*.so
 
 # Local environment files
-.env
-.envrc
+**/.env
+**/.envrc
 .venv/
 venv/
+**/.venv/
+**/venv/
 
 # Test, coverage, and lint caches (not shipped in the runtime image)
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-.coverage.*
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.coverage
+**/.coverage.*
 htmlcov/
+**/htmlcov/
 
 # Logs
-*.log
+**/*.log
 
 # macOS / editor droppings
-.DS_Store
-*.swp
-*.swo
-*~
+**/.DS_Store
+**/*.swp
+**/*.swo
+**/*~
 
 # Documentation not required at runtime
 CHANGELOG.md
