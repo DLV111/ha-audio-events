@@ -175,7 +175,26 @@ class TestHomeAssistantClient:
             "http://localhost:8123/api/states/binary_sensor.audio_dog",
             "http://localhost:8123/api/states/sensor.audio_last_audio_event",
         ]
-        assert mock_session.post.call_args.kwargs["json"]["state"] == "off"
+        states_by_url = {
+            call.args[0]: call.kwargs["json"]["state"]
+            for call in mock_session.post.call_args_list
+        }
+        assert (
+            states_by_url[
+                "http://localhost:8123/api/states/sensor.audio_last_audio_event"
+            ]
+            == "silence"
+        )
+        assert (
+            states_by_url[
+                "http://localhost:8123/api/states/binary_sensor.audio_audio_active"
+            ]
+            == "off"
+        )
+        assert (
+            states_by_url["http://localhost:8123/api/states/binary_sensor.audio_dog"]
+            == "off"
+        )
         assert build_rest_entity_ids(ha_config, False, ["dog"]) == {
             "sensor.audio_last_audio_event",
             "binary_sensor.audio_audio_active",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -40,7 +41,48 @@ class ClassifierConfig:
 @dataclass(frozen=True)
 class AggregationConfig:
     start_confidence: float = 0.85
+    sustain_confidence: float = 0.70
+    switch_margin: float = 0.10
+    switch_debounce_seconds: float = 1.0
+    switch_min_observations: int = 2
+    min_event_hold_seconds: float = 2.0
     end_timeout: float = 5.0
+    silence_timeout_seconds: float = 5.0
+    activation_delay_seconds: float = 0.0
+    candidate_max_observation_gap_seconds: float = 2.0
+
+    def __post_init__(self) -> None:
+        if not (0.0 <= self.sustain_confidence < self.start_confidence <= 1.0):
+            raise ValueError(
+                "aggregation confidence thresholds must satisfy "
+                "0 <= sustain_confidence < start_confidence <= 1"
+            )
+        if not (0.0 <= self.switch_margin <= 1.0):
+            raise ValueError("aggregation switch_margin must be between 0 and 1")
+        for name, value in (
+            ("switch_debounce_seconds", self.switch_debounce_seconds),
+            ("switch_min_observations", self.switch_min_observations),
+            ("min_event_hold_seconds", self.min_event_hold_seconds),
+            ("end_timeout", self.end_timeout),
+            ("silence_timeout_seconds", self.silence_timeout_seconds),
+            ("activation_delay_seconds", self.activation_delay_seconds),
+            (
+                "candidate_max_observation_gap_seconds",
+                self.candidate_max_observation_gap_seconds,
+            ),
+        ):
+            if (
+                not isinstance(value, (int, float))
+                or value < 0
+                or not math.isfinite(value)
+            ):
+                raise ValueError(
+                    f"aggregation {name} must be a non-negative finite number"
+                )
+        if self.switch_min_observations != int(self.switch_min_observations):
+            raise ValueError("aggregation switch_min_observations must be an integer")
+        if int(self.switch_min_observations) < 1:
+            raise ValueError("aggregation switch_min_observations must be at least 1")
 
 
 @dataclass(frozen=True)
@@ -214,7 +256,25 @@ def load_config(path: Path | str | None = None) -> AppConfig:
         ),
         aggregation=AggregationConfig(
             start_confidence=float(aggregation.get("start_confidence", 0.85)),
+            sustain_confidence=float(aggregation.get("sustain_confidence", 0.70)),
+            switch_margin=float(aggregation.get("switch_margin", 0.10)),
+            switch_debounce_seconds=float(
+                aggregation.get("switch_debounce_seconds", 1.0)
+            ),
+            switch_min_observations=int(aggregation.get("switch_min_observations", 2)),
+            min_event_hold_seconds=float(
+                aggregation.get("min_event_hold_seconds", 2.0)
+            ),
             end_timeout=float(aggregation.get("end_timeout", 5.0)),
+            silence_timeout_seconds=float(
+                aggregation.get("silence_timeout_seconds", 5.0)
+            ),
+            activation_delay_seconds=float(
+                aggregation.get("activation_delay_seconds", 0.0)
+            ),
+            candidate_max_observation_gap_seconds=float(
+                aggregation.get("candidate_max_observation_gap_seconds", 2.0)
+            ),
         ),
         homeassistant=HomeAssistantConfig(
             enabled=bool(raw.get("homeassistant", {}).get("enabled", True)),

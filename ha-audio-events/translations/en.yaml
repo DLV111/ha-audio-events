@@ -120,11 +120,51 @@ configuration:
       description: >-
         Confidence needed to open a new event. Keep close to or above the
         classifier threshold.
+    sustain_confidence:
+      name: Sustain confidence (0.0-1.0)
+      description: >-
+        Confidence needed to keep an already-active event alive. Must be
+        lower than start_confidence so brief dips do not end the event.
+    switch_margin:
+      name: Switch margin (0.0-1.0)
+      description: >-
+        A challenger label must exceed the currently displayed label by at
+        least this much before it is allowed to take over the display.
+    switch_debounce_seconds:
+      name: Switch debounce (seconds)
+      description: >-
+        Minimum time a challenger must remain qualified before the display
+        switches away from the current label.
+    switch_min_observations:
+      name: Switch minimum observations
+      description: >-
+        Minimum number of qualified observations a challenger must make
+        before the display switches away from the current label.
+    min_event_hold_seconds:
+      name: Minimum event hold (seconds)
+      description: >-
+        Minimum time the current label must be displayed before switching
+        to a different label.
     end_timeout:
       name: End timeout (seconds)
       description: >-
         A label must be absent for this long before its event ends and the
         binary sensor turns off.
+    silence_timeout_seconds:
+      name: Silence timeout (seconds)
+      description: >-
+        After this many seconds below the activity thresholds, all active
+        events end and the last audio event sensor resets to silence.
+    activation_delay_seconds:
+      name: Activation delay (seconds)
+      description: >-
+        Optional extra delay before a newly qualified label starts an event.
+        Usually left at 0.
+    candidate_max_observation_gap_seconds:
+      name: Candidate max observation gap (seconds)
+      description: >-
+        If a challenger disappears for longer than this, its accumulated
+        observation count resets.
 
   homeassistant:
     name: Home Assistant integration

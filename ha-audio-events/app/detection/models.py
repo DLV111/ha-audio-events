@@ -12,6 +12,7 @@ class AggregatedEvent:
     last_seen_at: datetime
     duration: float = 0.0
     model: str = ""
+    current_confidence: float = 0.0
 
 
 @dataclass
@@ -22,3 +23,4 @@ class EventMessage:
     duration: float
     state: str
     model: str
+    is_display: bool = False

@@ -10,6 +10,7 @@ from app.addon_mgr import AddonManager
 from app.audio.activity import ActivityDetector
 from app.audio.buffer import CircularAudioBuffer
 from app.audio.stream import AudioStreamSource, NoAudioStreamError
+from app.classifiers.base import Detection
 from app.classifiers.registry import build_classifier
 from app.config import AppConfig, load_config
 from app.detection.aggregate import EventAggregator
@@ -62,7 +63,6 @@ async def _run_pipeline(config: AppConfig) -> None:
     label_friendly_names = build_label_friendly_names(
         config.homeassistant, config.classifier.include
     )
-    silence_started_at: datetime | None = None
     ha_client = (
         HomeAssistantClient(
             config.homeassistant,
@@ -108,46 +108,43 @@ async def _run_pipeline(config: AppConfig) -> None:
     async def _publish_events(events: list[EventMessage]) -> None:
         """Record events in history and push them to Home Assistant / MQTT.
 
-        The REST client always fires the ``audio.detected`` event. Entity
-        state has exactly one owner: when MQTT is enabled it is published to
-        the firehose topic (updating the discovered scalar and per-label
-        sensors without any REST state POST, which could never assign a
-        unique_id); when MQTT is disabled the REST path pushes the same state
-        as before this feature, so the entities keep updating on installs
-        that never enabled MQTT.
+        The REST client always fires the ``audio.detected`` event for lifecycle
+        events. Entity state has exactly one owner: when MQTT is enabled it is
+        published to the firehose topic (updating the discovered scalar and
+        per-label sensors without any REST state POST, which could never assign
+        a unique_id); when MQTT is disabled the REST path pushes the same state
+        as before this feature, so the entities keep updating on installs that
+        never enabled MQTT.
+
+        Display events (``is_display=True``) update the ``last_audio_event``
+        text sensor and are never suppressed by ``hide_silence``; lifecycle
+        silence events may still be hidden by that option.
         """
         rest_owns_entities = mqtt_client is None
         for event in events:
-            if event.label.lower() == "silence" and config.classifier.hide_silence:
+            if (
+                not event.is_display
+                and event.label.lower() == "silence"
+                and config.classifier.hide_silence
+            ):
                 continue
             _LOGGER.info("Detected event: %s", format_event_summary(event))
             history.add(event.label, event.confidence, event.state)
             if ha_client is not None:
-                await ha_client.fire_event(event)
+                if not event.is_display:
+                    await ha_client.fire_event(event)
                 if rest_owns_entities:
-                    await ha_client.update_state(
-                        entity_ids["last_audio_event"],
-                        event.label,
-                        build_attributes(
-                            event, friendly_name=friendly_names["last_audio_event"]
-                        ),
-                    )
-                    await ha_client.update_state(
-                        entity_ids["audio_active"],
-                        (
-                            "on"
-                            if event.state != "ended" and event.label != "silence"
-                            else "off"
-                        ),
-                        {
-                            "label": event.label,
-                            "friendly_name": friendly_names["audio_active"],
-                            "device_class": "sound",
-                        },
-                    )
-                    if event.label in label_sensor_ids:
+                    if event.is_display:
                         await ha_client.update_state(
-                            label_sensor_ids[event.label],
+                            entity_ids["last_audio_event"],
+                            event.label,
+                            build_attributes(
+                                event, friendly_name=friendly_names["last_audio_event"]
+                            ),
+                        )
+                    else:
+                        await ha_client.update_state(
+                            entity_ids["audio_active"],
                             (
                                 "on"
                                 if event.state != "ended" and event.label != "silence"
@@ -155,13 +152,28 @@ async def _run_pipeline(config: AppConfig) -> None:
                             ),
                             {
                                 "label": event.label,
-                                "confidence": str(event.confidence),
-                                "friendly_name": label_friendly_names.get(
-                                    event.label, event.label
-                                ),
+                                "friendly_name": friendly_names["audio_active"],
                                 "device_class": "sound",
                             },
                         )
+                        if event.label in label_sensor_ids:
+                            await ha_client.update_state(
+                                label_sensor_ids[event.label],
+                                (
+                                    "on"
+                                    if event.state != "ended"
+                                    and event.label != "silence"
+                                    else "off"
+                                ),
+                                {
+                                    "label": event.label,
+                                    "confidence": str(event.confidence),
+                                    "friendly_name": label_friendly_names.get(
+                                        event.label, event.label
+                                    ),
+                                    "device_class": "sound",
+                                },
+                            )
             if mqtt_client is not None:
                 mqtt_client.publish(event)
 
@@ -173,72 +185,29 @@ async def _run_pipeline(config: AppConfig) -> None:
         """
         try:
             await _publish_events(aggregator.flush())
-            if silence_started_at is not None:
-                now = datetime.now(UTC)
-                await _publish_events(
-                    [
-                        EventMessage(
-                            event_type="audio.detected",
-                            label="silence",
-                            confidence=1.0,
-                            duration=(now - silence_started_at).total_seconds(),
-                            state="ended",
-                            model="activity-detector",
-                        )
-                    ]
-                )
         except Exception:
             _LOGGER.exception("Failed to flush active events on shutdown")
 
     async def _detect() -> None:
-        nonlocal silence_started_at
         try:
             async for chunk in source.stream():
                 buffer.append(chunk)
                 window = buffer.get_window(config.buffer_seconds)
                 now = datetime.now(UTC)
                 should_analyze = detector.should_analyze(window, now)
-                if (
-                    not detector.currently_active
-                    and silence_started_at is None
-                    and detector.silence_timed_out(now)
-                ):
-                    await _publish_events(aggregator.flush())
-                    silence_started_at = now
-                    await _publish_events(
-                        [
-                            EventMessage(
-                                event_type="audio.detected",
-                                label="silence",
-                                confidence=1.0,
-                                duration=0.0,
-                                state="started",
-                                model="activity-detector",
-                            )
-                        ]
+                detections: list[Detection] | None = None
+                if should_analyze:
+                    raw_detections = await classifier.classify(window)
+                    detections = filter_detections(raw_detections, config.classifier)
+
+                quiet_override = detector.silence_timed_out(now)
+                await _publish_events(
+                    aggregator.update(
+                        detections,
+                        quiet_override=quiet_override,
+                        timestamp=now,
                     )
-
-                if silence_started_at is not None and detector.currently_active:
-                    await _publish_events(
-                        [
-                            EventMessage(
-                                event_type="audio.detected",
-                                label="silence",
-                                confidence=1.0,
-                                duration=(now - silence_started_at).total_seconds(),
-                                state="ended",
-                                model="activity-detector",
-                            )
-                        ]
-                    )
-                    silence_started_at = None
-
-                if not should_analyze or silence_started_at is not None:
-                    continue
-
-                detections = await classifier.classify(window)
-                filtered = filter_detections(detections, config.classifier)
-                await _publish_events(aggregator.update(filtered))
+                )
         except NoAudioStreamError as err:
             # Dead-but-connected source (e.g. video-only camera proxy).
             # Treat like an ended stream so the panel stays up and the
