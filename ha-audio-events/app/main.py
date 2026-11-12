@@ -54,7 +54,11 @@ async def _run_pipeline(config: AppConfig) -> None:
     # manageable from the HA UI), otherwise the REST API owns them (they
     # exist and update, but HA cannot manage them). See build_rest_entity_ids.
     mqtt_enabled = config.mqtt.enabled
-    mqtt_client = MQTTClient(config.mqtt) if mqtt_enabled else None
+    mqtt_client = (
+        MQTTClient(config.mqtt, hide_silence=config.classifier.hide_silence)
+        if mqtt_enabled
+        else None
+    )
     entity_ids = build_entity_ids(config.homeassistant)
     label_sensor_ids = build_label_sensor_entity_ids(
         config.homeassistant, config.classifier.include
@@ -68,6 +72,7 @@ async def _run_pipeline(config: AppConfig) -> None:
             config.homeassistant,
             mqtt_enabled=mqtt_enabled,
             labels=config.classifier.include,
+            hide_silence=config.classifier.hide_silence,
         )
         if config.homeassistant.enabled
         else None
@@ -128,6 +133,14 @@ async def _run_pipeline(config: AppConfig) -> None:
                 and config.classifier.hide_silence
             ):
                 continue
+            # With hide_silence enabled, present the idle/no-sound state as Off
+            # in the Web UI and the last_audio_event sensor.
+            if (
+                event.is_display
+                and event.label.lower() == "silence"
+                and config.classifier.hide_silence
+            ):
+                event.label = "off"
             _LOGGER.info("Detected event: %s", format_event_summary(event))
             history.add(event.label, event.confidence, event.state)
             if ha_client is not None:
@@ -143,13 +156,13 @@ async def _run_pipeline(config: AppConfig) -> None:
                             ),
                         )
                     else:
+                        is_active = (
+                            event.state != "ended"
+                            and event.label.lower() not in ("silence", "off")
+                        )
                         await ha_client.update_state(
                             entity_ids["audio_active"],
-                            (
-                                "on"
-                                if event.state != "ended" and event.label != "silence"
-                                else "off"
-                            ),
+                            "on" if is_active else "off",
                             {
                                 "label": event.label,
                                 "friendly_name": friendly_names["audio_active"],
@@ -159,12 +172,7 @@ async def _run_pipeline(config: AppConfig) -> None:
                         if event.label in label_sensor_ids:
                             await ha_client.update_state(
                                 label_sensor_ids[event.label],
-                                (
-                                    "on"
-                                    if event.state != "ended"
-                                    and event.label != "silence"
-                                    else "off"
-                                ),
+                                "on" if is_active else "off",
                                 {
                                     "label": event.label,
                                     "confidence": str(event.confidence),
@@ -223,6 +231,7 @@ async def _run_pipeline(config: AppConfig) -> None:
             config.homeassistant,
             mqtt_enabled=mqtt_enabled,
             labels=config.classifier.include,
+            hide_silence=config.classifier.hide_silence,
         )
         # init_entities() is idempotent; when the panel has its own client
         # (homeassistant publishing disabled) still initialise its entities,
@@ -239,6 +248,7 @@ async def _run_pipeline(config: AppConfig) -> None:
             addon_mgr,
             history,
             auth_token=config.webui.auth_token,
+            hide_silence=config.classifier.hide_silence,
         )
         # The Web UI must come up immediately and stay up regardless of what
         # the audio pipeline does: a healthy live stream never ends, and a

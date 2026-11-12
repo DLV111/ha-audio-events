@@ -30,6 +30,7 @@ class HomeAssistantClient:
         *,
         mqtt_enabled: bool = False,
         labels: Iterable[str] = (),
+        hide_silence: bool = False,
     ) -> None:
         self.config = config
         self._timeout = request_timeout or DEFAULT_REQUEST_TIMEOUT
@@ -44,6 +45,9 @@ class HomeAssistantClient:
         # The labels named in classifier.include, which is where the
         # per-label sensor ids come from on the REST path.
         self._labels = list(labels)
+        # When True, the idle/no-sound state is presented as "off" rather than
+        # "silence" in the last_audio_event sensor.
+        self._hide_silence = hide_silence
 
     async def close(self) -> None:
         await self._session.close()
@@ -71,7 +75,9 @@ class HomeAssistantClient:
         )
         for entity_id in sorted(rest_entity_ids):
             if entity_id == self._entity_ids["last_audio_event"]:
-                await self.update_state(entity_id, "silence", {})
+                await self.update_state(
+                    entity_id, "off" if self._hide_silence else "silence", {}
+                )
             else:
                 await self.update_state(entity_id, "off", {})
 
