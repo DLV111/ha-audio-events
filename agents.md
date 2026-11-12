@@ -206,12 +206,34 @@ make test-unit          # Just unit tests (no coverage)
 The GitHub Actions workflow (`.github/workflows/ci.yml`) runs the exact same commands in a single job:
 1. Install dependencies (no editable install, uses `PYTHONPATH=ha-audio-events`, installs `pytest-cov`)
 2. Install `ffmpeg` system package (required for MP3 fixture conversion)
-3. Run `pytest --cov=ha-audio-events/app --cov-fail-under=60 --cov-report=term-missing -v`
-4. Run `ruff check ha-audio-events/app/ tests/`
-5. Run `black --check ha-audio-events/app/ tests/`
-6. Upload coverage report as artifact
+3. Run `pytest --cov=ha-audio-events/app --cov-fail-under=80 --cov-report=term-missing -v`
+4. Run `ruff check ha-audio-events/app/ tests/ scripts/`
+5. Run `black --check ha-audio-events/app/ tests/ scripts/`
+6. Run `mypy ha-audio-events/app`
+7. Build the container via `make test-container` and `make test-container-webui` using Docker BuildKit and GitHub Actions cache export/import
+8. Upload coverage report as artifact
 
 **If `make test` passes locally, CI will pass.**
+
+Container builds go through `scripts/build.sh`, which is shared between local
+Makefile targets and CI. The script auto-detects Docker/Podman and enables
+BuildKit for Docker. CI sets `CONTAINER_ENGINE=docker`,
+`BUILD_CACHE_FROM=type=gha`, `BUILD_CACHE_TO=type=gha,mode=max`, and
+`BUILDKIT_INLINE_CACHE=1` so consecutive CI runs reuse dependency layers.
+
+Common overrides (set as environment variables or `make VAR=value` arguments):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `CONTAINER_ENGINE` | auto (`docker` if present, else `podman`) | `docker` or `podman`. CI uses `docker`. |
+| `IMAGE_NAME` | `ha-audio-events-test` | Image tag for the build. |
+| `BUILD_CONTEXT` | `./ha-audio-events` | Build context path. |
+| `BUILD_CACHE_FROM` | *(empty)* | Cache source(s); separate multiple with `;`. |
+| `BUILD_CACHE_TO` | *(empty)* | Cache destination, e.g. `type=gha,mode=max`. |
+| `BUILDKIT_INLINE_CACHE` | *(empty)* | Set to `1` to embed cache metadata. |
+| `BUILDKIT_PROGRESS` | `plain` | BuildKit progress output. |
+| `PUSH_IMAGE` | `false` | Push after build (docker buildx only). |
+| `VOLUME_LABEL` | `:Z` | SELinux volume label for `run` mounts; set empty for Docker. |
 
 The old CI had separate `test` and `coverage-check` jobs that ran tests twice. Now both CI and local run tests once with coverage.
 
@@ -237,10 +259,12 @@ PYTHONPATH=ha-audio-events .venv/bin/python -m app.demo tests/fixtures/audio/tra
 - **`make test-unit`**: Run unit tests only (no coverage)
 - **`make test-lint`**: Run ruff linting
 - **`make test-format`**: Run black format check
-- **`make test-with-coverage`**: Run tests with coverage (60% threshold)
+- **`make test-with-coverage`**: Run tests with coverage (80% threshold)
 - **`make test-fixtures`**: Run pytest against fixture test files.
 - **`make demo-file FILE=path/to/audio.wav`**: Test classifier pipeline on a single audio file.
-- **`make test-container`**: Build Podman/Docker image and run container smoke test.
+- **`make build-container`**: Build the container image via `scripts/build.sh` (supports BuildKit cache).
+- **`make test-container`**: Build container image and run container smoke test.
+- **`make test-container-webui`**: Build container image and run webui smoke test.
 - **`make version VERSION=x.y.z`**: Bump version across `pyproject.toml` and `ha-audio-events/config.json`.
 - **`make update-yamnet-model`**: Download latest YAMNet model assets from Kaggle.
 

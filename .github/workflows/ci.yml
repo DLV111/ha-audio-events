@@ -10,6 +10,16 @@ on:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "24"
+  # Use Docker + BuildKit for container builds so CI and local Makefile targets
+  # share the same caching behaviour.
+  CONTAINER_ENGINE: docker
+  IMAGE_NAME: ha-audio-events-test
+  BUILDKIT_PROGRESS: plain
+  BUILDKIT_INLINE_CACHE: "1"
+  BUILD_CACHE_FROM: type=gha
+  BUILD_CACHE_TO: type=gha,mode=max
+  # Docker does not use Podman's SELinux volume labels.
+  VOLUME_LABEL: ""
 
 jobs:
   # Branch Guard - enforces the repository's branch flow:
@@ -121,13 +131,16 @@ jobs:
         run: |
           node ha-audio-events/app/webui/picker.test.js
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Run make test-container
-        timeout-minutes: 5
+        timeout-minutes: 8
         run: |
           make test-container
 
       - name: Run make test-container-webui
-        timeout-minutes: 3
+        timeout-minutes: 5
         run: |
           make test-container-webui
 
