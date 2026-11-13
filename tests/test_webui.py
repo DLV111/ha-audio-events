@@ -282,6 +282,38 @@ class TestWebUI(AioHTTPTestCase):
         assert data[0]["state"] == "active"
         assert data[1]["state"] == "started"
 
+    async def test_get_detections_hide_silence_maps_to_off(self):
+        """When hide_silence is enabled, a silence record is presented as Off."""
+        from app.detection.history import EventHistory
+
+        history = EventHistory()
+        history.add("silence", 1.0, "current")
+        self.webui._hide_silence = True
+        self.webui.history = history
+
+        resp = await self.client.request("GET", "/api/detections")
+        assert resp.status == 200
+        data = await resp.json()
+        assert len(data) == 1
+        assert data[0]["label"] == "off"
+        assert data[0]["state"] == "current"
+
+    async def test_get_detections_shows_silence_when_not_hidden(self):
+        """When hide_silence is disabled, a silence record is kept as-is."""
+        from app.detection.history import EventHistory
+
+        history = EventHistory()
+        history.add("silence", 1.0, "current")
+        self.webui._hide_silence = False
+        self.webui.history = history
+
+        resp = await self.client.request("GET", "/api/detections")
+        assert resp.status == 200
+        data = await resp.json()
+        assert len(data) == 1
+        assert data[0]["label"] == "silence"
+        assert data[0]["state"] == "current"
+
 
 class TestWebUIAuth(AioHTTPTestCase):
     """The optional shared token must lock every /api endpoint while keeping

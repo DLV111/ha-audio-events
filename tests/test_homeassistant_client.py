@@ -203,6 +203,34 @@ class TestHomeAssistantClient:
         await client.close()
 
     @pytest.mark.asyncio
+    async def test_init_entities_uses_off_when_hide_silence_enabled(
+        self,
+        ha_config: HomeAssistantConfig,
+        mock_response_200: AsyncMock,
+    ) -> None:
+        """With hide_silence enabled, the default last_audio_event state must
+        be Off so the sensor never shows Silence."""
+        client = HomeAssistantClient(
+            ha_config, mqtt_enabled=False, labels=["dog"], hide_silence=True
+        )
+        mock_session = make_mock_session(mock_response_200)
+        client._session = mock_session
+
+        await client.init_entities()
+
+        states_by_url = {
+            call.args[0]: call.kwargs["json"]["state"]
+            for call in mock_session.post.call_args_list
+        }
+        assert (
+            states_by_url[
+                "http://localhost:8123/api/states/sensor.audio_last_audio_event"
+            ]
+            == "off"
+        )
+        await client.close()
+
+    @pytest.mark.asyncio
     async def test_init_entities_is_idempotent(
         self,
         ha_config: HomeAssistantConfig,

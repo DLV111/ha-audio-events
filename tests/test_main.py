@@ -791,6 +791,170 @@ async def test_rest_owns_entities_when_mqtt_disabled(caplog) -> None:
     assert "classifier.include" in warning
 
 
+@pytest.mark.asyncio
+async def test_hide_silence_maps_display_silence_to_off() -> None:
+    """When hide_silence is enabled, the no-sound display event updates the
+    last_audio_event sensor to Off, and binary sensors stay Off."""
+    config = AppConfig(
+        model="yamnet",
+        audio=AudioSourceConfig(sample_rate=16000, channels=1),
+        activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
+        buffer_seconds=3.0,
+        aggregation=AggregationConfig(
+            start_confidence=0.5, sustain_confidence=0.25, end_timeout=2.0
+        ),
+        classifier=ClassifierConfig(
+            threshold=0.5, include=["dog"], exclude=[], hide_silence=True
+        ),
+        homeassistant=HomeAssistantConfig(
+            enabled=True,
+            url="http://localhost:8123",
+            token="test_token",
+            entity_prefix="audio",
+        ),
+        mqtt=MQTTConfig(enabled=False),
+        webui=WebUIConfig(enabled=False),
+    )
+
+    silence_display = EventMessage(
+        event_type="audio.detected",
+        label="silence",
+        confidence=1.0,
+        duration=0.0,
+        state="current",
+        model="",
+        is_display=True,
+    )
+
+    chunk = np.ones(16000, dtype=np.float32) * 0.01
+    session = _make_ha_session_mock()
+
+    with (
+        patch("app.main.AudioStreamSource") as mock_source_class,
+        patch("app.main.build_classifier") as mock_classifier,
+        patch("app.main.EventAggregator") as mock_aggregator,
+        patch("app.main.MQTTClient") as mock_mqtt_client_class,
+        patch("app.homeassistant.client.aiohttp.ClientSession", return_value=session),
+    ):
+        mock_source = MagicMock()
+
+        class ChunkAsyncIterator:
+            def __init__(self) -> None:
+                self.yielded = False
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                if not self.yielded:
+                    self.yielded = True
+                    return chunk
+                raise StopAsyncIteration
+
+        mock_source.stream.return_value = ChunkAsyncIterator()
+        mock_source_class.return_value = mock_source
+
+        mock_classifier_instance = AsyncMock()
+        mock_classifier_instance.classify = AsyncMock(return_value=[])
+        mock_classifier.return_value = mock_classifier_instance
+
+        aggregator = MagicMock()
+        aggregator.update.return_value = [silence_display]
+        aggregator.flush.return_value = []
+        mock_aggregator.return_value = aggregator
+
+        await _run_pipeline(config)
+
+    posts = _posted(session)
+    assert any(
+        url == "http://localhost:8123/api/states/sensor.audio_last_audio_event"
+        and payload.get("state") == "off"
+        for url, payload in posts
+    )
+    mock_mqtt_client_class.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_hide_silence_disabled_keeps_silence_label() -> None:
+    """When hide_silence is disabled, the no-sound display event keeps the
+    Silence label."""
+    config = AppConfig(
+        model="yamnet",
+        audio=AudioSourceConfig(sample_rate=16000, channels=1),
+        activity=ActivityConfig(rms_threshold=0.001, peak_threshold=0.001),
+        buffer_seconds=3.0,
+        aggregation=AggregationConfig(
+            start_confidence=0.5, sustain_confidence=0.25, end_timeout=2.0
+        ),
+        classifier=ClassifierConfig(
+            threshold=0.5, include=["dog"], exclude=[], hide_silence=False
+        ),
+        homeassistant=HomeAssistantConfig(
+            enabled=True,
+            url="http://localhost:8123",
+            token="test_token",
+            entity_prefix="audio",
+        ),
+        mqtt=MQTTConfig(enabled=False),
+        webui=WebUIConfig(enabled=False),
+    )
+
+    silence_display = EventMessage(
+        event_type="audio.detected",
+        label="silence",
+        confidence=1.0,
+        duration=0.0,
+        state="current",
+        model="",
+        is_display=True,
+    )
+
+    chunk = np.ones(16000, dtype=np.float32) * 0.01
+    session = _make_ha_session_mock()
+
+    with (
+        patch("app.main.AudioStreamSource") as mock_source_class,
+        patch("app.main.build_classifier") as mock_classifier,
+        patch("app.main.EventAggregator") as mock_aggregator,
+        patch("app.homeassistant.client.aiohttp.ClientSession", return_value=session),
+    ):
+        mock_source = MagicMock()
+
+        class ChunkAsyncIterator:
+            def __init__(self) -> None:
+                self.yielded = False
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                if not self.yielded:
+                    self.yielded = True
+                    return chunk
+                raise StopAsyncIteration
+
+        mock_source.stream.return_value = ChunkAsyncIterator()
+        mock_source_class.return_value = mock_source
+
+        mock_classifier_instance = AsyncMock()
+        mock_classifier_instance.classify = AsyncMock(return_value=[])
+        mock_classifier.return_value = mock_classifier_instance
+
+        aggregator = MagicMock()
+        aggregator.update.return_value = [silence_display]
+        aggregator.flush.return_value = []
+        mock_aggregator.return_value = aggregator
+
+        await _run_pipeline(config)
+
+    posts = _posted(session)
+    assert any(
+        url == "http://localhost:8123/api/states/sensor.audio_last_audio_event"
+        and payload.get("state") == "silence"
+        for url, payload in posts
+    )
+
+
 @patch("app.main.load_config")
 @patch("app.main.configure_logging")
 @patch("app.main.asyncio.run")

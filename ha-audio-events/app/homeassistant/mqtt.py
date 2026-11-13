@@ -17,8 +17,9 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class MQTTClient:
-    def __init__(self, config: MQTTConfig) -> None:
+    def __init__(self, config: MQTTConfig, hide_silence: bool = False) -> None:
         self.config = config
+        self._hide_silence = hide_silence
         self.client = mqtt.Client(
             callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
             client_id="ha-audio-events",
@@ -107,10 +108,13 @@ class MQTTClient:
             self.client.publish(topic, payload, retain=True)
 
     def publish(self, event: EventMessage) -> None:
-        is_on = event.state != "ended" and event.label != "silence"
+        label = event.label
+        if self._hide_silence and label.lower() == "silence":
+            label = "off"
+        is_on = event.state != "ended" and event.label.lower() not in ("silence", "off")
         payload = json.dumps(
             {
-                "label": event.label,
+                "label": label,
                 "confidence": event.confidence,
                 "duration": event.duration,
                 "state": "on" if is_on else "off",

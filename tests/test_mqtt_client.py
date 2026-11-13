@@ -236,3 +236,50 @@ def test_mqtt_client_stop(mock_mqtt_client):
 
     mock_mqtt_client.loop_stop.assert_called_once()
     mock_mqtt_client.disconnect.assert_called_once()
+
+
+def test_mqtt_client_publish_silence_with_hide_silence(mock_mqtt_client):
+    """With hide_silence enabled, a silence event is published as Off and the
+    scalar entity state stays off."""
+    config = _config()
+    client = MQTTClient(config, hide_silence=True)
+
+    event = EventMessage(
+        event_type="audio.detected",
+        label="silence",
+        confidence=1.0,
+        duration=0.0,
+        state="current",
+        model="",
+    )
+
+    client.publish(event)
+
+    import json
+
+    payload = json.loads(mock_mqtt_client.publish.call_args_list[0].args[1])
+    assert payload["label"] == "off"
+    assert payload["state"] == "off"
+
+
+def test_mqtt_client_publish_silence_without_hide_silence(mock_mqtt_client):
+    """With hide_silence disabled, a silence event keeps its original label."""
+    config = _config()
+    client = MQTTClient(config, hide_silence=False)
+
+    event = EventMessage(
+        event_type="audio.detected",
+        label="silence",
+        confidence=1.0,
+        duration=0.0,
+        state="current",
+        model="",
+    )
+
+    client.publish(event)
+
+    import json
+
+    payload = json.loads(mock_mqtt_client.publish.call_args_list[0].args[1])
+    assert payload["label"] == "silence"
+    assert payload["state"] == "off"

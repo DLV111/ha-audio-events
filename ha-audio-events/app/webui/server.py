@@ -66,12 +66,14 @@ class WebUI:
         history: EventHistory | None = None,
         auth_token: str | None = None,
         host: str = "0.0.0.0",
+        hide_silence: bool = False,
     ) -> None:
         self.hass_client = hass_client
         self.addon_manager = addon_manager
         self.history = history
         self.auth_token = auth_token
         self.host = host
+        self._hide_silence = hide_silence
         self.app = web.Application(middlewares=[auth_middleware])
         self.app[_AUTH_TOKEN_KEY] = auth_token or ""
         # Set once the TCP site is bound; lets callers confirm reachability
@@ -653,9 +655,17 @@ class WebUI:
         if self.history is None:
             return web.json_response([])
         recent = self.history.recent()
-        # Filter out silence records if hide_silence is configured
-        # Note: addon config defaults to true; silence suppressed when true
-        filtered = [r for r in recent if str(r.get("label") or "").lower() != "silence"]
+        # When hide_silence is enabled, present the idle/no-sound state as Off.
+        # When disabled, keep the original "silence" label visible.
+        if self._hide_silence:
+            filtered = []
+            for record in recent:
+                mapped = dict(record)
+                if str(mapped.get("label") or "").lower() == "silence":
+                    mapped["label"] = "off"
+                filtered.append(mapped)
+        else:
+            filtered = recent
         return web.json_response(filtered)
 
     async def get_source(self, request: web.Request) -> web.Response:
