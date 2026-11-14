@@ -137,7 +137,10 @@ class EventAggregator:
                 state.last_seen_at + end_timeout,
             )
             if now >= expire_at:
-                events.append(self._end_event(state, now))
+                # Report the sustained duration up to the expiry time (the
+                # moment the binary sensor actually turns off), not the later
+                # tick that happened to observe the expiry.
+                events.append(self._end_event(state, expire_at))
                 del self._active_events[label]
         return events
 
