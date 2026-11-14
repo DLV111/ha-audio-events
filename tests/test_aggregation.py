@@ -284,3 +284,25 @@ class TestNoDuplicatePublications:
         assert sum(1 for e in _lifecycle_events(events) if e.state == "ended") == 1
         events = aggregator.update([], timestamp=now + timedelta(seconds=7))
         assert not any(e.state == "ended" for e in _lifecycle_events(events))
+
+
+class TestEndedDurationSustained:
+    def test_ended_event_duration_includes_grace_period(self) -> None:
+        config = _default_config(min_event_hold_seconds=0.0, end_timeout=5.0)
+        aggregator = EventAggregator(config)
+        now = datetime(2026, 10, 26, tzinfo=UTC)
+        aggregator.update([_det("Thunder", 0.90)], timestamp=now)
+        events = aggregator.update([], timestamp=now + timedelta(seconds=5.0))
+        ended = [e for e in _lifecycle_events(events) if e.state == "ended"]
+        assert len(ended) == 1
+        assert ended[0].duration == pytest.approx(5.0)
+
+    def test_ended_event_duration_includes_min_hold(self) -> None:
+        config = _default_config(min_event_hold_seconds=3.0, end_timeout=0.0)
+        aggregator = EventAggregator(config)
+        now = datetime(2026, 10, 26, tzinfo=UTC)
+        aggregator.update([_det("Thunder", 0.90)], timestamp=now)
+        events = aggregator.update([], timestamp=now + timedelta(seconds=3.0))
+        ended = [e for e in _lifecycle_events(events) if e.state == "ended"]
+        assert len(ended) == 1
+        assert ended[0].duration == pytest.approx(3.0)
