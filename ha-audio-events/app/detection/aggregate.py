@@ -97,9 +97,13 @@ class EventAggregator:
         )
 
     def _end_event(self, state: AggregatedEvent, now: datetime) -> EventMessage:
-        state.duration = max(
-            state.duration, (state.last_seen_at - state.started_at).total_seconds()
-        )
+        # Report the full sustained duration of the event, including the
+        # end-timeout grace period (and any minimum-hold extension) that kept
+        # the binary sensor "on" after the last qualifying detection. Using
+        # ``last_seen_at`` here made the reported duration end at the last
+        # detection, so details looked shorter than the sustained event.
+        state.duration = max(state.duration, (now - state.started_at).total_seconds())
+        state.last_seen_at = max(state.last_seen_at, now)
         return EventMessage(
             event_type="audio.detected",
             label=state.label,
